@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Mail, User, Eye, EyeOff, ArrowLeft, ArrowRight, 
+import {
+  Mail, User, Eye, EyeOff, ArrowLeft, ArrowRight,
   CheckCircle, AlertCircle, Loader, Heart, Shield, Clock, Calendar,
   Activity, Plane, Laptop, Palette
 } from "lucide-react";
@@ -49,7 +49,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
     dateOfBirth: "",
     interests: [],
   });
-  
+
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [otpTimer, setOtpTimer] = useState(0);
@@ -86,7 +86,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
       ...prev,
       [name]: value
     }));
-    
+
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -98,15 +98,15 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
   const handleInterestToggle = (interestId) => {
     setFormData(prev => {
       const isSelected = prev.interests.includes(interestId);
-      
+
       // Don't allow more than 5 interests
       if (!isSelected && prev.interests.length >= 5) {
         toast.error('Maximum 5 interests allowed');
         return prev;
       }
-      
+
       setErrors(prev => ({ ...prev, interests: undefined }));
-      
+
       return {
         ...prev,
         interests: isSelected
@@ -124,7 +124,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
 
   const validateStep1 = () => {
     const newErrors = {};
-    
+
     if (!formData.name.trim()) {
       newErrors.name = "Full name is required";
     }
@@ -138,13 +138,13 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
     } else if (!/^[a-zA-Z0-9._-]+$/.test(formData.username)) {
       newErrors.username = "Username can only contain letters, numbers, dots, hyphens, and underscores";
     }
-    
+
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Please enter a valid email";
     }
-    
+
     if (!formData.password) {
       newErrors.password = "Password is required";
     } else if (formData.password.length < 8) {
@@ -156,14 +156,14 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
     } else if (!/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\/'`~;]/.test(formData.password)) {
       newErrors.password = "Password must contain at least one special character";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const validateStep2 = () => {
     const newErrors = {};
-    
+
     if (!formData.otp) {
       newErrors.otp = "OTP is required";
     } else if (formData.otp.length !== 6) {
@@ -171,7 +171,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
     } else if (!/^\d{6}$/.test(formData.otp)) {
       newErrors.otp = "OTP must contain only numbers";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -192,7 +192,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
       }
 
       const { data: { available, checks } } = checkResult;
-      
+
       if (!available) {
         const newErrors = {};
         checks.forEach(check => {
@@ -226,7 +226,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
       setOtpTimer(30); // 30 seconds initial wait time
       setCanResendOTP(false);
       setErrors({});
-      
+
     } catch (error) {
       setErrors({ general: "Something went wrong. Please try again." });
     }
@@ -249,7 +249,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
       // Move to profile completion step
       setCurrentStep(3);
       setErrors({});
-      
+
     } catch (error) {
       setErrors({ otp: "Invalid OTP. Please try again." });
     }
@@ -279,7 +279,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
       } else {
         navigate('/dashboard');
       }
-      
+
     } catch (error) {
       setErrors({ general: "Failed to complete registration. Please try again." });
     }
@@ -299,11 +299,11 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
       setOtpTimer(60); // Increased wait time after resend
       setCanResendOTP(false);
       setErrors({});
-      
+
       // Clear OTP input
       setFormData(prev => ({ ...prev, otp: "" }));
       toast.success('OTP resent successfully!');
-      
+
     } catch (error) {
       setErrors({ general: "Failed to resend OTP. Please try again." });
     }
@@ -333,14 +333,14 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
           </p>
           <div className="flex space-x-1">
             <div className="w-12 sm:w-16 h-1 sm:h-1.5 bg-blue-500 rounded-full"></div>
-            <div className="w-12 sm:w-16 h-1 sm:h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
-            <div className="w-12 sm:w-16 h-1 sm:h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
+            <div className="w-12 sm:w-16 h-1 sm:h-1.5 bg-gray-200 dark:bg-elevated rounded-full"></div>
+            <div className="w-12 sm:w-16 h-1 sm:h-1.5 bg-gray-200 dark:bg-elevated rounded-full"></div>
           </div>
         </div>
         <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
           Join WishTrail
         </h2>
-        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-muted">
           Create your account to start tracking milestones.
         </p>
       </div>
@@ -387,10 +387,10 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
       {/* Divider */}
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+          <div className="w-full border-t border-gray-300 dark:border-line"></div>
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs sm:text-sm font-medium">
+          <span className="px-2 bg-white dark:bg-surface text-gray-500 dark:text-muted uppercase tracking-wide text-xs sm:text-sm font-medium">
             Or with email
           </span>
         </div>
@@ -399,7 +399,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
       {/* Form Fields */}
       <div className="space-y-3 sm:space-y-4">
         <div>
-          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2 uppercase tracking-wide">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-muted mb-1.5 sm:mb-2 uppercase tracking-wide">
             Full Name
           </label>
           <input
@@ -408,15 +408,15 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
             value={formData.name}
             onChange={handleInputChange}
             className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-              errors.name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-            } bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400`}
+              errors.name ? 'border-red-500' : 'border-gray-300 dark:border-line'
+            } bg-gray-50 dark:bg-canvas text-gray-900 dark:text-white placeholder-gray-400`}
             placeholder="Alex Rivers"
           />
           {errors.name && <p className="text-red-500 text-xs sm:text-sm mt-1">{errors.name}</p>}
         </div>
 
         <div>
-          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2 uppercase tracking-wide">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-muted mb-1.5 sm:mb-2 uppercase tracking-wide">
             Username
           </label>
           <input
@@ -425,15 +425,15 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
             value={formData.username}
             onChange={handleInputChange}
             className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-              errors.username ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-            } bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400`}
+              errors.username ? 'border-red-500' : 'border-gray-300 dark:border-line'
+            } bg-gray-50 dark:bg-canvas text-gray-900 dark:text-white placeholder-gray-400`}
             placeholder="alexrivers"
           />
           {errors.username && <p className="text-red-500 text-xs sm:text-sm mt-1">{errors.username}</p>}
         </div>
 
         <div>
-          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2 uppercase tracking-wide">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-muted mb-1.5 sm:mb-2 uppercase tracking-wide">
             Email Address
           </label>
           <input
@@ -442,15 +442,15 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
             value={formData.email}
             onChange={handleInputChange}
             className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-              errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-            } bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400`}
+              errors.email ? 'border-red-500' : 'border-gray-300 dark:border-line'
+            } bg-gray-50 dark:bg-canvas text-gray-900 dark:text-white placeholder-gray-400`}
             placeholder="alex@wishtrail.com"
           />
           {errors.email && <p className="text-red-500 text-xs sm:text-sm mt-1">{errors.email}</p>}
         </div>
 
         <div>
-          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2 uppercase tracking-wide">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-muted mb-1.5 sm:mb-2 uppercase tracking-wide">
             Password
           </label>
           <div className="relative">
@@ -460,14 +460,14 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
               value={formData.password}
               onChange={handleInputChange}
               className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 pr-10 sm:pr-12 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                errors.password ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-              } bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400`}
+                errors.password ? 'border-red-500' : 'border-gray-300 dark:border-line'
+              } bg-gray-50 dark:bg-canvas text-gray-900 dark:text-white placeholder-gray-400`}
               placeholder="••••••••"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-2.5 sm:right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              className="absolute right-2.5 sm:right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-muted"
             >
               {showPassword ? <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Eye className="w-4 h-4 sm:w-5 sm:h-5" />}
             </button>
@@ -511,7 +511,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
           <div className="flex space-x-1">
             <div className="w-12 sm:w-16 h-1 sm:h-1.5 bg-blue-500 rounded-full"></div>
             <div className="w-12 sm:w-16 h-1 sm:h-1.5 bg-blue-500 rounded-full"></div>
-            <div className="w-12 sm:w-16 h-1 sm:h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
+            <div className="w-12 sm:w-16 h-1 sm:h-1.5 bg-gray-200 dark:bg-elevated rounded-full"></div>
           </div>
         </div>
         <div className="w-14 h-14 sm:w-16 sm:h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
@@ -520,7 +520,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
         <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2 text-center">
           Verify Your Email
         </h2>
-        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 text-center px-4">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-muted text-center px-4">
           We've sent a 6-digit code to <strong className="break-all">{formData.email}</strong>
         </p>
       </div>
@@ -534,7 +534,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
 
       {/* OTP Input */}
       <div>
-        <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2 uppercase tracking-wide">
+        <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-muted mb-1.5 sm:mb-2 uppercase tracking-wide">
           Verification Code
         </label>
         <input
@@ -544,8 +544,8 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
           onChange={handleInputChange}
           maxLength={6}
           className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-center text-xl sm:text-2xl tracking-widest border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-            errors.otp ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-          } bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white`}
+            errors.otp ? 'border-red-500' : 'border-gray-300 dark:border-line'
+          } bg-gray-50 dark:bg-canvas text-gray-900 dark:text-white`}
           placeholder="000000"
         />
         {errors.otp && <p className="text-red-500 text-xs sm:text-sm mt-1">{errors.otp}</p>}
@@ -554,7 +554,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
       {/* Code Expiration Timer */}
       {otpExpiresAt && (
         <div className="text-center">
-          <div className="flex items-center justify-center space-x-2 text-sm sm:text-base text-gray-600 dark:text-gray-400">
+          <div className="flex items-center justify-center space-x-2 text-sm sm:text-base text-gray-600 dark:text-muted">
             <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
             <span>Code expires in {formatTime(Math.max(0, Math.floor((new Date(otpExpiresAt) - new Date()) / 1000)))}</span>
           </div>
@@ -563,7 +563,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
 
       {/* Resend OTP */}
       <div className="text-center">
-        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-2">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-muted mb-2">
           Didn't receive the code?
         </p>
         <button
@@ -574,7 +574,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
             canResendOTP ? 'text-blue-500 hover:text-blue-600' : 'text-gray-400 cursor-not-allowed'
           } transition-colors`}
         >
-          {!canResendOTP && otpTimer > 0 
+          {!canResendOTP && otpTimer > 0
             ? `Resend in ${formatTime(otpTimer)}`
             : 'Resend Code'
           }
@@ -586,7 +586,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
         <button
           type="button"
           onClick={handleBack}
-          className="flex items-center px-3 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
+          className="flex items-center px-3 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-gray-600 dark:text-muted hover:text-gray-800 dark:hover:text-ink transition-colors"
         >
           <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
           Back
@@ -632,7 +632,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
         <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
           Complete Your Profile
         </h2>
-        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-muted">
           Tell us a bit more about yourself
         </p>
       </div>
@@ -646,7 +646,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
 
       {/* Date of Birth */}
       <div className="space-y-1.5 sm:space-y-2">
-        <label className="flex items-center text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label className="flex items-center text-xs sm:text-sm font-medium text-gray-700 dark:text-muted">
           <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
           Date of Birth
         </label>
@@ -654,16 +654,16 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
           type="date"
           value={formData.dateOfBirth}
           onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all"
+          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-line rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-surface text-gray-900 dark:text-white transition-all"
         />
       </div>
 
       {/* Interests */}
       <div className="space-y-2 sm:space-y-3">
-        <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-muted">
           Your Interests
         </label>
-        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-xs sm:text-sm text-gray-500 dark:text-muted">
           Select up to 5 interests that best represent you
         </p>
         <div className="max-h-[240px] sm:max-h-[280px] overflow-y-auto pr-1 sm:pr-2 custom-scrollbar">
@@ -678,12 +678,12 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
                   className={`p-2 sm:p-3 rounded-lg border-2 transition-all text-left flex flex-col items-center justify-center min-h-[70px] sm:min-h-[90px] ${
                     selected
                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                      : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
+                      : 'border-gray-200 dark:border-line hover:border-gray-300 dark:hover:border-line text-gray-700 dark:text-muted'
                   }`}
                 >
                   <div className="flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 mb-1.5 sm:mb-2">
                     {interest.Icon ? (
-                      <interest.Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${selected ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`} />
+                      <interest.Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${selected ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-muted'}`} />
                     ) : (
                       <span className="text-lg sm:text-2xl">{interest.icon}</span>
                     )}
@@ -694,7 +694,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
             })}
           </div>
         </div>
-        <p className={`text-xs sm:text-sm ${formData.interests.length >= 5 ? 'text-amber-600 dark:text-amber-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+        <p className={`text-xs sm:text-sm ${formData.interests.length >= 5 ? 'text-amber-600 dark:text-amber-400 font-medium' : 'text-gray-500 dark:text-muted'}`}>
           Selected: {formData.interests.length}/5 interests
         </p>
       </div>
@@ -704,7 +704,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
         <button
           type="button"
           onClick={handleBack}
-          className="flex items-center px-3 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
+          className="flex items-center px-3 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-gray-600 dark:text-muted hover:text-gray-800 dark:hover:text-ink transition-colors"
         >
           <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
           Back
@@ -713,7 +713,7 @@ const MultiStepSignup = ({ onSuccess, onBack }) => {
           <button
             type="button"
             onClick={handleStep3Submit}
-            className="px-3 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
+            className="px-3 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-gray-600 dark:text-muted hover:text-gray-800 dark:hover:text-ink transition-colors"
           >
             Skip
           </button>

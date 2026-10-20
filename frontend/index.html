@@ -1,6 +1,16 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      try {
+        var state = JSON.parse(localStorage.getItem('wishtrail-api-store') || '{}').state || {};
+        var mode = state.themeMode || (typeof state.isDarkMode === 'boolean' ? (state.isDarkMode ? 'dark' : 'light') : 'system');
+        var dark = mode === 'dark' || (mode === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.classList.toggle('dark', dark);
+        document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+        document.documentElement.style.backgroundColor = dark ? '#0b1220' : '#f7f9fc';
+      } catch (_) {}
+    </script>
     <!-- Google tag (gtag.js) -->
     <script data-cfasync="false">
       window.dataLayer = window.dataLayer || [];
@@ -15,17 +25,17 @@
         document.head.appendChild(script);
       }, { once: true });
     </script>
-    
+
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="google-site-verification" content="VjYhHYwUBwx_vxOZwaJR4UOZaFobv-EIdRWkam-b8K8" />
-    
+
     <!-- Google Fonts - Manrope -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <noscript><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
-    
+
     <!-- Primary Meta Tags -->
     <title>WishTrail - Transform Your Dreams Into Reality | Goal Tracking App</title>
     <meta name="title" content="WishTrail - Transform Your Dreams Into Reality | Goal Tracking App" />
@@ -33,7 +43,7 @@
     <meta name="keywords" content="goal tracking app, dream tracker, personal development, goal setting, habit tracker, productivity app, achievement tracker, progress tracking, self improvement" />
     <meta name="author" content="WishTrail" />
     <meta name="robots" content="index, follow" />
-    
+
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://wishtrail.in/" />
@@ -41,27 +51,27 @@
     <meta property="og:description" content="The ultimate goal tracking platform. Set, track, and achieve your dreams with powerful analytics, community support, and daily inspiration." />
     <meta property="og:image" content="https://wishtrail.in/og-image.jpg" />
     <meta property="og:site_name" content="WishTrail" />
-    
+
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content="https://wishtrail.in/" />
     <meta property="twitter:title" content="WishTrail - Transform Your Dreams Into Reality" />
     <meta property="twitter:description" content="The ultimate goal tracking platform. Set, track, and achieve your dreams with powerful analytics, community support, and daily inspiration." />
     <meta property="twitter:image" content="https://wishtrail.in/og-image.jpg" />
-    
+
     <!-- Favicon -->
     <link rel="icon" type="image/png" sizes="32x32" href="/logo.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" sizes="180x180" href="/logo.png" />
     <link rel="canonical" href="https://wishtrail.in/" />
-    
+
     <!-- PWA -->
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="WishTrail" />
     <meta name="theme-color" content="#4c99e6" />
-    
+
 
 
     <!-- Structured Data - Organization -->

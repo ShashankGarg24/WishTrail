@@ -55,13 +55,13 @@ const MotivationModal = ({ isOpen, onClose }) => {
             initial={{ scale: 0.8, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.8, opacity: 0, y: 20 }}
-            transition={{ 
+            transition={{
               type: "spring",
               stiffness: 300,
               damping: 25
             }}
             onClick={(e) => e.stopPropagation()}
-            className="relative bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-md w-full p-8 overflow-hidden"
+            className="relative bg-white dark:bg-surface rounded-3xl shadow-2xl max-w-md w-full p-8 overflow-hidden"
           >
             {/* Animated background stars */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -69,7 +69,7 @@ const MotivationModal = ({ isOpen, onClose }) => {
                 <motion.div
                   key={i}
                   initial={{ opacity: 0, scale: 0 }}
-                  animate={{ 
+                  animate={{
                     opacity: [0, 1, 0],
                     scale: [0, 1, 0],
                     x: [0, Math.random() * 100 - 50],
@@ -98,7 +98,7 @@ const MotivationModal = ({ isOpen, onClose }) => {
               <motion.div
                 initial={{ scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
-                transition={{ 
+                transition={{
                   type: "spring",
                   stiffness: 200,
                   damping: 15,
@@ -106,7 +106,7 @@ const MotivationModal = ({ isOpen, onClose }) => {
                 }}
               >
                 <motion.div
-                  animate={{ 
+                  animate={{
                     rotate: [0, 5, -5, 0],
                     scale: [1, 1.05, 1]
                   }}
@@ -128,9 +128,9 @@ const MotivationModal = ({ isOpen, onClose }) => {
                 transition={{ delay: 0.3, duration: 0.5 }}
                 className="space-y-2"
               >
-                <motion.h3 
+                <motion.h3
                   className="text-2xl md:text-3xl font-bold text-[#4c99e6] dark:text-blue-400"
-                  animate={{ 
+                  animate={{
                     backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
                   }}
                   transition={{
@@ -144,7 +144,7 @@ const MotivationModal = ({ isOpen, onClose }) => {
                 >
                   {motivation.text}
                 </motion.h3>
-                
+
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
@@ -154,7 +154,7 @@ const MotivationModal = ({ isOpen, onClose }) => {
                   {[...Array(3)].map((_, i) => (
                     <motion.div
                       key={i}
-                      animate={{ 
+                      animate={{
                         y: [0, -8, 0],
                       }}
                       transition={{

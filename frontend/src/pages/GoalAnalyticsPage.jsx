@@ -2,14 +2,14 @@ import CategoryBadge from '../components/CategoryBadge';
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { 
-  ArrowLeft, 
-  Target, 
-  Calendar, 
-  Clock, 
-  TrendingUp, 
-  CheckCircle, 
-  Heart, 
+import {
+  ArrowLeft,
+  Target,
+  Calendar,
+  Clock,
+  TrendingUp,
+  CheckCircle,
+  Heart,
   MessageCircle,
   ListChecks,
   Activity,
@@ -125,7 +125,7 @@ const GoalAnalyticsPage = () => {
     try {
       setLoading(true)
       const response = await getGoalAnalytics(goalId, { force: true })
-      
+
       if (response?.success && response?.data) {
         setGoalData(response.data)
       } else {
@@ -154,18 +154,18 @@ const GoalAnalyticsPage = () => {
       navigate('/auth')
       return
     }
-    
+
     loadGoalData()
-    
+
     // Refresh data when page becomes visible (user switches back to tab)
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         loadGoalData()
       }
     }
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
@@ -185,9 +185,9 @@ const GoalAnalyticsPage = () => {
 
   const handleCompleteGoal = async (completionPayload /* FormData */) => {
     if (!goalData?.goal || goalData.goal.completedAt) return
-    
+
     const completionDate = new Date().toISOString()
-    
+
     // Instantly update the UI to show completed state
     setGoalData(prev => ({
       ...prev,
@@ -200,9 +200,9 @@ const GoalAnalyticsPage = () => {
         }
       }
     }))
-    
+
     const result = await toggleGoalCompletion(goalId, completionPayload)
-    
+
     if (result?.success) {
       // Reload goal data to reflect completion with full data
       const response = await getGoalAnalytics(goalId, { force: true })
@@ -232,7 +232,7 @@ const GoalAnalyticsPage = () => {
       ? parsedTargetDate
       : null
     const completedDate = goal.completedAt ? new Date(goal.completedAt) : null
-    
+
     // Completion duration uses calendar days in the user's timezone, rather
     // than elapsed 24-hour blocks, so it matches the selected completion date.
     const daysToComplete = completedDate ? getCalendarDaysBetween(createdDate, completedDate) : null
@@ -241,21 +241,21 @@ const GoalAnalyticsPage = () => {
     const daysUntilDeadline = targetDate
       ? targetKey < todayKey ? -getCalendarDaysBetween(targetDate, now) : getCalendarDaysBetween(now, targetDate)
       : null
-    
+
     // The API owns goal-progress calculation so weighted components stay consistent.
     const subGoalsTotal = goal.subGoals?.length || 0
     const subGoalsCompleted = goal.subGoals?.filter(sg => sg.completedAt)?.length || 0
     const habitLinksTotal = goal.habitLinks?.length || 0
-    
+
     const progressPercent = Math.max(0, Math.min(100, goal.completedAt ? 100 : (goal.progress?.percent ?? 0)))
-    
+
     // Engagement - use the new structure
     const totalLikes = goal.likeCount || 0
     const totalComments = goal.commentCount || 0
-    
+
     // Use backend timeline if available, otherwise build manually
     let timelineEvents = []
-    
+
     if (goal.timeline && Array.isArray(goal.timeline)) {
       // Map backend timeline to frontend format
       timelineEvents = goal.timeline.map(event => ({
@@ -275,7 +275,7 @@ const GoalAnalyticsPage = () => {
         icon: Target,
         color: 'blue'
       })
-      
+
       // Sub-goal completions
       if (goal.subGoals && goal.subGoals.length > 0) {
         goal.subGoals.forEach(sg => {
@@ -290,7 +290,7 @@ const GoalAnalyticsPage = () => {
           }
         })
       }
-      
+
       // Completion event
       if (completedDate) {
         timelineEvents.push({
@@ -301,11 +301,11 @@ const GoalAnalyticsPage = () => {
           color: 'green'
         })
       }
-      
+
       // Sort timeline by date
       timelineEvents.sort((a, b) => a.date - b.date)
     }
-    
+
     return {
       daysToComplete,
       daysUntilDeadline,
@@ -330,11 +330,11 @@ const GoalAnalyticsPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen pt-20 pb-24 px-4 bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen pt-20 pb-24 px-4 bg-gray-50 dark:bg-canvas">
         <div className="max-w-7xl mx-auto">
             <div className="flex flex-col items-center justify-center py-20" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 mb-4" style={{ borderColor: THEME_COLOR }}></div>
-              <p className="text-gray-600 dark:text-gray-400">Loading goal analytics...</p>
+              <p className="text-gray-600 dark:text-muted">Loading goal analytics...</p>
             </div>
         </div>
       </div>
@@ -343,10 +343,10 @@ const GoalAnalyticsPage = () => {
 
   if (!goalData || !goalData.goal) {
     return (
-      <div className="min-h-screen pt-20 pb-24 px-4 bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen pt-20 pb-24 px-4 bg-gray-50 dark:bg-canvas">
         <div className="max-w-7xl mx-auto">
           <div className="text-center py-20">
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-gray-600 dark:text-muted mb-4">
               Goal not found or failed to load
             </p>
             <button
@@ -364,19 +364,19 @@ const GoalAnalyticsPage = () => {
   const { goal } = goalData
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 pb-16" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
+    <div className="min-h-screen bg-gray-50 dark:bg-canvas p-4 pb-16" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-5">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-3 transition-colors"
+            className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-muted hover:text-gray-900 dark:hover:text-white mb-3 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Goals
           </button>
 
-          <div className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700">
+          <div className="p-4 rounded-xl bg-white dark:bg-canvas border border-gray-100 dark:border-line">
             <div className="space-y-3">
               <div>
                 <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-1.5">
@@ -384,16 +384,16 @@ const GoalAnalyticsPage = () => {
                 </h1>
                 {goal.description && (
                   <div className="mb-2">
-                    <ExpandableText 
+                    <ExpandableText
                       text={goal.description}
                       maxLength={200}
-                      className="text-sm text-gray-600 dark:text-gray-400"
+                      className="text-sm text-gray-600 dark:text-muted"
                     />
                   </div>
                 )}
                 <div className="flex flex-wrap gap-1.5">
                   <CategoryBadge category={goal.category} />
-                  
+
                   {analytics?.isOverdue && (
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
                       <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
@@ -402,7 +402,7 @@ const GoalAnalyticsPage = () => {
                   )}
                 </div>
               </div>
-              
+
               {analytics?.isCompleted ? (
                 <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 dark:text-green-300 text-sm font-medium border border-green-100 dark:border-green-800">
                   <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -430,7 +430,7 @@ const GoalAnalyticsPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 cursor-pointer hover:border-blue-300 dark:hover:border-blue-700"
+            className="p-3 rounded-lg bg-white dark:bg-canvas border border-gray-100 dark:border-line cursor-pointer hover:border-blue-300 dark:hover:border-blue-700"
           >
             <div className="flex items-center gap-2 mb-1.5">
               <div className="p-1.5 sm:p-2 rounded-lg" style={{ background: THEME_COLOR }}>
@@ -439,8 +439,8 @@ const GoalAnalyticsPage = () => {
               <span className="text-xs sm:text-sm font-medium" style={{ color: THEME_COLOR }}>Target Progress</span>
             </div>
             <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{analytics?.progressPercent?.toFixed(1) || 0}%</p>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 mb-2">Progress</p>
-            <div className="w-full h-1.5 sm:h-2 rounded-full bg-gray-200 dark:bg-gray-700">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-muted mt-1 mb-2">Progress</p>
+            <div className="w-full h-1.5 sm:h-2 rounded-full bg-gray-200 dark:bg-elevated">
               <div className="h-1.5 sm:h-2 rounded-full" style={{ width: `${analytics?.progressPercent || 0}%`, background: THEME_COLOR }} />
             </div>
           </motion.div>
@@ -450,7 +450,7 @@ const GoalAnalyticsPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.15 }}
-            className="p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 cursor-pointer hover:border-blue-300 dark:hover:border-blue-700"
+            className="p-3 rounded-lg bg-white dark:bg-canvas border border-gray-100 dark:border-line cursor-pointer hover:border-blue-300 dark:hover:border-blue-700"
           >
             <div className="flex items-center gap-2 mb-1.5">
               <div className="p-1.5 sm:p-2 rounded-lg" style={{ background: THEME_COLOR }}>
@@ -459,7 +459,7 @@ const GoalAnalyticsPage = () => {
               <span className="text-xs sm:text-sm font-medium" style={{ color: THEME_COLOR }}>Time to Complete</span>
             </div>
             <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{analytics?.daysToComplete ?? '—'}</p>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-muted">
               {analytics?.daysToComplete !== null && analytics?.daysToComplete !== undefined ? 'days to complete' : 'Complete the goal to measure'}
             </p>
           </motion.div>
@@ -469,7 +469,7 @@ const GoalAnalyticsPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 cursor-pointer hover:border-blue-300 dark:hover:border-blue-700"
+            className="p-3 rounded-lg bg-white dark:bg-canvas border border-gray-100 dark:border-line cursor-pointer hover:border-blue-300 dark:hover:border-blue-700"
           >
             <div className="flex items-center gap-2 mb-1.5">
               <div className="p-1.5 sm:p-2 rounded-lg" style={{ background: THEME_COLOR }}>
@@ -477,13 +477,13 @@ const GoalAnalyticsPage = () => {
               </div>
               <span className="text-xs sm:text-sm font-medium" style={{ color: THEME_COLOR }}>Deadline</span>
             </div>
-            <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{analytics?.daysUntilDeadline !== null 
-                ? analytics.daysUntilDeadline >= 0 
-                  ? analytics.daysUntilDeadline 
+            <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{analytics?.daysUntilDeadline !== null
+                ? analytics.daysUntilDeadline >= 0
+                  ? analytics.daysUntilDeadline
                   : Math.abs(analytics.daysUntilDeadline)
                 : '—'
               }</p>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-muted">
               {analytics?.daysUntilDeadline !== null
                 ? analytics.daysUntilDeadline >= 0
                   ? 'Days Until Deadline'
@@ -509,7 +509,7 @@ const GoalAnalyticsPage = () => {
                 <div className="text-xl font-bold text-gray-900 dark:text-white mb-1">
                   {feeling.label}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-500">
+                <div className="text-xs text-gray-500 dark:text-muted">
                   How You Felt
                 </div>
               </motion.div>
@@ -522,28 +522,28 @@ const GoalAnalyticsPage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 mb-5"
+          className="p-4 rounded-xl bg-white dark:bg-canvas border border-gray-100 dark:border-line mb-5"
         >
           <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
             <Activity className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: THEME_COLOR }} />
             Engagement Metrics
           </h2>
             <div className="grid grid-cols-2 gap-2 sm:gap-3">
-            <div className="text-center p-2 sm:p-3 md:p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-700">
+            <div className="text-center p-2 sm:p-3 md:p-4 bg-white dark:bg-canvas rounded-lg border border-gray-100 dark:border-line">
               <Heart className="h-5 w-5 sm:h-6 sm:w-6 text-red-500 mx-auto mb-2" />
               <div className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-0.5">
                 {analytics?.totalLikes || 0}
               </div>
-              <div className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
+              <div className="text-xs sm:text-sm font-medium text-gray-600 dark:text-muted">
                 Likes
               </div>
             </div>
-            <div className="text-center p-2 sm:p-3 md:p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-700">
+            <div className="text-center p-2 sm:p-3 md:p-4 bg-white dark:bg-canvas rounded-lg border border-gray-100 dark:border-line">
               <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-2" style={{ color: THEME_COLOR }} />
               <div className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-0.5">
                 {analytics?.totalComments || 0}
               </div>
-              <div className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
+              <div className="text-xs sm:text-sm font-medium text-gray-600 dark:text-muted">
                 Comments
               </div>
             </div>
@@ -558,7 +558,7 @@ const GoalAnalyticsPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.38 }}
-            className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 mb-5"
+            className="p-4 rounded-xl bg-white dark:bg-canvas border border-gray-100 dark:border-line mb-5"
           >
             <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
               <Activity className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: THEME_COLOR }} />
@@ -566,8 +566,8 @@ const GoalAnalyticsPage = () => {
             </h2>
             <div className="relative space-y-4">
               {/* Timeline line */}
-              <div className="absolute left-[12px] sm:left-[16px] top-2 bottom-2 w-0.5 bg-gray-200 dark:bg-gray-700" />
-              
+              <div className="absolute left-[12px] sm:left-[16px] top-2 bottom-2 w-0.5 bg-gray-200 dark:bg-elevated" />
+
               {analytics.timelineEvents.map((event, idx) => {
                 const IconComponent = event.icon
                 const colorClasses = {
@@ -576,7 +576,7 @@ const GoalAnalyticsPage = () => {
                   yellow: 'text-yellow-500 bg-yellow-100 dark:bg-yellow-900/30',
                   red: 'text-red-500 bg-red-100 dark:bg-red-900/30'
                 }
-                
+
                 return (
                   <div key={idx} className="relative flex gap-3">
                     <div className={`flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center ${colorClasses[event.color] || colorClasses.blue} relative z-10`}>
@@ -587,7 +587,7 @@ const GoalAnalyticsPage = () => {
                         <h3 className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">
                           {event.title}
                         </h3>
-                        <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+                        <span className="text-[10px] sm:text-xs text-gray-500 dark:text-muted">
                           {event.date.toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
@@ -595,7 +595,7 @@ const GoalAnalyticsPage = () => {
                           })}
                         </span>
                       </div>
-                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-muted">
                         {event.description}
                       </p>
                     </div>
@@ -612,7 +612,7 @@ const GoalAnalyticsPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.39 }}
-            className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 mb-5"
+            className="p-4 rounded-xl bg-white dark:bg-canvas border border-gray-100 dark:border-line mb-5"
           >
             <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
               <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: THEME_COLOR }} />
@@ -627,9 +627,9 @@ const GoalAnalyticsPage = () => {
                 const emotionMeta = update.emotion ? getEmotionMeta(update.emotion) : null
 
                 return (
-                  <div key={update.id} className="p-3 rounded-lg border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900">
+                  <div key={update.id} className="p-3 rounded-lg border border-gray-100 dark:border-line bg-white dark:bg-canvas">
                     <div className="flex items-center mb-1.5">
-                      <span className="text-xs font-medium text-gray-500 dark:text-gray-400 inline-flex items-center gap-2">
+                      <span className="text-xs font-medium text-gray-500 dark:text-muted inline-flex items-center gap-2">
                         {new Date(update.dateKey || update.createdAt).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
@@ -650,7 +650,7 @@ const GoalAnalyticsPage = () => {
                       </span>
                     </div>
                     {update.text && (
-                      <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                      <p className="text-sm text-gray-700 dark:text-muted leading-relaxed">
                         {update.text}
                       </p>
                     )}
@@ -659,23 +659,23 @@ const GoalAnalyticsPage = () => {
               })}
 
               {!loadingGoalUpdates && goalUpdates.length === 0 && (
-                <p className="text-sm text-gray-500 dark:text-gray-400">No updates yet.</p>
+                <p className="text-sm text-gray-500 dark:text-muted">No updates yet.</p>
               )}
             </div>
 
             <div className="mt-3 flex justify-center">
               {loadingGoalUpdates ? (
-                <p className="text-xs text-gray-500 dark:text-gray-400">Loading updates...</p>
+                <p className="text-xs text-gray-500 dark:text-muted">Loading updates...</p>
               ) : hasMoreGoalUpdates ? (
                 <button
                   type="button"
                   onClick={() => loadMoreGoalUpdates()}
-                  className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-line bg-white dark:bg-surface text-xs font-medium text-gray-700 dark:text-muted hover:bg-gray-50 dark:hover:bg-elevated transition-colors"
                 >
                   Load more
                 </button>
               ) : goalUpdates.length > 0 ? (
-                <p className="text-xs text-gray-500 dark:text-gray-400">All updates loaded</p>
+                <p className="text-xs text-gray-500 dark:text-muted">All updates loaded</p>
               ) : null}
             </div>
           </motion.div>
@@ -687,7 +687,7 @@ const GoalAnalyticsPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 mb-5"
+            className="p-4 rounded-xl bg-white dark:bg-canvas border border-gray-100 dark:border-line mb-5"
           >
             <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
               <ListChecks className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: THEME_COLOR }} />
@@ -705,19 +705,19 @@ const GoalAnalyticsPage = () => {
                   className={`p-2 sm:p-3 rounded-lg border cursor-pointer ${
                     subGoal.completedAt
                       ? 'bg-green-50 border-green-200 dark:border-green-800'
-                      : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-700'
+                      : 'bg-white dark:bg-canvas border-gray-100 dark:border-line'
                   }`}>
                   <div className="flex items-start gap-2">
                     {subGoal.completedAt ? (
                       <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0 mt-0.5" />
                     ) : (
-                      <div className="h-3 w-3 sm:h-4 sm:w-4 rounded-full border-2 border-gray-300 dark:border-gray-600 flex-shrink-0 mt-0.5" />
+                      <div className="h-3 w-3 sm:h-4 sm:w-4 rounded-full border-2 border-gray-300 dark:border-line flex-shrink-0 mt-0.5" />
                     )}
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <h3 className={`text-xs sm:text-sm font-medium ${
                           subGoal.completedAt
-                            ? 'text-gray-700 dark:text-gray-300 line-through'
+                            ? 'text-gray-700 dark:text-muted line-through'
                             : 'text-gray-900 dark:text-white'
                         }`}>
                           {subGoal.title}
@@ -733,7 +733,7 @@ const GoalAnalyticsPage = () => {
                           <ExpandableText
                             text={subGoal.description}
                             maxLength={120}
-                            className="text-sm text-gray-600 dark:text-gray-400"
+                            className="text-sm text-gray-600 dark:text-muted"
                           />
                         </div>
                       )}
@@ -765,7 +765,7 @@ const GoalAnalyticsPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.42 }}
-            className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 mb-5"
+            className="p-4 rounded-xl bg-white dark:bg-canvas border border-gray-100 dark:border-line mb-5"
           >
             <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
               <ListChecks className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: THEME_COLOR }} />
@@ -781,10 +781,10 @@ const GoalAnalyticsPage = () => {
                       navigate(`/habits/${habitId}/analytics`)
                     }
                   }}
-                  className="p-2 sm:p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 cursor-pointer"
+                  className="p-2 sm:p-3 rounded-lg bg-white dark:bg-canvas border border-gray-100 dark:border-line cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
-                    <div className="h-3 w-3 sm:h-4 sm:w-4 rounded-full border-2 border-gray-300 dark:border-gray-600 flex-shrink-0 mt-0.5" />
+                    <div className="h-3 w-3 sm:h-4 sm:w-4 rounded-full border-2 border-gray-300 dark:border-line flex-shrink-0 mt-0.5" />
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-0.5">
                         <h3 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
@@ -801,7 +801,7 @@ const GoalAnalyticsPage = () => {
                           <ExpandableText
                             text={habit.description}
                             maxLength={120}
-                            className="text-sm text-gray-600 dark:text-gray-400"
+                            className="text-sm text-gray-600 dark:text-muted"
                           />
                         </div>
                       )}

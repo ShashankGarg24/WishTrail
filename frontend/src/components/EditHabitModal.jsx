@@ -99,7 +99,7 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
         daysOfWeek: frequency === 'daily' ? [] : daysOfWeek.sort()
         // reminders: reminders.filter(Boolean).map(t => ({ time: t })),
       };
-      
+
       // Add targets if provided
       if (dailyTargetCount && parseInt(dailyTargetCount) > 0) {
         payload.dailyTargetCount = parseInt(dailyTargetCount);
@@ -111,7 +111,7 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
       } else {
         payload.targetDays = null;
       }
-      
+
       await onSave?.(payload);
       onClose?.();
     } catch (e) {
@@ -128,19 +128,19 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
   return (
     <div className="habit-form-modal fixed inset-0 z-[102] flex items-center justify-center p-4" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="habit-form-dialog relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-xl border border-gray-200 dark:border-gray-700 max-h-[90dvh] overflow-hidden flex flex-col">
+      <div className="habit-form-dialog relative bg-white dark:bg-surface rounded-2xl shadow-xl w-full max-w-xl border border-gray-200 dark:border-line max-h-[90dvh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
+        <div className="px-6 py-5 border-b border-gray-100 dark:border-line flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
               <Calendar className="h-5 w-5" />
             </div>
             <div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">Edit Habit</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Update your habit details</p>
+              <p className="text-sm text-gray-500 dark:text-muted mt-0.5">Update your habit details</p>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors" aria-label="Close">
+          <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-elevated text-gray-500 transition-colors" aria-label="Close">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -157,41 +157,41 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
 
             {/* Basic Information */}
             <div className="space-y-4">
-              <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-2">
+              <h4 className="text-xs font-semibold text-gray-500 dark:text-muted uppercase tracking-wide flex items-center gap-2">
                 <span className="w-6 h-6 rounded flex items-center justify-center text-white text-xs" style={{ backgroundColor: THEME_COLOR }}>i</span>
                 Required Details
               </h4>
               <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Habit Name *</label>
-                <input 
-                  value={name} 
-                  onChange={(e) => setName(e.target.value.slice(0, MAX_HABIT_TITLE_CHARS))} 
+                <label className="block text-xs font-medium text-gray-500 dark:text-muted uppercase tracking-wide mb-1.5">Habit Name *</label>
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value.slice(0, MAX_HABIT_TITLE_CHARS))}
                   placeholder="e.g., Morning meditation"
                   maxLength={MAX_HABIT_TITLE_CHARS}
-                  required 
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4c99e6] transition-colors"
+                  required
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-line bg-white dark:bg-surface text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4c99e6] transition-colors"
                 />
-                <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right">{name.length}/{MAX_HABIT_TITLE_CHARS}</div>
+                <div className="mt-1 text-xs text-gray-500 dark:text-muted text-right">{name.length}/{MAX_HABIT_TITLE_CHARS}</div>
               </div>
 
               <div>
-                <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Choose a category</label>
+                <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-muted">Choose a category</label>
                 <HabitCategorySelector value={category} onChange={setCategory}/>
               </div>
 
               <div>
-                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Year *</label>
-                <select value={year} onChange={(event) => setYear(Number(event.target.value))} className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#4c99e6] dark:border-gray-600 dark:bg-gray-800 dark:text-white">
+                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-muted">Year *</label>
+                <select value={year} onChange={(event) => setYear(Number(event.target.value))} className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#4c99e6] dark:border-line dark:bg-surface dark:text-white">
                   {[...new Set([year, ...Array.from({ length: 11 }, (_, index) => new Date().getFullYear() - 5 + index)])].sort((a, b) => b - a).map(optionYear => <option key={optionYear} value={optionYear}>{optionYear}</option>)}
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Frequency *</label>
-                <select 
-                  value={frequency} 
-                  onChange={(e) => setFrequency(e.target.value)} 
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6]"
+                <label className="block text-xs font-medium text-gray-500 dark:text-muted uppercase tracking-wide mb-1.5">Frequency *</label>
+                <select
+                  value={frequency}
+                  onChange={(e) => setFrequency(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-line bg-white dark:bg-surface text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6]"
                 >
                   <option value="daily">Daily</option>
                   <option value="custom">Custom</option>
@@ -200,17 +200,17 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
 
               {(frequency === 'custom') && (
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Select Days</label>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-muted mb-2">Select Days</label>
                   <div className="flex flex-wrap gap-2">
                     {dayOptions.map(d => (
-                      <button 
-                        type="button" 
-                        key={d.value} 
-                        onClick={() => toggleDay(d.value)} 
+                      <button
+                        type="button"
+                        key={d.value}
+                        onClick={() => toggleDay(d.value)}
                         className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
-                          daysOfWeek.includes(d.value) 
-                            ? 'text-white border-transparent' 
-                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                          daysOfWeek.includes(d.value)
+                            ? 'text-white border-transparent'
+                            : 'bg-white dark:bg-surface text-gray-700 dark:text-muted border-gray-300 dark:border-line hover:bg-gray-50 dark:hover:bg-elevated'
                         }`}
                         style={daysOfWeek.includes(d.value) ? { backgroundColor: THEME_COLOR } : {}}
                       >
@@ -223,7 +223,7 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
             </div>
 
             {/* Additional details (optional) */}
-            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-800/40">
+            <div className="rounded-xl border border-gray-200 dark:border-line bg-gray-50/60 dark:bg-gray-800/40">
               <button
                 type="button"
                 onClick={() => setShowAdditionalDetails(prev => !prev)}
@@ -232,7 +232,7 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
               >
                 <div>
                   <div className="text-sm font-semibold text-gray-900 dark:text-white">Additional Details</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Optional fields for richer habit setup</div>
+                  <div className="text-xs text-gray-500 dark:text-muted">Optional fields for richer habit setup</div>
                 </div>
                 {showAdditionalDetails ? (
                   <ChevronDown className="h-4 w-4 text-gray-500" />
@@ -242,50 +242,50 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
               </button>
 
               {showAdditionalDetails && (
-                <div className="px-4 pb-4 space-y-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="px-4 pb-4 space-y-4 border-t border-gray-200 dark:border-line">
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Description</label>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-muted uppercase tracking-wide mb-1.5">Description</label>
                     <textarea
                       value={description}
                       onChange={(e) => setDescription(e.target.value.slice(0, MAX_HABIT_DESC_CHARS))}
                       placeholder="Add any notes or motivation for this habit"
                       maxLength={MAX_HABIT_DESC_CHARS}
                       rows={3}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4c99e6] transition-colors resize-none"
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-line bg-white dark:bg-surface text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4c99e6] transition-colors resize-none"
                     />
-                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right">{description.length}/{MAX_HABIT_DESC_CHARS}</div>
+                    <div className="mt-1 text-xs text-gray-500 dark:text-muted text-right">{description.length}/{MAX_HABIT_DESC_CHARS}</div>
                   </div>
 
                   {/* Goals */}
                   <div className="space-y-4">
-                    <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-2">
+                    <h4 className="text-xs font-semibold text-gray-500 dark:text-muted uppercase tracking-wide flex items-center gap-2">
                       <Info className="h-4 w-4" style={{ color: THEME_COLOR }} />
                       Goals
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Daily Target Count</label>
+                        <label className="block text-xs font-medium text-gray-500 dark:text-muted mb-1.5">Daily Target Count</label>
                         <input
                           type="number"
                           min="1"
                           value={dailyTargetCount}
                           onChange={(e) => setDailyTargetCount(e.target.value)}
                           placeholder="1"
-                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-line bg-white dark:bg-surface text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] disabled:opacity-50 disabled:cursor-not-allowed"
                         />
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Completions expected on each scheduled day</p>
+                        <p className="text-xs text-gray-500 dark:text-muted mt-1">Completions expected on each scheduled day</p>
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Target Days</label>
+                        <label className="block text-xs font-medium text-gray-500 dark:text-muted mb-1.5">Target Days</label>
                         <input
                           type="number"
                           min="0"
                           value={targetDays}
                           onChange={(e) => setTargetDays(e.target.value)}
                           placeholder="e.g., 30"
-                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-line bg-white dark:bg-surface text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] disabled:opacity-50 disabled:cursor-not-allowed"
                         />
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Number of unique days</p>
+                        <p className="text-xs text-gray-500 dark:text-muted mt-1">Number of unique days</p>
                       </div>
                     </div>
                   </div>
@@ -297,22 +297,22 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
             {/* <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Bell className="h-4 w-4 text-primary-600 dark:text-primary-400" />
-                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Reminders (optional)</h4>
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-muted uppercase tracking-wider">Reminders (optional)</h4>
               </div>
 
               <div className="space-y-3">
                 {reminders.map((t, idx) => (
                   <div key={idx} className="flex items-center gap-3">
-                    <input 
-                      type="time" 
-                      value={t} 
-                      onChange={(e) => setReminders(prev => prev.map((v,i) => i===idx ? e.target.value : v))} 
-                      className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-500 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors" 
+                    <input
+                      type="time"
+                      value={t}
+                      onChange={(e) => setReminders(prev => prev.map((v,i) => i===idx ? e.target.value : v))}
+                      className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-line bg-white dark:bg-surface text-gray-900 dark:text-white focus:border-primary-500 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors"
                     />
                     {reminders.length > 1 && (
-                      <button 
-                        type="button" 
-                        onClick={() => setReminders(prev => prev.filter((_,i) => i!==idx))} 
+                      <button
+                        type="button"
+                        onClick={() => setReminders(prev => prev.filter((_,i) => i!==idx))}
                         className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
                         title="Remove reminder"
                       >
@@ -321,10 +321,10 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
                     )}
                   </div>
                 ))}
-                <button 
-                  type="button" 
-                  onClick={() => setReminders(prev => [...prev, ''])} 
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors font-medium"
+                <button
+                  type="button"
+                  onClick={() => setReminders(prev => [...prev, ''])}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-surface border-2 border-gray-300 dark:border-line text-gray-700 dark:text-muted hover:bg-gray-200 dark:hover:bg-elevated transition-colors font-medium"
                 >
                   <Plus className="h-4 w-4" /> Add Reminder
                 </button>
@@ -334,17 +334,17 @@ export default function EditHabitModal({ isOpen, onClose, habit, onSave }) {
           </div>
 
           {/* Footer */}
-          <div className="shrink-0 bg-gray-50 dark:bg-gray-800/50 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2 sm:gap-3">
-            <button 
-              type="button" 
-              onClick={onClose} 
-              className="flex-1 py-2.5 sm:py-3 px-3 sm:px-5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-all text-sm sm:text-base"
+          <div className="shrink-0 bg-gray-50 dark:bg-gray-800/50 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 border-t border-gray-200 dark:border-line flex items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2.5 sm:py-3 px-3 sm:px-5 border-2 border-gray-300 dark:border-line text-gray-700 dark:text-muted rounded-xl hover:bg-gray-100 dark:hover:bg-elevated font-medium transition-all text-sm sm:text-base"
             >
               Cancel
             </button>
-            <button 
-              type="submit" 
-              disabled={submitting} 
+            <button
+              type="submit"
+              disabled={submitting}
               className="flex-1 py-3 px-5 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg transition-all"
               style={{ backgroundColor: THEME_COLOR }}
             >

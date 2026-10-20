@@ -44,17 +44,17 @@ const Timeline = ({ events = [] }) => {
         }
       default:
         return {
-          bg: 'bg-gray-100 dark:bg-gray-700',
-          text: 'text-gray-600 dark:text-gray-400',
-          line: 'bg-gray-200 dark:bg-gray-700'
+          bg: 'bg-gray-100 dark:bg-elevated',
+          text: 'text-gray-600 dark:text-muted',
+          line: 'bg-gray-200 dark:bg-elevated'
         }
     }
   }
 
   const formatDate = (timestamp) => {
     const date = new Date(timestamp)
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
       day: 'numeric',
       year: 'numeric'
     })
@@ -85,11 +85,11 @@ const Timeline = ({ events = [] }) => {
                 <h4 className="font-semibold text-gray-900 dark:text-white text-sm">
                   {event.title}
                 </h4>
-                <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                <span className="text-xs text-gray-500 dark:text-muted whitespace-nowrap">
                   {formatDate(event.timestamp)}
                 </span>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+              <p className="text-sm text-gray-600 dark:text-muted leading-relaxed">
                 {event.description}
               </p>
             </div>

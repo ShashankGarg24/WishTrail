@@ -161,15 +161,15 @@ const NotificationsPageNew = () => {
   const hasNotifications = (notifications?.length > 0) || (followRequests?.length > 0);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
+    <div className="min-h-screen bg-gray-50 dark:bg-canvas" style={{ fontFamily: 'Manrope, sans-serif' }}>
       <PullToRefresh onRefresh={handleRefresh} disabled={loading}>
       <div className="max-w-3xl mx-auto px-0 sm:px-6 lg:px-8 sm:py-8">
         {/* Header */}
-        <div className="sticky top-0 z-20 mb-0 border-b border-slate-100 bg-white/95 px-4 py-4 backdrop-blur dark:border-gray-800 dark:bg-gray-900/95 sm:static sm:mb-5 sm:rounded-xl sm:border">
+        <div className="sticky top-0 z-20 mb-0 border-b border-slate-100 bg-white/95 px-4 py-4 backdrop-blur dark:border-line dark:bg-gray-900/95 sm:static sm:mb-5 sm:rounded-xl sm:border">
           <div className="flex flex-col items-stretch gap-3 mb-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <h1 className="hidden md:block text-xl font-extrabold text-gray-900 dark:text-white sm:mb-2 sm:text-3xl">Notifications</h1>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-gray-600 dark:text-muted">
                 {loading ? 'Loading notifications...' : loadError ? 'Unable to load all notifications' : unreadNotifications > 0 ? (
                   <>You have <span className="font-semibold text-[#4c99e6]">{unreadNotifications} unread</span> alerts</>
                 ) : (
@@ -192,7 +192,7 @@ const NotificationsPageNew = () => {
                 onClick={handleRefresh}
                 aria-label="Refresh notifications"
                 disabled={loading}
-                className="hidden md:block p-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-300 hover:text-[#4c99e6] hover:border-[#4c99e6] transition-colors disabled:opacity-50"
+                className="hidden md:block p-2.5 bg-white dark:bg-surface border border-gray-200 dark:border-line rounded-lg text-gray-600 dark:text-muted hover:text-[#4c99e6] hover:border-[#4c99e6] transition-colors disabled:opacity-50"
               >
                 <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
               </button>
@@ -211,12 +211,12 @@ const NotificationsPageNew = () => {
 
         {/* Notifications List */}
         {!hasNotifications ? (!isInitialLoading && !loadError && (
-          <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+          <div className="text-center py-16 bg-white dark:bg-surface rounded-xl border border-gray-100 dark:border-line">
             <div className="w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center mx-auto mb-4">
               <MessageCircle className="w-8 h-8 text-[#4c99e6]" />
             </div>
-            <p className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-1">No notifications yet</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">When people interact with you, you'll see updates here</p>
+            <p className="text-lg font-semibold text-gray-700 dark:text-ink mb-1">No notifications yet</p>
+            <p className="text-sm text-gray-500 dark:text-muted">When people interact with you, you'll see updates here</p>
           </div>
         )) : (
           <div className="space-y-8 px-4 py-5 sm:px-0 sm:py-0">{/* Follow Requests Section */}
@@ -237,9 +237,9 @@ const NotificationsPageNew = () => {
                         key={request.id || request._id}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className={`relative bg-white dark:bg-gray-800 rounded-lg border transition-all ${isUnread
+                        className={`relative bg-white dark:bg-surface rounded-lg border transition-all ${isUnread
                             ? 'border-l-4 border-l-[#4c99e6] border-r border-r-gray-100 dark:border-r-gray-700 border-t border-t-gray-100 dark:border-t-gray-700 border-b border-b-gray-100 dark:border-b-gray-700 shadow-sm'
-                            : 'border-gray-100 dark:border-gray-700'
+                            : 'border-gray-100 dark:border-line'
                           }`}
                       >
                         <div className="flex items-center gap-4 p-4">
@@ -256,17 +256,17 @@ const NotificationsPageNew = () => {
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-900 dark:text-gray-100">
+                            <p className="text-sm text-gray-900 dark:text-ink">
                               <span
                                 onClick={() => actorUsername && navigate(`/profile/@${actorUsername}`)}
                                 className="font-semibold cursor-pointer hover:text-[#4c99e6]"
                               >
                                 {actorName}
                               </span>
-                              <span className="text-gray-600 dark:text-gray-400"> wants to follow you</span>
+                              <span className="text-gray-600 dark:text-muted"> wants to follow you</span>
                             </p>
                             <div className="flex items-center gap-2 mt-1">
-                              <p className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(request.createdAt)}</p>
+                              <p className="text-xs text-gray-500 dark:text-muted">{formatTimeAgo(request.createdAt)}</p>
                             </div>
                           </div>
 
@@ -288,7 +288,7 @@ const NotificationsPageNew = () => {
                                 await rejectFollowRequest(request.id || request._id);
                                 await getFollowRequests({ page: 1, limit: 10 });
                               }}
-                              className="p-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors"
+                              className="p-2 bg-gray-200 dark:bg-elevated hover:bg-gray-300 dark:hover:bg-elevated text-gray-700 dark:text-ink rounded-lg transition-colors"
                               title="Reject"
                             >
                               <X className="w-4 h-4" />
@@ -328,9 +328,9 @@ const NotificationsPageNew = () => {
                           }
                           if (isUnread) markNotificationRead(notification.id || notification._id);
                         }}
-                        className={`relative bg-white dark:bg-gray-800 rounded-lg border transition-all cursor-pointer hover:shadow-md ${isUnread
+                        className={`relative bg-white dark:bg-surface rounded-lg border transition-all cursor-pointer hover:shadow-md ${isUnread
                             ? 'border-l-4 border-l-[#4c99e6] border-r border-r-gray-100 dark:border-r-gray-700 border-t border-t-gray-100 dark:border-t-gray-700 border-b border-b-gray-100 dark:border-b-gray-700 shadow-sm'
-                            : 'border-gray-100 dark:border-gray-700'
+                            : 'border-gray-100 dark:border-line'
                           }`}
                       >
                         <div className="flex items-center gap-4 p-4">
@@ -352,7 +352,7 @@ const NotificationsPageNew = () => {
 
                           {/* Content */}
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-900 dark:text-gray-100">
+                            <p className="text-sm text-gray-900 dark:text-ink">
                               <span
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -362,13 +362,13 @@ const NotificationsPageNew = () => {
                               >
                                 {actorName}
                               </span>
-                              <span className="text-gray-600 dark:text-gray-400"> {notification.message?.replace(actorName, '').trim()}</span>
+                              <span className="text-gray-600 dark:text-muted"> {notification.message?.replace(actorName, '').trim()}</span>
                               {goalTitle && (
                                 <span className="text-[#4c99e6]"> {goalTitle}</span>
                               )}
                             </p>
                             <div className="flex items-center gap-2 mt-1">
-                              <p className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(notification.createdAt)}</p>
+                              <p className="text-xs text-gray-500 dark:text-muted">{formatTimeAgo(notification.createdAt)}</p>
                             </div>
                           </div>
                         </div>
@@ -406,9 +406,9 @@ const NotificationsPageNew = () => {
                           }
                           if (isUnread) markNotificationRead(notification.id || notification._id);
                         }}
-                        className={`relative bg-white dark:bg-gray-800 rounded-lg border hover:shadow-md transition-all cursor-pointer ${isUnread
+                        className={`relative bg-white dark:bg-surface rounded-lg border hover:shadow-md transition-all cursor-pointer ${isUnread
                             ? 'border-l-4 border-l-[#4c99e6] border-r border-r-gray-100 dark:border-r-gray-700 border-t border-t-gray-100 dark:border-t-gray-700 border-b border-b-gray-100 dark:border-b-gray-700 shadow-sm'
-                            : 'border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600'
+                            : 'border-gray-100 dark:border-line hover:border-gray-200 dark:hover:border-line'
                           }`}
                       >
                         <div className="flex items-center gap-4 p-4">
@@ -428,7 +428,7 @@ const NotificationsPageNew = () => {
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-900 dark:text-gray-100">
+                            <p className="text-sm text-gray-900 dark:text-ink">
                               <span
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -438,13 +438,13 @@ const NotificationsPageNew = () => {
                               >
                                 {actorName}
                               </span>
-                              <span className="text-gray-600 dark:text-gray-400"> {notification.message?.replace(actorName, '').trim()}</span>
+                              <span className="text-gray-600 dark:text-muted"> {notification.message?.replace(actorName, '').trim()}</span>
                               {goalTitle && (
                                 <span className="text-[#4c99e6]"> {goalTitle}</span>
                               )}
                             </p>
                             <div className="flex items-center gap-2 mt-1">
-                              <p className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(notification.createdAt)}</p>
+                              <p className="text-xs text-gray-500 dark:text-muted">{formatTimeAgo(notification.createdAt)}</p>
                             </div>
                           </div>
                         </div>
@@ -482,9 +482,9 @@ const NotificationsPageNew = () => {
                           }
                           markNotificationRead(notification.id || notification._id);
                         }}
-                        className={`relative bg-white dark:bg-gray-800 rounded-lg border hover:shadow-md transition-all cursor-pointer ${isUnread
+                        className={`relative bg-white dark:bg-surface rounded-lg border hover:shadow-md transition-all cursor-pointer ${isUnread
                             ? 'border-l-4 border-l-[#4c99e6] border-r border-r-gray-100 dark:border-r-gray-700 border-t border-t-gray-100 dark:border-t-gray-700 border-b border-b-gray-100 dark:border-b-gray-700 shadow-sm'
-                            : 'border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600'
+                            : 'border-gray-100 dark:border-line hover:border-gray-200 dark:hover:border-line'
                           }`}
                       >
                         <div className="flex items-center gap-4 p-4">
@@ -504,7 +504,7 @@ const NotificationsPageNew = () => {
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-900 dark:text-gray-100">
+                            <p className="text-sm text-gray-900 dark:text-ink">
                               <span
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -514,13 +514,13 @@ const NotificationsPageNew = () => {
                               >
                                 {actorName}
                               </span>
-                              <span className="text-gray-600 dark:text-gray-400"> {notification.message?.replace(actorName, '').trim()}</span>
+                              <span className="text-gray-600 dark:text-muted"> {notification.message?.replace(actorName, '').trim()}</span>
                               {goalTitle && (
                                 <span className="text-[#4c99e6]"> {goalTitle}</span>
                               )}
                             </p>
                             <div className="flex items-center gap-2 mt-1">
-                              <p className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(notification.createdAt)}</p>
+                              <p className="text-xs text-gray-500 dark:text-muted">{formatTimeAgo(notification.createdAt)}</p>
                             </div>
                           </div>
                         </div>
@@ -537,7 +537,7 @@ const NotificationsPageNew = () => {
                 <button
                   onClick={handleLoadMore}
                   disabled={loadingMore}
-                  className="px-6 py-3 bg-white dark:bg-gray-800 border-2 border-[#4c99e6] text-[#4c99e6] rounded-xl font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-3 bg-white dark:bg-surface border-2 border-[#4c99e6] text-[#4c99e6] rounded-xl font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loadingMore ? (
                     <div className="flex items-center gap-2">
@@ -555,7 +555,7 @@ const NotificationsPageNew = () => {
 
         {/* Inspirational Quote */}
         <div className="mt-12 text-center">
-          <p className="text-sm text-gray-400 dark:text-gray-500 italic">
+          <p className="text-sm text-gray-400 dark:text-muted italic">
             "Success is a sequence of deliberate actions, executed with consistency."
           </p>
         </div>

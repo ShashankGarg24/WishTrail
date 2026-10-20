@@ -93,7 +93,7 @@ function CategoryPill({ category, active, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`shrink-0 rounded-lg border px-3 py-1.5 text-[10px] font-semibold transition ${active ? "border-blue-500 bg-[#0784f8] text-white shadow-sm" : "border-slate-200 bg-white text-slate-600 hover:border-blue-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"}`}
+      className={`shrink-0 rounded-lg border px-3 py-1.5 text-[10px] font-semibold transition ${active ? "border-blue-500 bg-[#0784f8] text-white shadow-sm" : "border-slate-200 bg-white text-slate-600 hover:border-blue-300 dark:border-line dark:bg-surface dark:text-muted"}`}
     >
       {category.label}
     </button>
@@ -189,7 +189,7 @@ function GoalCard({ goal, featured = false, onOpen }) {
     <button
       type="button"
       onClick={onOpen}
-      className={`group flex h-[230px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 md:h-[245px] ${featured ? "w-[250px] min-w-[250px] md:w-auto md:min-w-0" : "w-full"}`}
+      className={`group flex h-[230px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-line dark:bg-surface md:h-[245px] ${featured ? "w-[250px] min-w-[250px] md:w-auto md:min-w-0" : "w-full"}`}
     >
       <div
         className={`${featured ? "h-28 md:h-32" : "h-24"} relative overflow-hidden bg-slate-100`}
@@ -202,7 +202,7 @@ function GoalCard({ goal, featured = false, onOpen }) {
         </h3>
         <div className="mt-2 flex items-center gap-2">
           <Avatar person={owner} size="h-6 w-6" />
-          <span className="max-w-[90px] truncate text-[10px] font-semibold text-slate-600 dark:text-gray-300">
+          <span className="max-w-[90px] truncate text-[10px] font-semibold text-slate-600 dark:text-muted">
             {owner.name || owner.username || "WishTrail member"}
           </span>
           <span className="ml-auto rounded-md bg-blue-50 px-2 py-1 text-[9px] font-semibold text-blue-600">
@@ -214,7 +214,7 @@ function GoalCard({ goal, featured = false, onOpen }) {
             <span className="font-semibold text-slate-500">Progress</span>
             <span className="font-extrabold text-emerald-600 dark:text-emerald-400">{progress}%</span>
           </div>
-          <span className="block h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-gray-700">
+          <span className="block h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-elevated">
             <span
               className="block h-full rounded-full bg-emerald-400 transition-[width]"
               style={{ width: `${progress}%` }}
@@ -233,7 +233,7 @@ function GoalResult({ goal, onOpen }) {
     <button
       type="button"
       onClick={onOpen}
-      className="flex w-full gap-3 border-b border-slate-100 bg-white px-4 py-3 text-left last:border-0 dark:border-gray-700 dark:bg-gray-900"
+      className="flex w-full gap-3 border-b border-slate-100 bg-white px-4 py-3 text-left last:border-0 dark:border-line dark:bg-canvas"
     >
       {goalImage(goal) ? <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-blue-50"><img src={goalImage(goal)} alt="" className="h-full w-full object-cover" /></div> : <CategoryIcon category={goal.category} size="lg" />}
       <div className="min-w-0 flex-1">
@@ -266,7 +266,7 @@ function GoalResult({ goal, onOpen }) {
 function PersonRow({ person, onFollow, onProfile }) {
   const following = Boolean(person.following || person.isFollowing);
   return (
-    <div className="flex items-center gap-3 border-b border-slate-100 bg-white px-4 py-3 last:border-0 dark:border-gray-700 dark:bg-gray-900">
+    <div className="flex items-center gap-3 border-b border-slate-100 bg-white px-4 py-3 last:border-0 dark:border-line dark:bg-canvas">
       <button type="button" onClick={onProfile}>
         <Avatar person={person} size="h-11 w-11" />
       </button>
@@ -329,7 +329,7 @@ function Filters({ open, onClose, value, onApply }) {
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 28, stiffness: 300 }}
             onClick={(e) => e.stopPropagation()}
-            className="absolute inset-x-0 bottom-0 max-h-[92vh] overflow-y-auto rounded-t-3xl bg-white px-5 pb-[calc(22px+env(safe-area-inset-bottom))] pt-4 md:static md:w-[440px] md:rounded-2xl dark:bg-gray-900"
+            className="absolute inset-x-0 bottom-0 max-h-[92vh] overflow-y-auto rounded-t-3xl bg-white px-5 pb-[calc(22px+env(safe-area-inset-bottom))] pt-4 md:static md:w-[440px] md:rounded-2xl dark:bg-canvas"
           >
             <div className="mb-5 flex items-center justify-between">
               <button onClick={onClose}>
@@ -357,7 +357,7 @@ function Filters({ open, onClose, value, onApply }) {
                       type="button"
                       key={choice}
                       onClick={() => setDraft((d) => ({ ...d, [key]: choice }))}
-                      className={`rounded-lg border px-3 py-2 text-[10px] font-semibold ${draft[key] === choice ? "border-[#0784f8] bg-[#0784f8] text-white" : "border-slate-200 bg-slate-50 text-slate-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"}`}
+                      className={`rounded-lg border px-3 py-2 text-[10px] font-semibold ${draft[key] === choice ? "border-[#0784f8] bg-[#0784f8] text-white" : "border-slate-200 bg-slate-50 text-slate-600 dark:border-line dark:bg-surface dark:text-muted"}`}
                     >
                       {choice}
                     </button>
@@ -559,9 +559,9 @@ export default function DiscoverPage() {
     ([, value]) => value !== "All",
   ).length;
   return (
-    <div className="min-h-screen bg-[#f7f9fc] text-[#0d1740] dark:bg-gray-900 dark:text-white">
+    <div className="min-h-screen bg-[#f7f9fc] text-[#0d1740] dark:bg-canvas dark:text-white">
       <div className="mx-auto flex max-w-[1536px]">
-        <aside className="wt-legacy-sidebar sticky top-16 hidden h-[calc(100vh-64px)] w-[190px] shrink-0 flex-col border-r border-slate-200 bg-white px-3 py-5 lg:flex dark:border-gray-800 dark:bg-gray-900">
+        <aside className="wt-legacy-sidebar sticky top-16 hidden h-[calc(100vh-64px)] w-[190px] shrink-0 flex-col border-r border-slate-200 bg-white px-3 py-5 lg:flex dark:border-line dark:bg-canvas">
           <nav className="space-y-1">
             {navItems.map(([label, Icon, href]) => (
               <button
@@ -571,7 +571,7 @@ export default function DiscoverPage() {
                     ? navigate(`/profile/@${user?.username || ""}?tab=journal`)
                     : navigate(href)
                 }
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-semibold ${label === "Explore" ? "bg-blue-50 text-[#0784f8]" : "text-slate-600 hover:bg-slate-50 dark:text-gray-300 dark:hover:bg-gray-800"}`}
+                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-semibold ${label === "Explore" ? "bg-blue-50 text-[#0784f8]" : "text-slate-600 hover:bg-slate-50 dark:text-muted dark:hover:bg-surface"}`}
               >
                 <Icon className="h-[17px] w-[17px]" />
                 {label}
@@ -596,7 +596,7 @@ export default function DiscoverPage() {
           </div>
         </aside>
         <main className="min-w-0 flex-1">
-          <div className="sticky top-14 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur md:hidden dark:border-gray-700 dark:bg-gray-900/95">
+          <div className="sticky top-14 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur md:hidden dark:border-line dark:bg-gray-900/95">
             <div className="mx-auto flex max-w-3xl items-center gap-2">
               <div className="relative min-w-0 flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -605,7 +605,7 @@ export default function DiscoverPage() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search goals, people or keywords..."
-                  className="w-full rounded-xl border border-slate-200 bg-[#f5f8fc] py-2.5 pl-10 pr-9 text-xs outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800"
+                  className="w-full rounded-xl border border-slate-200 bg-[#f5f8fc] py-2.5 pl-10 pr-9 text-xs outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-line dark:bg-surface"
                 />
                 {query && (
                   <button
@@ -632,18 +632,18 @@ export default function DiscoverPage() {
               <PillTabs className="mt-3 mb-4 mx-3 md:hidden" label="Discover views" value={tab} onChange={changeTab} items={[{ value: "goals", label: "Goals", icon: Target }, { value: "people", label: "People", icon: Users }]} />
               {tab === "goals" && (
                 <>
-                  <div className="border-b border-slate-100 bg-white px-4 py-3 md:hidden dark:border-gray-700 dark:bg-gray-900">
+                  <div className="border-b border-slate-100 bg-white px-4 py-3 md:hidden dark:border-line dark:bg-canvas">
                     <div className="mb-2 flex items-center gap-2">
                       <LayoutGrid className="h-4 w-4 text-[#0784f8]" />
                       <h2 className="text-sm font-extrabold">Goals by Category</h2>
                     </div>
                     <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                    <button onClick={() => setCategory("all")} className={`w-[82px] shrink-0 rounded-xl border px-2 py-2.5 text-center ${category === "all" ? "border-blue-500 bg-blue-50" : "border-slate-100 bg-white dark:border-gray-700 dark:bg-gray-800"}`}>
-                      <span className="mx-auto grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-600 dark:bg-gray-700 dark:text-slate-200"><LayoutGrid className="h-4 w-4" /></span>
+                    <button onClick={() => setCategory("all")} className={`w-[82px] shrink-0 rounded-xl border px-2 py-2.5 text-center ${category === "all" ? "border-blue-500 bg-blue-50" : "border-slate-100 bg-white dark:border-line dark:bg-surface"}`}>
+                      <span className="mx-auto grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-600 dark:bg-elevated dark:text-ink"><LayoutGrid className="h-4 w-4" /></span>
                       <span className="mt-1 block truncate text-[9px] font-bold">All</span>
                     </button>
                     {GOAL_CATEGORIES.map(({ id, label }) => (
-                      <button key={id} onClick={() => setCategory(id)} className={`w-[82px] shrink-0 rounded-xl border px-2 py-2.5 text-center ${category === id ? "border-blue-500 bg-blue-50" : "border-slate-100 bg-white dark:border-gray-700 dark:bg-gray-800"}`}>
+                      <button key={id} onClick={() => setCategory(id)} className={`w-[82px] shrink-0 rounded-xl border px-2 py-2.5 text-center ${category === id ? "border-blue-500 bg-blue-50" : "border-slate-100 bg-white dark:border-line dark:bg-surface"}`}>
                         <CategoryIcon category={id} size="sm" className="mx-auto" />
                         <span className="mt-1 block truncate text-[9px] font-bold">{label}</span>
                       </button>
@@ -665,7 +665,7 @@ export default function DiscoverPage() {
                   />
                   {isShortQuery ? null : isSearching ? (
                     <div className="md:mt-3 md:overflow-hidden md:rounded-xl md:border md:border-slate-200">
-                      <div className="bg-white px-4 py-3 text-[10px] text-slate-500 dark:bg-gray-900">
+                      <div className="bg-white px-4 py-3 text-[10px] text-slate-500 dark:bg-canvas">
                         <span>{shownGoals.length} goals found</span>
                       </div>
                       {loading ? (
@@ -681,7 +681,7 @@ export default function DiscoverPage() {
                               />
                             ))}
                           </div>
-                          <div className="hidden gap-3 bg-[#f7f9fc] p-3 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 dark:bg-gray-900">
+                          <div className="hidden gap-3 bg-[#f7f9fc] p-3 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 dark:bg-canvas">
                             {shownGoals.map((goal) => (
                               <GoalCard
                                 key={idOf(goal)}
@@ -704,12 +704,12 @@ export default function DiscoverPage() {
                           subtitle="Explore goals across different areas."
                         />
                         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                          <button onClick={() => setCategory("all")} className={`w-[82px] shrink-0 rounded-xl border px-2 py-2.5 text-center ${category === "all" ? "border-blue-500 bg-blue-50" : "border-slate-100 bg-white dark:border-gray-700 dark:bg-gray-800"}`}>
-                            <span className="mx-auto grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-600 dark:bg-gray-700 dark:text-slate-200"><LayoutGrid className="h-4 w-4" /></span>
+                          <button onClick={() => setCategory("all")} className={`w-[82px] shrink-0 rounded-xl border px-2 py-2.5 text-center ${category === "all" ? "border-blue-500 bg-blue-50" : "border-slate-100 bg-white dark:border-line dark:bg-surface"}`}>
+                            <span className="mx-auto grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-600 dark:bg-elevated dark:text-ink"><LayoutGrid className="h-4 w-4" /></span>
                             <span className="mt-1 block truncate text-[9px] font-bold">All</span>
                           </button>
                           {GOAL_CATEGORIES.map(({ id, label }) => (
-                            <button key={id} onClick={() => setCategory(id)} className={`w-[82px] shrink-0 rounded-xl border px-2 py-2.5 text-center ${category === id ? "border-blue-500 bg-blue-50" : "border-slate-100 bg-white dark:border-gray-700 dark:bg-gray-800"}`}>
+                            <button key={id} onClick={() => setCategory(id)} className={`w-[82px] shrink-0 rounded-xl border px-2 py-2.5 text-center ${category === id ? "border-blue-500 bg-blue-50" : "border-slate-100 bg-white dark:border-line dark:bg-surface"}`}>
                               <CategoryIcon category={id} size="sm" className="mx-auto" />
                               <span className="mt-1 block truncate text-[9px] font-bold">{label}</span>
                             </button>
@@ -784,7 +784,7 @@ export default function DiscoverPage() {
                     activeFilters={activeFilters}
                   />
                   {!isShortQuery && <div className="md:mt-3 md:overflow-hidden md:rounded-xl md:border md:border-slate-200">
-                    <div className="bg-white px-4 py-3 text-[10px] text-slate-500 dark:bg-gray-900">
+                    <div className="bg-white px-4 py-3 text-[10px] text-slate-500 dark:bg-canvas">
                       {people.length} people found
                     </div>
                     {loading ? (
@@ -840,14 +840,14 @@ export default function DiscoverPage() {
 }
 function Loading() {
   return (
-    <div className="col-span-full grid min-h-40 w-full place-items-center bg-white dark:bg-gray-900">
+    <div className="col-span-full grid min-h-40 w-full place-items-center bg-white dark:bg-canvas">
       <span className="h-8 w-8 animate-spin rounded-full border-2 border-blue-100 border-t-[#0784f8]" />
     </div>
   );
 }
 function Empty({ label, hint = "Try another keyword or category." }) {
   return (
-    <div className="grid min-h-56 place-items-center bg-white px-6 text-center dark:bg-gray-900">
+    <div className="grid min-h-56 place-items-center bg-white px-6 text-center dark:bg-canvas">
       <div>
         <Search className="mx-auto mb-3 h-9 w-9 text-blue-300" />
         <p className="text-sm font-bold">{label}</p>

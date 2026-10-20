@@ -3,7 +3,7 @@ import { startPushRegistration } from './pushRegistration';
 import { persistRefreshToken } from './refreshTokenStorage';
 import { shareGeneratedImage } from './goalImageSharing';
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
-import { Platform, SafeAreaView, StatusBar, View, RefreshControl, Linking, AppState, Text, TouchableOpacity, Dimensions, ScrollView, ActivityIndicator, Animated, PermissionsAndroid, Alert, Image } from 'react-native';
+import { useColorScheme, Platform, SafeAreaView, StatusBar, View, RefreshControl, Linking, AppState, Text, TouchableOpacity, Dimensions, ScrollView, ActivityIndicator, Animated, PermissionsAndroid, Alert, Image } from 'react-native';
 import { WebView } from 'react-native-webview';
 import Constants from 'expo-constants';
 import { registerRootComponent } from 'expo';
@@ -64,6 +64,10 @@ const GOOGLE_ANDROID_CLIENT_ID = (APP_EXTRA.GOOGLE_ANDROID_CLIENT_ID || GOOGLE_W
 const GOOGLE_IOS_CLIENT_ID = (APP_EXTRA.GOOGLE_IOS_CLIENT_ID || GOOGLE_WEB_CLIENT_ID || '').trim();
 
 function App() {
+  const systemTheme = useColorScheme();
+  const [webTheme, setWebTheme] = useState(null);
+  const isDarkTheme = (webTheme || systemTheme) === 'dark';
+  const canvasColor = isDarkTheme ? '#0B1220' : '#F8FAFC';
   const webRef = useRef(null);
   const sharingImageRef = useRef(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -430,6 +434,11 @@ function App() {
   const onMessage = useCallback((event) => {
     try {
       const data = JSON.parse(event?.nativeEvent?.data || '{}');
+      if (data?.type === 'WT_THEME') {
+        if (new URL(event.nativeEvent.url).origin !== new URL(WEB_URL).origin) return;
+        if (data.theme === 'dark' || data.theme === 'light') setWebTheme(data.theme);
+        return;
+      }
       if (data?.type === 'WT_SHARE_IMAGE') {
         if (new URL(event.nativeEvent.url).origin !== new URL(WEB_URL).origin) return;
         const respond = error => {
@@ -757,8 +766,8 @@ function App() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: canvasColor }}>
+      <StatusBar barStyle={isDarkTheme ? "light-content" : "dark-content"} backgroundColor={canvasColor} />
       <View style={{ flex: 1 }} accessibilityElementsHidden={splashVisible}
         importantForAccessibility={splashVisible ? 'no-hide-descendants' : 'auto'}>
       {initialResolved && onboardingReady && <WebView
@@ -782,7 +791,7 @@ function App() {
         overScrollMode="never"
         scrollEnabled
         allowsBackForwardNavigationGestures
-        style={{ backgroundColor: '#F8FAFC' }}
+        style={{ backgroundColor: canvasColor }}
         refreshControl={undefined}
       />}
       {renderPtrOverlay()}

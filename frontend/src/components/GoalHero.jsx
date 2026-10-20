@@ -1,3 +1,5 @@
+import useApiStore from '../store/apiStore'
+import { darkHeroPalette } from '../utils/theme'
 import AbstractGoalArtwork from './AbstractGoalArtwork'
 import CategoryIcon from './CategoryIcon'
 import { getCategoryVisual } from '../utils/categoryIcons'
@@ -14,13 +16,14 @@ const healthOf = goal => {
 
 export default function GoalHero({ goal, className = '' }) {
   const visual = getCategoryVisual(goal?.category)
-  const hero = visual.hero
+  const darkMode = useApiStore(state => state.isDarkMode)
+  const hero = darkMode ? { ...visual.hero, ...darkHeroPalette, dark: true } : visual.hero
   const progress = clampProgress(goal)
   const health = healthOf(goal)
   const isDark = Boolean(hero.dark)
   const customCover = goal?.appearance?.bannerType === 'CUSTOM' && goal?.appearance?.bannerUrl
 
-  if (goal?.completedAt) return <section className={`relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-b from-blue-50 to-white text-center dark:from-gray-800 dark:to-gray-900 ${className}`}>
+  if (goal?.completedAt) return <section className={`relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-b from-blue-50 to-white text-center dark:from-surface dark:to-canvas ${className}`}>
     <div className="h-32 overflow-hidden opacity-80"><AbstractGoalArtwork category={goal.category} className="h-full w-full"/></div>
     <div className="relative -mt-6 px-5 pb-6"><span className="mx-auto grid h-12 w-12 place-items-center rounded-full border-4 border-white bg-emerald-500 text-2xl text-white">✓</span><h2 className="mt-3 break-words text-xl font-extrabold text-[#102b3f] dark:text-white">{goal.title}</h2><p className="mt-1 text-xs text-slate-500">{visual.label}</p><span className="mt-3 inline-block rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">Completed</span><p className="mt-2 text-xs text-slate-500">Completed {new Date(goal.completedAt).toLocaleDateString()}</p></div>
   </section>

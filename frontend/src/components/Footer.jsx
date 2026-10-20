@@ -8,7 +8,7 @@ const Footer = () => {
 
   if (pathname === '/')
     return (
-      <footer className={`border-t border-slate-100 bg-white text-slate-900 ${isAuthenticated ? 'pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:pb-0' : ''}`}>
+      <footer className={`border-t border-slate-100 bg-white text-slate-900 dark:border-line dark:bg-canvas dark:text-ink ${isAuthenticated ? 'pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:pb-0' : ''}`}>
         <div className="landing-footer">
           <div>
             <Link
@@ -60,7 +60,7 @@ const Footer = () => {
 
   return (
     <footer
-      className={`bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 mt-auto ${isAuthenticated ? 'pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:pb-0' : ''}`}
+      className={`bg-white dark:bg-canvas border-t border-gray-200 dark:border-line mt-auto ${isAuthenticated ? 'pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:pb-0' : ''}`}
     >
       <div className="max-w-[1400px] mx-auto px-6 py-12">
         {/* Main Footer Content */}
@@ -75,11 +75,11 @@ const Footer = () => {
                 height="40"
                 className="w-10 h-10 object-contain"
               />
-              <span className="-ml-2 text-xl font-bold text-gray-900 dark:text-white font-manrope">
+              <span className="-ml-2 text-xl font-bold text-gray-900 dark:text-ink font-manrope">
                 ishTrail
               </span>
             </Link>
-            <p className="text-gray-600 dark:text-gray-400 text-sm font-manrope leading-relaxed">
+            <p className="text-gray-600 dark:text-muted text-sm font-manrope leading-relaxed">
               Empowering achievers through precision tracking and
               community-driven milestones. Build the future you've always
               envisioned, one step at a time.
@@ -88,7 +88,7 @@ const Footer = () => {
 
           {/* Quick Links */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white font-manrope uppercase tracking-wider">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-ink font-manrope uppercase tracking-wider">
               Quick Links
             </h3>
             <ul className="space-y-2">
@@ -96,7 +96,7 @@ const Footer = () => {
                 <li key={link.name}>
                   <Link
                     to={link.href}
-                    className="text-gray-600 hover:text-[#4c99e6] dark:text-gray-400 dark:hover:text-[#4c99e6] transition-colors text-sm font-manrope"
+                    className="text-gray-600 hover:text-[#4c99e6] dark:text-muted dark:hover:text-brand transition-colors text-sm font-manrope"
                   >
                     {link.name}
                   </Link>
@@ -107,7 +107,7 @@ const Footer = () => {
 
           {/* Help */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white font-manrope uppercase tracking-wider">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-ink font-manrope uppercase tracking-wider">
               Help
             </h3>
             <ul className="space-y-2">
@@ -115,7 +115,7 @@ const Footer = () => {
                 <li key={link.name}>
                   <Link
                     to={link.href}
-                    className="text-gray-600 hover:text-[#4c99e6] dark:text-gray-400 dark:hover:text-[#4c99e6] transition-colors text-sm font-manrope"
+                    className="text-gray-600 hover:text-[#4c99e6] dark:text-muted dark:hover:text-brand transition-colors text-sm font-manrope"
                   >
                     {link.name}
                   </Link>
@@ -126,7 +126,7 @@ const Footer = () => {
 
           {/* Connect With Us */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white font-manrope uppercase tracking-wider">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-ink font-manrope uppercase tracking-wider">
               Connect With Us
             </h3>
             <div className="flex items-center gap-3">
@@ -134,7 +134,7 @@ const Footer = () => {
                 href="https://youtube.com/@TheWishTrail"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2 rounded-lg bg-gray-100 hover:bg-[#FF6B6B] dark:bg-gray-800 dark:hover:bg-[#FF6B6B] text-gray-600 hover:text-white dark:text-gray-400 dark:hover:text-white transition-all"
+                className="p-2 rounded-lg bg-gray-100 hover:bg-[#FF6B6B] dark:bg-surface dark:hover:bg-[#FF6B6B] text-gray-600 hover:text-white dark:text-muted dark:hover:text-white transition-all"
                 aria-label="YouTube"
               >
                 <Youtube className="w-5 h-5" />
@@ -143,7 +143,7 @@ const Footer = () => {
                 href="https://www.instagram.com/thewishtrail/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2 rounded-lg bg-gray-100 hover:bg-[#F07A8F] dark:bg-gray-800 dark:hover:bg-[#F07A8F] text-gray-600 hover:text-white dark:text-gray-400 dark:hover:text-white transition-all"
+                className="p-2 rounded-lg bg-gray-100 hover:bg-[#F07A8F] dark:bg-surface dark:hover:bg-[#F07A8F] text-gray-600 hover:text-white dark:text-muted dark:hover:text-white transition-all"
                 aria-label="Instagram"
               >
                 <Instagram className="w-5 h-5" />
@@ -153,9 +153,9 @@ const Footer = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-8 border-t border-gray-200 dark:border-gray-800">
+        <div className="pt-8 border-t border-gray-200 dark:border-line">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-gray-600 dark:text-gray-400 font-manrope text-center md:text-left">
+            <p className="text-sm text-gray-600 dark:text-muted font-manrope text-center md:text-left">
               © {new Date().getFullYear()} WishTrail. Crafted for dreamers and
               achievers
             </p>
@@ -164,12 +164,12 @@ const Footer = () => {
                 <span key={link.name} className="flex items-center gap-4">
                   <Link
                     to={link.href}
-                    className="text-sm text-gray-600 hover:text-[#4c99e6] dark:text-gray-400 dark:hover:text-[#4c99e6] transition-colors font-manrope"
+                    className="text-sm text-gray-600 hover:text-[#4c99e6] dark:text-muted dark:hover:text-brand transition-colors font-manrope"
                   >
                     {link.name}
                   </Link>
                   {index < legalLinks.length - 1 && (
-                    <span className="text-gray-300 dark:text-gray-700">|</span>
+                    <span className="text-gray-300 dark:text-muted">|</span>
                   )}
                 </span>
               ))}

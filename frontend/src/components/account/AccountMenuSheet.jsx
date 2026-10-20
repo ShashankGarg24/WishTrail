@@ -62,11 +62,11 @@ const AccountMenuSheet = ({ open, onClose }) => {
           exit={{ y: '100%' }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           onClick={(e) => e.stopPropagation()}
-          className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-3xl shadow-2xl max-h-[85vh] overflow-hidden flex flex-col"
+          className="absolute bottom-0 left-0 right-0 bg-white dark:bg-canvas rounded-t-3xl shadow-2xl max-h-[85vh] overflow-hidden flex flex-col"
         >
           {/* Drag Handle */}
           <div className="flex justify-center pt-3 pb-2">
-            <div className="w-10 h-1 bg-gray-300 dark:bg-gray-700 rounded-full" />
+            <div className="w-10 h-1 bg-gray-300 dark:bg-elevated rounded-full" />
           </div>
 
           {/* Scrollable Content */}
@@ -76,9 +76,9 @@ const AccountMenuSheet = ({ open, onClose }) => {
               <div className="relative">
                 <div className="w-16 h-16 rounded-full bg-[#4c99e6] flex items-center justify-center">
                   {currentUser?.avatar ? (
-                    <img 
-                      src={currentUser.avatar} 
-                      alt={currentUser.name} 
+                    <img
+                      src={currentUser.avatar}
+                      alt={currentUser.name}
                       className="w-full h-full rounded-full object-cover"
                     />
                   ) : (
@@ -86,43 +86,43 @@ const AccountMenuSheet = ({ open, onClose }) => {
                   )}
                 </div>
                 {/* Online indicator */}
-                <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full" />
+                <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white dark:border-line rounded-full" />
               </div>
               <div className="flex-1">
                 <h2 className="text-lg font-bold text-gray-900 dark:text-white">
                   {currentUser?.name || 'User'}
                 </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-gray-500 dark:text-muted">
                   @{currentUser?.username || 'username'}
                 </p>
               </div>
               <button
                 onClick={() => { navigate('/settings?tab=personal'); onClose(); }}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-surface transition-colors"
                 aria-label="Edit profile"
               >
-                <Edit className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                <Edit className="h-5 w-5 text-gray-600 dark:text-muted" />
               </button>
             </div>
 
             {/* Menu Items */}
             <div className="px-4 py-2 space-y-1">
-              <MenuItem 
+              <MenuItem
                 icon={User}
                 label="My Profile"
                 onClick={() => { navigate(`/profile/@${currentUser?.username}?tab=overview`); onClose(); }}
               />
-              <MenuItem 
+              <MenuItem
                 icon={Settings}
                 label="Settings"
                 onClick={() => { navigate(`/settings`); onClose(); }}
               />
-              <MenuItem 
+              <MenuItem
                 icon={MessageSquare}
                 label="Feedback"
                 onClick={() => { window.dispatchEvent(new CustomEvent('wt_open_feedback')); onClose(); }}
               />
-              <MenuItem 
+              <MenuItem
                 icon={Sparkles}
                 label="What's New"
                 onClick={() => { navigate(`/whats-new`); onClose(); }}
@@ -161,7 +161,7 @@ const AccountMenuSheet = ({ open, onClose }) => {
               exit={{ scale: 0.95, opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full mx-4 p-6"
+              className="bg-white dark:bg-surface rounded-2xl shadow-xl max-w-md w-full mx-4 p-6"
             >
               <div className="flex items-center space-x-3 mb-4">
                 <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-full">
@@ -171,13 +171,13 @@ const AccountMenuSheet = ({ open, onClose }) => {
                   Confirm Logout
                 </h3>
               </div>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
+              <p className="text-gray-600 dark:text-muted mb-6">
                 Are you sure you want to logout? You'll need to sign in again to access your goals and progress.
               </p>
               <div className="flex space-x-3">
                 <button
                   onClick={() => setIsLogoutModalOpen(false)}
-                  className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors duration-200"
+                  className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:text-muted dark:bg-elevated dark:hover:bg-elevated transition-colors duration-200"
                 >
                   Cancel
                 </button>
@@ -203,7 +203,7 @@ const MenuItem = ({ icon: Icon, label, badge, onClick }) => (
     className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group"
   >
     <div className="w-10 h-10 flex items-center justify-center">
-      <Icon className="h-5 w-5 text-gray-700 dark:text-gray-300" strokeWidth={2} />
+      <Icon className="h-5 w-5 text-gray-700 dark:text-muted" strokeWidth={2} />
     </div>
     <span className="flex-1 text-left text-base font-medium text-gray-900 dark:text-white">
       {label}

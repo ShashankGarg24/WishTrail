@@ -31,7 +31,7 @@ export default function HabitsPanel({ onCreate, onOpenHabit, scrollable = false,
     return () => { active = false; };
   }, [storeHabits?.length]);
 
-  
+
   const isScheduledToday = (habit) => {
     if (!habit) return false;
     if (habit.frequency === 'daily') return true;
@@ -92,23 +92,23 @@ export default function HabitsPanel({ onCreate, onOpenHabit, scrollable = false,
   return (
     <div className="glass-card-hover p-6 rounded-xl">
       {habits.length === 0 ? (
-        <div className="text-center py-8 text-gray-600 dark:text-gray-400">No habits yet. Create your first habit!</div>
+        <div className="text-center py-8 text-gray-600 dark:text-muted">No habits yet. Create your first habit!</div>
       ) : (
         <div className={containerClass}>
           <div className="space-y-3">
             {(scrollable ? habits.slice(0) : habits).map((h, idx) => (
-              <motion.div key={h._id || idx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: idx * 0.03 }} className="p-4 bg-gray-50 dark:bg-gray-800/40 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <motion.div key={h._id || idx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: idx * 0.03 }} className="p-4 bg-gray-50 dark:bg-gray-800/40 rounded-xl border border-gray-200 dark:border-line flex items-center justify-between">
                 <div className="min-w-0" onClick={() => onOpenHabit?.(h)}>
                   <div className="flex items-center gap-2 cursor-pointer">
                     <div className="font-medium text-gray-900 dark:text-white truncate" title={h.name}>{h.name}</div>
-                    <div className="text-xs px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                    <div className="text-xs px-2 py-0.5 rounded-full bg-gray-200 dark:bg-elevated text-gray-700 dark:text-muted">
                       {h.frequency === 'daily' ? 'Daily' : (h.daysOfWeek || []).sort().map(d => weekdayNames[d]).join(', ') || 'Custom'}
                     </div>
                   </div>
                   {h.description && (
-                    <div className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-md" title={h.description}>{h.description}</div>
+                    <div className="text-sm text-gray-600 dark:text-muted truncate max-w-md" title={h.description}>{h.description}</div>
                   )}
-                  <div className="flex items-center gap-4 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center gap-4 mt-1 text-xs text-gray-500 dark:text-muted">
                     <span>🔥 {h.currentStreak || 0} / Best {h.longestStreak || 0}</span>
                     <span>✅ {h.totalCompletions || 0}</span>
                   </div>
@@ -121,7 +121,7 @@ export default function HabitsPanel({ onCreate, onOpenHabit, scrollable = false,
                       </motion.div>
                     )
                   ) : (
-                    <div className="text-xs text-gray-500 dark:text-gray-400 inline-flex items-center gap-1">
+                    <div className="text-xs text-gray-500 dark:text-muted inline-flex items-center gap-1">
                       <Clock className="h-4 w-4" /> Not scheduled today
                     </div>
                   )}

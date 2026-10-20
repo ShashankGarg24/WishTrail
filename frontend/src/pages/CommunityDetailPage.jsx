@@ -30,7 +30,7 @@ export default function CommunityDetailPage() {
   const [joinedItems, setJoinedItems] = useState(new Set())
   const [loaded, setLoaded] = useState({ feed: false, items: false, members: false, dashboard: false, joinedItems: false })
   const [showFullDescription, setShowFullDescription] = useState(false)
-  
+
   const loadJoinedItems = async () => {
     try {
       const mine = await communitiesAPI.listMyJoinedItems()
@@ -308,7 +308,7 @@ export default function CommunityDetailPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="relative overflow-hidden rounded-3xl border-2 border-gray-200 dark:border-gray-800 mb-8 shadow-xl">
+      <div className="relative overflow-hidden rounded-3xl border-2 border-gray-200 dark:border-line mb-8 shadow-xl">
         <div className="h-32 sm:h-48 bg-blue-500/30 relative">
           {headerImages.bannerUrl ? (
             <img src={headerImages.bannerUrl} alt="Community banner" width="1200" height="192" className="absolute inset-0 h-full w-full object-cover" />
@@ -318,20 +318,20 @@ export default function CommunityDetailPage() {
         <div className="p-6 sm:p-8 pt-16 sm:pt-20">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 -mt-16 sm:-mt-20">
             {headerImages.avatarUrl ? (
-              <img src={headerImages.avatarUrl} alt="Community avatar" width="80" height="80" className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl border-4 border-white dark:border-gray-900 object-cover shadow-lg flex-shrink-0" />
+              <img src={headerImages.avatarUrl} alt="Community avatar" width="80" height="80" className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl border-4 border-white dark:border-line object-cover shadow-lg flex-shrink-0" />
             ) : (
-              <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl bg-[#4c99e6] text-white flex items-center justify-center text-2xl font-bold shadow-lg border-4 border-white dark:border-gray-900 flex-shrink-0">
+              <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl bg-[#4c99e6] text-white flex items-center justify-center text-2xl font-bold shadow-lg border-4 border-white dark:border-line flex-shrink-0">
                 {community.name?.slice(0,2).toUpperCase()}
               </div>
             )}
             <div className="min-w-0 flex-1">
               <div className="font-bold text-xl sm:text-2xl md:text-3xl text-gray-900 dark:text-white mb-2 break-words">{community.name}</div>
               {community.description && (
-                <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                <div className="text-sm text-gray-600 dark:text-muted mb-2">
                   {community.description.length > 150 ? (
                     <>
                       <span className="break-words">{showFullDescription ? community.description : `${community.description.slice(0, 150)}...`}</span>
-                      <button 
+                      <button
                         onClick={() => setShowFullDescription(!showFullDescription)}
                         className="ml-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
                       >
@@ -344,7 +344,7 @@ export default function CommunityDetailPage() {
                 </div>
               )}
               <div className="flex flex-wrap items-center gap-3 text-sm">
-                <span className="inline-flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
+                <span className="inline-flex items-center gap-1.5 text-gray-600 dark:text-muted">
                   <Users className="h-4 w-4" />
                   <span className="font-semibold">{community.stats?.memberCount || 0}</span> members
                 </span>
@@ -354,7 +354,7 @@ export default function CommunityDetailPage() {
               {!isMember ? (
                 <button onClick={async () => { await communitiesAPI.join(community._id); window.location.reload(); }} className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#4c99e6] hover:bg-[#3d88d5] text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105">Join Community</button>
               ) : (
-                <button onClick={async () => { await communitiesAPI.leave(community._id); navigate('/communities'); }} className="w-full sm:w-auto px-5 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Leave</button>
+                <button onClick={async () => { await communitiesAPI.leave(community._id); navigate('/communities'); }} className="w-full sm:w-auto px-5 py-2.5 rounded-xl border-2 border-gray-200 dark:border-line font-semibold text-gray-700 dark:text-muted hover:bg-gray-50 dark:hover:bg-surface transition-colors">Leave</button>
               )}
             </div>
           </div>
@@ -382,9 +382,9 @@ export default function CommunityDetailPage() {
               {a.kind==='chat' ? (
                 <div className="flex items-end gap-3 mb-3 group">
                   <img src={a.avatar || a.userId?.avatar} alt="User" width="36" height="36" className="h-9 w-9 rounded-full ring-2 ring-white dark:ring-gray-900 shadow-sm" />
-                  <div className="max-w-[75%] rounded-2xl px-4 py-3 bg-gray-50 dark:bg-gray-800 text-sm shadow-sm border border-gray-200/50 dark:border-gray-700/50">
-                  <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">{a.name || a.userId?.name} <span className="font-normal text-gray-500 dark:text-gray-400" title={new Date(a.createdAt).toLocaleString()}>• {formatRelativeTime(a.createdAt)}</span></div>
-                    <div className="whitespace-pre-wrap text-gray-900 dark:text-gray-100">{a.text}</div>
+                  <div className="max-w-[75%] rounded-2xl px-4 py-3 bg-gray-50 dark:bg-surface text-sm shadow-sm border border-gray-200/50 dark:border-gray-700/50">
+                  <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">{a.name || a.userId?.name} <span className="font-normal text-gray-500 dark:text-muted" title={new Date(a.createdAt).toLocaleString()}>• {formatRelativeTime(a.createdAt)}</span></div>
+                    <div className="whitespace-pre-wrap text-gray-900 dark:text-ink">{a.text}</div>
                     {(['admin','moderator'].includes(role)) && (
                       <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={async () => { if (confirm('Delete message?')) { try { await communitiesAPI.deleteChat(id, a._id); setFeed(curr => curr.filter(x => x._id!==a._id)) } catch {} } }} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-[11px] font-medium hover:bg-red-100 dark:hover:bg-red-900/30">Delete</button>
@@ -395,7 +395,7 @@ export default function CommunityDetailPage() {
               ) : (
                 <div className="flex justify-center my-4">
                   <div className="inline-flex flex-col items-start gap-2 max-w-2xl">
-                    <div className="text-sm text-gray-700 dark:text-gray-300 bg-blue-50 dark:bg-blue-900/20 px-5 py-2.5 rounded-2xl border border-blue-100 dark:border-blue-800/30 shadow-sm">
+                    <div className="text-sm text-gray-700 dark:text-muted bg-blue-50 dark:bg-blue-900/20 px-5 py-2.5 rounded-2xl border border-blue-100 dark:border-blue-800/30 shadow-sm">
                       <span className="font-bold mr-1.5 text-blue-600 dark:text-blue-400">{a.name || a.userId?.name}</span>
                       <span className="opacity-80">{(() => {
                         const t = a?.type;
@@ -423,9 +423,9 @@ export default function CommunityDetailPage() {
                       return (
                         <div className="flex items-center gap-1.5 pl-2">
                           {['👍','🎉','💯'].map(ej => (
-                            <button key={ej} onClick={async () => { try { const r = await communitiesAPI.react(id, { targetType: 'update', targetId: a._id, emoji: ej }); setFeed(curr => curr.map(x => x._id===a._id? { ...x, reactions: r?.data?.data?.reactions } : x)) } catch {} }} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 transition-all hover:scale-110 shadow-sm">
+                            <button key={ej} onClick={async () => { try { const r = await communitiesAPI.react(id, { targetType: 'update', targetId: a._id, emoji: ej }); setFeed(curr => curr.map(x => x._id===a._id? { ...x, reactions: r?.data?.data?.reactions } : x)) } catch {} }} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white dark:bg-surface hover:bg-blue-50 dark:hover:bg-blue-900/30 border border-gray-200 dark:border-line hover:border-blue-300 dark:hover:border-blue-600 transition-all hover:scale-110 shadow-sm">
                               <span className="text-base leading-none">{ej}</span>
-                              {(a?.reactions?.[ej]?.count || 0) > 0 && <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">{a?.reactions?.[ej]?.count}</span>}
+                              {(a?.reactions?.[ej]?.count || 0) > 0 && <span className="text-xs font-semibold text-gray-600 dark:text-muted">{a?.reactions?.[ej]?.count}</span>}
                             </button>
                           ))}
                         </div>
@@ -436,10 +436,10 @@ export default function CommunityDetailPage() {
               )}
             </div>
           ))}
-          {feed.length === 0 && <div className="glass-card-hover rounded-2xl p-8 text-center"><div className="text-gray-500 dark:text-gray-400">No updates yet.</div></div>}
+          {feed.length === 0 && <div className="glass-card-hover rounded-2xl p-8 text-center"><div className="text-gray-500 dark:text-muted">No updates yet.</div></div>}
           </div>
           {/* <div className="sticky bottom-[72px] md:bottom-0 w-full px-0 pt-2 bg-gradient-to-t from-white/90 dark:from-gray-900/90 to-transparent">
-            <div className="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 py-2 shadow-sm mx-0">
+            <div className="flex items-center gap-2 bg-white dark:bg-canvas border border-gray-200 dark:border-line rounded-xl px-3 py-2 shadow-sm mx-0">
               <input ref={chatInputRef} value={chatText} onChange={e => setChatText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') sendChat() }} placeholder="Message…" className="flex-1 px-2 py-2 rounded-md outline-none bg-transparent text-sm" />
               <button onClick={sendChat} className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm">Send</button>
             </div>
@@ -461,11 +461,11 @@ export default function CommunityDetailPage() {
           onRefreshProgress={(itemId, data) => setItemProgress(p => ({ ...p, [itemId]: data }))}
           joinedItems={joinedItems}
           onToggleJoin={(itemId, joined) => {
-            setJoinedItems(prev => { 
-              const next = new Set(prev); 
-              if (joined) next.add(String(itemId)); 
-              else next.delete(String(itemId)); 
-              return next; 
+            setJoinedItems(prev => {
+              const next = new Set(prev);
+              if (joined) next.add(String(itemId));
+              else next.delete(String(itemId));
+              return next;
             })
             // Also refresh items list if join status changed
             if (loaded.items) {
@@ -479,7 +479,7 @@ export default function CommunityDetailPage() {
         <Suspense fallback={null}><CommunityMembers id={id} role={role} community={community} members={members} /></Suspense>
       )}
 
-      
+
 
       {tab === 'settings' && (
         <Suspense fallback={null}><CommunitySettings

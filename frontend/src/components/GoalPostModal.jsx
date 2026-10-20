@@ -153,7 +153,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
     setGoalData(null);
     setTimeline(null);
     setIsTimelineExpanded(false);
-    
+
     try {
       const response = await useApiStore.getState().getGoalPost(goalId, { force: true });
       if (request !== goalLoadRequest.current) return;
@@ -301,7 +301,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
     setLiking(true);
     try {
       const result = await useApiStore.getState().likeActivity(activityId, newIsLiked);
-      
+
       if (result?.success) {
         setGoalData(prev => {
           if (!prev) return prev;
@@ -433,7 +433,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="goal-post-dialog relative flex h-[100dvh] w-full max-w-4xl flex-col overflow-hidden bg-white shadow-2xl dark:bg-gray-800 md:h-[90vh] md:rounded-2xl"
+          className="goal-post-dialog relative flex h-[100dvh] w-full max-w-4xl flex-col overflow-hidden bg-white shadow-2xl dark:bg-surface md:h-[90vh] md:rounded-2xl"
         >
           {loading ? (
             <div className="flex items-center justify-center h-96">
@@ -441,12 +441,12 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
             </div>
           ) : goalData ? (
             isMobile ? (
-              <div className="flex h-full min-h-0 flex-col bg-white dark:bg-gray-900">
-                <header className="relative flex h-14 flex-shrink-0 items-center justify-between border-b border-gray-100 px-3 dark:border-gray-800">
-                  <button type="button" onClick={onClose} aria-label="Close post" className="rounded-full p-2 text-gray-700 dark:text-gray-200">
+              <div className="flex h-full min-h-0 flex-col bg-white dark:bg-canvas">
+                <header className="relative flex h-14 flex-shrink-0 items-center justify-between border-b border-gray-100 px-3 dark:border-line">
+                  <button type="button" onClick={onClose} aria-label="Close post" className="rounded-full p-2 text-gray-700 dark:text-ink">
                     <ArrowLeft className="h-6 w-6" />
                   </button>
-                  <button type="button" onClick={() => setPostMenuOpen(prev => !prev)} aria-label="Post options" aria-expanded={postMenuOpen} className="rounded-full p-2 text-gray-700 dark:text-gray-200">
+                  <button type="button" onClick={() => setPostMenuOpen(prev => !prev)} aria-label="Post options" aria-expanded={postMenuOpen} className="rounded-full p-2 text-gray-700 dark:text-ink">
                     <MoreVertical className="h-5 w-5" />
                   </button>
                 </header>
@@ -468,14 +468,14 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
 
                     <div className="mt-4 py-2">
                       {(goalData.goal?.isCompleted || goalData.goal?.completedAt) && (
-                        <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">Completed a goal</p>
+                        <p className="mb-1 text-xs font-medium text-gray-500 dark:text-muted">Completed a goal</p>
                       )}
                       <h2 className="text-[17px] font-extrabold leading-6 text-gray-950 dark:text-white">{goalData.goal?.title || 'Goal'} <span aria-hidden="true">🏃</span></h2>
                       {goalData.goal?.description && (
                         <div className="mt-5">
-                          <h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Description</h4>
+                          <h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-muted">Description</h4>
                           <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-700/50">
-                            <p ref={descriptionTextRef} className={`whitespace-pre-wrap text-sm leading-relaxed text-gray-700 dark:text-gray-300 ${expandedText.description ? '' : DESCRIPTION_CLAMP_CLASS}`}>{goalData.goal.description}</p>
+                            <p ref={descriptionTextRef} className={`whitespace-pre-wrap text-sm leading-relaxed text-gray-700 dark:text-muted ${expandedText.description ? '' : DESCRIPTION_CLAMP_CLASS}`}>{goalData.goal.description}</p>
                             {textIsTruncatable.description && <button type="button" onClick={() => setExpandedText(prev => ({ ...prev, description: !prev.description }))} className="mt-2 text-xs font-semibold text-[#4c99e6]">{expandedText.description ? 'Less' : 'More'}</button>}
                           </div>
                         </div>
@@ -484,7 +484,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                         <div className="mt-5">
                           <h4 className="mb-2 text-sm font-semibold text-gray-900 dark:text-white">Completion Note</h4>
                           <div className="rounded-lg border border-green-100 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
-                            <p ref={completionNoteTextRef} className={`whitespace-pre-wrap text-sm italic leading-relaxed text-gray-700 dark:text-gray-300 ${expandedText.completionNote ? '' : COMPLETION_NOTE_CLAMP_CLASS}`}>&quot;{goalData.completion?.note || goalData.share?.note || goalData.goal?.completionNote}&quot;</p>
+                            <p ref={completionNoteTextRef} className={`whitespace-pre-wrap text-sm italic leading-relaxed text-gray-700 dark:text-muted ${expandedText.completionNote ? '' : COMPLETION_NOTE_CLAMP_CLASS}`}>&quot;{goalData.completion?.note || goalData.share?.note || goalData.goal?.completionNote}&quot;</p>
                             {textIsTruncatable.completionNote && <button type="button" onClick={() => setExpandedText(prev => ({ ...prev, completionNote: !prev.completionNote }))} className="mt-2 text-xs font-semibold text-[#4c99e6]">{expandedText.completionNote ? 'Less' : 'More'}</button>}
                           </div>
                         </div>
@@ -493,12 +493,12 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                   </section>
 
                   {completionImageUrl && (
-                    <button type="button" onClick={() => setImageViewerOpen(true)} className="block w-full bg-gray-100 dark:bg-gray-950" aria-label="Open image full screen">
+                    <button type="button" onClick={() => setImageViewerOpen(true)} className="block w-full bg-gray-100 dark:bg-canvas" aria-label="Open image full screen">
                       <img src={completionImageUrl} alt="Goal completion" className="max-h-[52vh] w-full object-cover" />
                     </button>
                   )}
 
-                  <section className="border-b border-gray-200 px-4 py-3 dark:border-gray-800">
+                  <section className="border-b border-gray-200 px-4 py-3 dark:border-line">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <TrendingUp className="h-4 w-4 text-[#4c99e6]" />
@@ -512,8 +512,8 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                       <div className="mt-4 space-y-4">
                         {timeline?.length ? timeline.map((item, index, items) => (
                           <div key={item._id || index} className="flex gap-3">
-                            <div className="flex flex-col items-center"><span className="h-3 w-3 rounded-full bg-[#4c99e6]" />{index < items.length - 1 && <span className="mt-1 min-h-8 w-0.5 flex-1 bg-gray-200 dark:bg-gray-700" />}</div>
-                            <div className="min-w-0 flex-1 pb-3"><div className="flex justify-between gap-3"><p className="text-sm font-semibold text-gray-900 dark:text-white">{getTimelineTitle(item)}</p><span className="whitespace-nowrap text-xs text-gray-500">{formatTimelineDate(item.timestamp || item.createdAt || item.date)}</span></div>{item.description && <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{item.description}</p>}</div>
+                            <div className="flex flex-col items-center"><span className="h-3 w-3 rounded-full bg-[#4c99e6]" />{index < items.length - 1 && <span className="mt-1 min-h-8 w-0.5 flex-1 bg-gray-200 dark:bg-elevated" />}</div>
+                            <div className="min-w-0 flex-1 pb-3"><div className="flex justify-between gap-3"><p className="text-sm font-semibold text-gray-900 dark:text-white">{getTimelineTitle(item)}</p><span className="whitespace-nowrap text-xs text-gray-500">{formatTimelineDate(item.timestamp || item.createdAt || item.date)}</span></div>{item.description && <p className="mt-1 text-sm text-gray-600 dark:text-muted">{item.description}</p>}</div>
                           </div>
                         )) : <p className="py-3 text-center text-sm text-gray-500">No timeline events yet</p>}
                       </div>
@@ -536,18 +536,18 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                 </div>
 
                 {showComments && goalData?.social?.activityId && (
-                  <div id="goal-post-mobile-composer" className="flex-shrink-0 bg-white dark:bg-gray-900" />
+                  <div id="goal-post-mobile-composer" className="flex-shrink-0 bg-white dark:bg-canvas" />
                 )}
 
-                <div className="flex h-14 flex-shrink-0 items-center border-t border-gray-200 bg-white px-4 dark:border-gray-800 dark:bg-gray-900">
+                <div className="flex h-14 flex-shrink-0 items-center border-t border-gray-200 bg-white px-4 dark:border-line dark:bg-canvas">
                   <div className="flex items-center gap-7">
-                    <button type="button" onClick={handleLike} disabled={liking} aria-label={goalData?.social?.isLiked ? 'Unlike post' : 'Like post'} className={`flex items-center gap-1.5 text-sm font-semibold ${goalData?.social?.isLiked ? 'text-red-500' : 'text-gray-700 dark:text-gray-200'}`}>
+                    <button type="button" onClick={handleLike} disabled={liking} aria-label={goalData?.social?.isLiked ? 'Unlike post' : 'Like post'} className={`flex items-center gap-1.5 text-sm font-semibold ${goalData?.social?.isLiked ? 'text-red-500' : 'text-gray-700 dark:text-ink'}`}>
                       <Heart className={`h-6 w-6 ${goalData?.social?.isLiked ? 'fill-current' : ''}`} /><span>{goalData?.social?.likeCount || 0}</span>
                     </button>
-                    <button type="button" onClick={openComments} aria-label={showComments ? 'Close comments' : 'Open comments'} aria-expanded={showComments} className={`flex items-center gap-1.5 text-sm font-semibold ${showComments ? 'text-[#4c99e6]' : 'text-gray-700 dark:text-gray-200'}`}>
+                    <button type="button" onClick={openComments} aria-label={showComments ? 'Close comments' : 'Open comments'} aria-expanded={showComments} className={`flex items-center gap-1.5 text-sm font-semibold ${showComments ? 'text-[#4c99e6]' : 'text-gray-700 dark:text-ink'}`}>
                       <MessageCircle className="h-6 w-6" /><span>{goalData?.social?.commentCount || 0}</span>
                     </button>
-                    <button type="button" onClick={() => { shareUrlRef.current = `${window.location.origin}/feed?goalId=${goalId}`; setShareSheetOpen(true); }} aria-label="Share post" className="text-gray-700 dark:text-gray-200"><Share2 className="h-6 w-6" /></button>
+                    <button type="button" onClick={() => { shareUrlRef.current = `${window.location.origin}/feed?goalId=${goalId}`; setShareSheetOpen(true); }} aria-label="Share post" className="text-gray-700 dark:text-ink"><Share2 className="h-6 w-6" /></button>
                   </div>
                 </div>
 
@@ -555,13 +555,13 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
             ) : (
             <div className={`goal-post-desktop flex ${hasCompletionImage ? 'flex-row' : 'flex-col'} h-full overflow-hidden`}>
               {hasCompletionImage && (
-                <div className="hidden md:flex w-1/2 bg-gray-100 dark:bg-gray-900 p-4 overflow-hidden relative">
-                  <div className="absolute top-6 right-6 z-10 flex items-center gap-2 rounded-full border border-white/70 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 px-2 py-1.5 shadow-lg backdrop-blur-sm">
+                <div className="hidden md:flex w-1/2 bg-gray-100 dark:bg-canvas p-4 overflow-hidden relative">
+                  <div className="absolute top-6 right-6 z-10 flex items-center gap-2 rounded-full border border-white/70 dark:border-line bg-white/90 dark:bg-gray-800/90 px-2 py-1.5 shadow-lg backdrop-blur-sm">
                     <button
                       type="button"
                       onClick={() => updateDesktopImageZoom(desktopImageZoom - DESKTOP_IMAGE_ZOOM_STEP)}
                       disabled={desktopImageZoom <= MIN_DESKTOP_IMAGE_ZOOM}
-                      className="rounded-full p-2 text-gray-600 dark:text-gray-300 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                      className="rounded-full p-2 text-gray-600 dark:text-muted transition-colors hover:bg-gray-100 dark:hover:bg-elevated hover:text-gray-900 dark:hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                       aria-label="Zoom out image"
                     >
                       <ZoomOut className="h-4 w-4" />
@@ -570,7 +570,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                       type="button"
                       onClick={() => updateDesktopImageZoom(MIN_DESKTOP_IMAGE_ZOOM)}
                       disabled={desktopImageZoom === MIN_DESKTOP_IMAGE_ZOOM}
-                      className="rounded-full p-2 text-gray-600 dark:text-gray-300 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                      className="rounded-full p-2 text-gray-600 dark:text-muted transition-colors hover:bg-gray-100 dark:hover:bg-elevated hover:text-gray-900 dark:hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                       aria-label="Reset image zoom"
                     >
                       <RotateCcw className="h-4 w-4" />
@@ -579,7 +579,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                       type="button"
                       onClick={() => updateDesktopImageZoom(desktopImageZoom + DESKTOP_IMAGE_ZOOM_STEP)}
                       disabled={desktopImageZoom >= MAX_DESKTOP_IMAGE_ZOOM}
-                      className="rounded-full p-2 text-gray-600 dark:text-gray-300 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                      className="rounded-full p-2 text-gray-600 dark:text-muted transition-colors hover:bg-gray-100 dark:hover:bg-elevated hover:text-gray-900 dark:hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                       aria-label="Zoom in image"
                     >
                       <ZoomIn className="h-4 w-4" />
@@ -608,7 +608,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
               {/* Right Side - Content */}
               <div className={`${hasCompletionImage ? 'w-full md:w-1/2' : 'w-full'} flex flex-col h-full overflow-hidden`}>
                 {/* Header */}
-                <div className="goal-post-header p-6 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
+                <div className="goal-post-header p-6 border-b border-gray-100 dark:border-line flex-shrink-0">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       <img
@@ -622,7 +622,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                         className="w-12 h-12 rounded-full cursor-pointer hover:opacity-80 transition-opacity"
                       />
                       <div>
-                        <h3 
+                        <h3
                           onClick={() => {
                             if (goalData.user?.username) {
                               navigate(`/profile/@${goalData.user.username}`);
@@ -633,13 +633,13 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                           {goalData.user?.name || 'User'}
                         </h3>
                         {goalData.user?.username && (
-                          <p className="text-sm text-gray-500 dark:text-gray-400">@{goalData.user.username}</p>
+                          <p className="text-sm text-gray-500 dark:text-muted">@{goalData.user.username}</p>
                         )}
                       </div>
                     </div>
                     <button
                       onClick={onClose}
-                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-muted transition-colors"
                     >
                       <ArrowLeft className="w-6 h-6 md:hidden" /><X className="hidden w-6 h-6 md:block" />
                     </button>
@@ -653,7 +653,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                   <div>
                     <GoalHero goal={goalData.goal} />
                     {(goalData.completion?.completedAt || goalData.goal?.completedAt) && (
-                      <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+                      <p className="mt-3 text-sm text-gray-600 dark:text-muted">
                         Completed: {new Date(goalData.completion?.completedAt || goalData.goal?.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </p>
                     )}
@@ -666,13 +666,13 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                   {/* Description */}
                   {goalData.goal?.description && (
                     <div>
-                      <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                      <h4 className="text-xs font-bold text-gray-500 dark:text-muted uppercase tracking-wide mb-2">
                         Description
                       </h4>
                       <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                         <p
                           ref={descriptionTextRef}
-                          className={`text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap ${expandedText.description ? '' : DESCRIPTION_CLAMP_CLASS}`}
+                          className={`text-sm text-gray-700 dark:text-muted leading-relaxed whitespace-pre-wrap ${expandedText.description ? '' : DESCRIPTION_CLAMP_CLASS}`}
                         >
                           {goalData.goal.description}
                         </p>
@@ -700,7 +700,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                       <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-100 dark:border-green-800">
                         <p
                           ref={completionNoteTextRef}
-                          className={`text-sm text-gray-700 dark:text-gray-300 italic leading-relaxed whitespace-pre-wrap ${expandedText.completionNote ? '' : COMPLETION_NOTE_CLAMP_CLASS}`}
+                          className={`text-sm text-gray-700 dark:text-muted italic leading-relaxed whitespace-pre-wrap ${expandedText.completionNote ? '' : COMPLETION_NOTE_CLAMP_CLASS}`}
                         >
                           "{completionNote}"
                         </p>
@@ -741,7 +741,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                           Timeline
                         </h4>
                       </div>
-                      <button 
+                      <button
                         onClick={toggleTimeline}
                         disabled={timelineLoading}
                         className="text-xs font-semibold text-[#4c99e6] hover:text-blue-600 transition-colors disabled:opacity-50"
@@ -757,7 +757,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                             <div className="flex flex-col items-center">
                               <div className="w-3 h-3 rounded-full bg-[#4c99e6]" />
                               {index < arr.length - 1 && (
-                                <div className="w-0.5 h-full min-h-[40px] bg-gray-200 dark:bg-gray-700 mt-1" />
+                                <div className="w-0.5 h-full min-h-[40px] bg-gray-200 dark:bg-elevated mt-1" />
                               )}
                             </div>
                             <div className="flex-1 pb-4">
@@ -765,12 +765,12 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                                 <h5 className="font-semibold text-gray-900 dark:text-white text-sm">
                                   {getTimelineTitle(item)}
                                 </h5>
-                                <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                <span className="text-xs text-gray-500 dark:text-muted whitespace-nowrap">
                                   {formatTimelineDate(item.timestamp || item.createdAt || item.date)}
                                 </span>
                               </div>
                               {item.description && (
-                                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                                <p className="text-sm text-gray-600 dark:text-muted leading-relaxed">
                                   {item.description}
                                 </p>
                               )}
@@ -780,7 +780,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                       </div>
                     )}
                     {isTimelineExpanded && timeline && timeline.length === 0 && (
-                      <div className="text-center py-6 text-sm text-gray-500 dark:text-gray-400">
+                      <div className="text-center py-6 text-sm text-gray-500 dark:text-muted">
                         No timeline events yet
                       </div>
                     )}
@@ -812,13 +812,13 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                       {isGoalUpdatesExpanded && (
                         <>
                           <div
-                            className="max-h-64 overflow-y-auto rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-3 space-y-2"
+                            className="max-h-64 overflow-y-auto rounded-lg border border-gray-100 dark:border-line bg-gray-50 dark:bg-gray-700/50 p-3 space-y-2"
                             onScroll={handleGoalUpdatesScroll}
                           >
                             {goalUpdates.map((update, index) => (
-                              <div key={update.id || `${update.dateKey || update.createdAt || 'update'}-${index}`} className="rounded-lg border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5">
+                              <div key={update.id || `${update.dateKey || update.createdAt || 'update'}-${index}`} className="rounded-lg border border-gray-100 dark:border-line bg-white dark:bg-surface px-3 py-2.5">
                                 <div className="flex items-center justify-between gap-2 mb-1">
-                                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                  <span className="text-xs font-medium text-gray-500 dark:text-muted">
                                     {new Date(update.dateKey || update.createdAt).toLocaleDateString('en-US', {
                                       month: 'short',
                                       day: 'numeric',
@@ -832,7 +832,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                                   )}
                                 </div>
                                 {update.text && (
-                                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                                  <p className="text-sm text-gray-700 dark:text-muted leading-relaxed whitespace-pre-wrap">
                                     {update.text}
                                   </p>
                                 )}
@@ -840,23 +840,23 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                             ))}
 
                             {!goalUpdatesLoading && goalUpdates.length === 0 && (
-                              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-3">No public updates yet.</p>
+                              <p className="text-sm text-gray-500 dark:text-muted text-center py-3">No public updates yet.</p>
                             )}
                           </div>
 
                           <div className="mt-2.5 flex justify-center">
                             {goalUpdatesLoading ? (
-                              <p className="text-xs text-gray-500 dark:text-gray-400">Loading updates...</p>
+                              <p className="text-xs text-gray-500 dark:text-muted">Loading updates...</p>
                             ) : goalUpdatesHasMore ? (
                               <button
                                 type="button"
                                 onClick={() => loadGoalUpdates()}
-                                className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-line text-xs font-medium text-gray-700 dark:text-ink hover:bg-gray-50 dark:hover:bg-elevated transition-colors"
                               >
                                 Load more
                               </button>
                             ) : goalUpdates.length > 0 ? (
-                              <p className="text-xs text-gray-500 dark:text-gray-400">All updates loaded</p>
+                              <p className="text-xs text-gray-500 dark:text-muted">All updates loaded</p>
                             ) : null}
                           </div>
                         </>
@@ -879,7 +879,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                           />
                         </Suspense>
                       ) : (
-                        <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Comments unavailable</div>
+                        <div className="text-sm text-gray-500 dark:text-muted text-center py-4">Comments unavailable</div>
                       )}
                     </div>
                   )}
@@ -887,18 +887,18 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                 </div>
 
                 {showComments && goalData?.social?.activityId && (
-                  <div id="goal-post-desktop-composer" className="flex-shrink-0 bg-white dark:bg-gray-800" />
+                  <div id="goal-post-desktop-composer" className="flex-shrink-0 bg-white dark:bg-surface" />
                 )}
 
                 {/* Footer */}
-                <div className="border-t border-gray-100 dark:border-gray-700 px-6 py-4 flex-shrink-0">
+                <div className="border-t border-gray-100 dark:border-line px-6 py-4 flex-shrink-0">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-6">
                       {/* Like */}
                       <button
                         onClick={handleLike}
                         disabled={liking}
-                        className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-red-500 transition-colors disabled:opacity-50"
+                        className="flex items-center gap-2 text-gray-600 dark:text-muted hover:text-red-500 transition-colors disabled:opacity-50"
                       >
                         <Heart
                           className={`w-5 h-5 ${
@@ -909,9 +909,9 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                       </button>
 
                       {/* Comments */}
-                      <button 
+                      <button
                         onClick={openComments}
-                        className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-[#4c99e6] transition-colors"
+                        className="flex items-center gap-2 text-gray-600 dark:text-muted hover:text-[#4c99e6] transition-colors"
                       >
                         <MessageCircle className="w-5 h-5" />
                         <span className="text-sm font-medium">{goalData?.social?.commentCount || 0}</span>
@@ -919,7 +919,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                     </div>
 
                     {/* Share */}
-                    <button 
+                    <button
                       onClick={() => {
                         try {
                           const gid = goalId;
@@ -938,7 +938,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                           }
                         } catch { }
                       }}
-                      className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-[#4c99e6] transition-colors"
+                      className="flex items-center gap-2 text-gray-600 dark:text-muted hover:text-[#4c99e6] transition-colors"
                     >
                       <Share2 className="w-5 h-5" />
                     </button>
@@ -953,7 +953,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
       )}
       {postMenuOpen && goalData && (
         <motion.div key="post-actions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setPostMenuOpen(false)} className="fixed inset-0 z-[230] flex items-end justify-center bg-black/40 md:items-center">
-          <motion.div initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }} onClick={event => event.stopPropagation()} className="w-full rounded-t-3xl bg-white p-3 pb-[max(32px,env(safe-area-inset-bottom))] md:max-w-sm md:rounded-2xl dark:bg-gray-800">
+          <motion.div initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }} onClick={event => event.stopPropagation()} className="w-full rounded-t-3xl bg-white p-3 pb-[max(32px,env(safe-area-inset-bottom))] md:max-w-sm md:rounded-2xl dark:bg-surface">
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-200 md:hidden" />
             <button type="button" onClick={copyPostLink} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold"><Share2 className="h-5 w-5" />Copy link</button>
             {goalData.user?.id && String(goalData.user.id) !== String(currentUser?.id || currentUser?._id || currentUser?.userId || currentUser?.user_id) && (

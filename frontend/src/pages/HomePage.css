@@ -1835,3 +1835,27 @@
     transform: none;
   }
 }
+
+.dark .wt-landing { --ink:var(--wt-ink);--muted:var(--wt-muted);--brand:var(--wt-blue);--line:var(--wt-line);background:var(--wt-canvas); }
+.dark .wt-landing :is(.landing-hero,.landing-tint,.landing-final) { background:linear-gradient(110deg,var(--wt-canvas),var(--wt-blue-wash)); }
+.dark .wt-landing :is(.landing-card,.landing-dashboard,.landing-dashboard aside,.landing-goal,.landing-button.secondary,.landing-mobile-faq details) { background:var(--wt-surface);border-color:var(--wt-line);color:var(--wt-ink); }
+.dark .wt-landing :is(.landing-eyebrow,.landing-icon,.landing-sample,.landing-tabs,.landing-progress) { background:var(--wt-elevated);color:var(--wt-blue); }
+.dark .wt-landing .landing-button { background:var(--wt-blue-strong);color:white; }
+.dark .wt-landing .landing-button.secondary { background:var(--wt-elevated);color:var(--wt-ink); }
+.dark .wt-landing .landing-health b { background:var(--wt-elevated);color:var(--wt-success); }
+.dark .wt-landing :is(.landing-detail-preview,.landing-journey-section,.landing-feed-cover,.landing-feed-cover.peach,.landing-feed-cover.lavender,.landing-your-rank,.landing-place.place-1) { background:var(--wt-blue-wash);color:var(--wt-ink); }
+.dark .wt-landing :is(.landing-journey-stats>div,.landing-template-tags span,.landing-checks i,.landing-avatar,.landing-event,.landing-circle-arrow) { background:var(--wt-elevated);color:var(--wt-muted); }
+.dark .wt-landing :is(.landing-icon.mint,.landing-icon.peach,.landing-icon.lavender) { background:var(--wt-elevated);color:var(--wt-blue); }
+.dark .wt-landing .landing-completed { background:var(--wt-elevated);color:var(--wt-success); }
+
+/* The shared footer sits outside .wt-landing, so it needs its own dark scope. */
+.dark .landing-footer p,
+.dark .landing-footer nav {
+  color: var(--wt-muted);
+}
+.dark .landing-footer a:hover {
+  color: var(--wt-blue);
+}
+.dark .landing-footer a:focus-visible {
+  outline-color: var(--wt-blue);
+}

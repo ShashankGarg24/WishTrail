@@ -126,7 +126,7 @@ const FeedbackButton = ({ isOpen: controlledOpen, onClose }) => {
       const formData = new FormData()
       formData.append('emotion', emotion)
       if (message.trim()) formData.append('message', message.trim())
-      
+
       if (screenshotFile) formData.append('screenshot', screenshotFile)
 
       const res = await feedbackAPI.submit(formData)
@@ -138,7 +138,7 @@ const FeedbackButton = ({ isOpen: controlledOpen, onClose }) => {
         if (previewUrl) URL.revokeObjectURL(previewUrl)
         setPreviewUrl('')
         setScreenshotFile(null)
-        
+
         setTimeout(() => {
           handleClose()
         }, 2500)
@@ -167,12 +167,12 @@ const FeedbackButton = ({ isOpen: controlledOpen, onClose }) => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md shadow-2xl"
+              className="bg-white dark:bg-surface rounded-2xl w-full max-w-md shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               {/* lock scroll while this feedback modal is mounted */}
               <ScrollLockGuard />
-              
+
               {!success ? (
                 <form onSubmit={handleSubmit} className="p-6">
                   {/* Header */}
@@ -181,14 +181,14 @@ const FeedbackButton = ({ isOpen: controlledOpen, onClose }) => {
                       <h3 className="text-xl font-bold text-gray-900 dark:text-white font-manrope">
                         Share Your Feedback
                       </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-manrope">
+                      <p className="text-sm text-gray-500 dark:text-muted mt-1 font-manrope">
                         Your insights help us craft a better experience.
                       </p>
                     </div>
-                    <button 
+                    <button
                       type="button"
-                      onClick={handleClose} 
-                      className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors -mr-1"
+                      onClick={handleClose}
+                      className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-elevated transition-colors -mr-1"
                     >
                       <X className="h-5 w-5 text-gray-400" />
                     </button>
@@ -196,7 +196,7 @@ const FeedbackButton = ({ isOpen: controlledOpen, onClose }) => {
 
                   {/* Emotion Selection */}
                   <div className="mt-6">
-                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-3 tracking-wider uppercase">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-muted mb-3 tracking-wider uppercase">
                       How are we doing?
                     </label>
                     <div className="flex justify-between gap-2">
@@ -212,7 +212,7 @@ const FeedbackButton = ({ isOpen: controlledOpen, onClose }) => {
                           }`}
                         >
                           <span className="text-3xl">{item.emoji}</span>
-                          <span className="text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                          <span className="text-[10px] font-semibold text-gray-600 dark:text-muted uppercase tracking-wider">
                             {item.label}
                           </span>
                         </button>
@@ -223,7 +223,7 @@ const FeedbackButton = ({ isOpen: controlledOpen, onClose }) => {
                   {/* Message Input */}
                   <div className="mt-6">
                     <div className="flex items-center justify-between mb-2">
-                      <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 tracking-wider uppercase">
+                      <label className="block text-xs font-bold text-gray-700 dark:text-muted tracking-wider uppercase">
                         Your Message
                       </label>
                       <span className="text-xs text-gray-400 uppercase tracking-wider">
@@ -235,41 +235,41 @@ const FeedbackButton = ({ isOpen: controlledOpen, onClose }) => {
                       onChange={(e) => setMessage(e.target.value)}
                       rows={4}
                       maxLength={MAX_MESSAGE_CHARS}
-                      className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-manrope resize-none"
+                      className="w-full px-4 py-3 border border-gray-200 dark:border-line rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-elevated text-gray-900 dark:text-white text-sm font-manrope resize-none"
                       placeholder="Your thoughts help us grow..."
                     />
-                    <div className="text-xs text-gray-400 dark:text-gray-500 mt-1.5 text-right">
+                    <div className="text-xs text-gray-400 dark:text-muted mt-1.5 text-right">
                       {message.length}/{MAX_MESSAGE_CHARS} characters
                     </div>
                   </div>
 
                   {/* Screenshot Attachment */}
                   <div className="mt-4">
-                    <label className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <label className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-line rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                       <Image className="h-4 w-4 text-blue-500" />
                       <span className="text-sm text-blue-500 font-medium font-manrope">
                         Attach a screenshot (max 1 MB)
                       </span>
-                      <input 
-                        type="file" 
-                        accept="image/png, image/jpeg, image/jpg" 
-                        onChange={handleFileChange} 
-                        className="hidden" 
+                      <input
+                        type="file"
+                        accept="image/png, image/jpeg, image/jpg"
+                        onChange={handleFileChange}
+                        className="hidden"
                       />
                     </label>
                     {previewUrl && (
                       <div className="relative inline-block mt-3">
-                        <img 
-                          src={previewUrl} 
-                          alt="Screenshot preview" 
-                          className="w-20 h-20 object-cover rounded-lg border-2 border-gray-200 dark:border-gray-600" 
+                        <img
+                          src={previewUrl}
+                          alt="Screenshot preview"
+                          className="w-20 h-20 object-cover rounded-lg border-2 border-gray-200 dark:border-line"
                         />
-                        <button 
-                          type="button" 
-                          onClick={removeImage} 
-                          className="absolute -top-2 -right-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full p-1 shadow-md hover:bg-gray-50 dark:hover:bg-gray-600"
+                        <button
+                          type="button"
+                          onClick={removeImage}
+                          className="absolute -top-2 -right-2 bg-white dark:bg-elevated border border-gray-200 dark:border-line rounded-full p-1 shadow-md hover:bg-gray-50 dark:hover:bg-elevated"
                         >
-                          <X className="h-3 w-3 text-gray-600 dark:text-gray-400" />
+                          <X className="h-3 w-3 text-gray-600 dark:text-muted" />
                         </button>
                       </div>
                     )}
@@ -287,15 +287,15 @@ const FeedbackButton = ({ isOpen: controlledOpen, onClose }) => {
 
                   {/* Action Buttons */}
                   <div className="flex items-center justify-end gap-3 mt-6">
-                    <button 
-                      type="button" 
-                      onClick={handleClose} 
-                      className="px-5 py-2.5 text-sm text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors font-manrope"
+                    <button
+                      type="button"
+                      onClick={handleClose}
+                      className="px-5 py-2.5 text-sm text-gray-700 dark:text-muted font-medium hover:bg-gray-100 dark:hover:bg-elevated rounded-lg transition-colors font-manrope"
                     >
                       Cancel
                     </button>
-                    <button 
-                      type="submit" 
+                    <button
+                      type="submit"
                       disabled={submitting}
                       className="px-5 py-2.5 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-manrope text-sm"
                     >
@@ -313,7 +313,7 @@ const FeedbackButton = ({ isOpen: controlledOpen, onClose }) => {
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-white font-manrope mb-2">
                     Thank You!
                   </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line font-manrope">
+                  <p className="text-sm text-gray-600 dark:text-muted whitespace-pre-line font-manrope">
                     {success}
                   </p>
                 </div>
@@ -326,4 +326,4 @@ const FeedbackButton = ({ isOpen: controlledOpen, onClose }) => {
   )
 }
 
-export default FeedbackButton 
+export default FeedbackButton

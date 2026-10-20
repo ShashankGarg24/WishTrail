@@ -8,6 +8,15 @@ export default {
   theme: {
     extend: {
       colors: {
+        canvas: 'var(--wt-canvas)',
+        surface: 'var(--wt-surface)',
+        elevated: 'var(--wt-elevated)',
+        ink: 'var(--wt-ink)',
+        muted: 'var(--wt-muted)',
+        line: 'var(--wt-line)',
+        brand: 'var(--wt-blue)',
+        wash: 'var(--wt-blue-wash)',
+        track: 'var(--wt-track)',
         wt: {
           DEFAULT: '#4c99e6',
           light: '#6bade8',
@@ -82,4 +91,4 @@ export default {
     },
   },
   plugins: [],
-} 
+}

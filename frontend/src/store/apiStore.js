@@ -1,3 +1,4 @@
+import { readThemeMode, resolveDarkMode, applyTheme } from '../utils/theme'
 import { unregisterWebPush } from '../services/webPush';
 import { unregisterNativeDevice } from '../services/nativeNotifications';
 import { restoreStartupToken } from '../services/startupSession'
@@ -26,42 +27,18 @@ import { getCurrentDateKey } from '../utils/timezoneUtils';
 const useApiStore = create(
   persist(
     (set, get) => ({
-      // Theme state
-      isDarkMode: false,
-      applyTheme: (isDark) => {
-        if (typeof document === 'undefined') return;
-        if (isDark) {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
+      // Keep the preference separate from its currently resolved appearance.
+      themeMode: readThemeMode(),
+      isDarkMode: resolveDarkMode(readThemeMode()),
+      applyTheme: applyTheme,
+      setThemeMode: (mode) => {
+        const themeMode = typeof mode === 'boolean' ? (mode ? 'dark' : 'light') : mode;
+        if (!['light', 'dark', 'system'].includes(themeMode)) return;
+        const isDarkMode = resolveDarkMode(themeMode);
+        set({ themeMode, isDarkMode });
+        applyTheme(isDarkMode);
       },
-      setThemeMode: (isDark) => {
-        set({ isDarkMode: !!isDark });
-        get().applyTheme(!!isDark);
-      },
-      toggleTheme: () => {
-        const nextTheme = !get().isDarkMode;
-        set({ isDarkMode: nextTheme });
-        get().applyTheme(nextTheme);
-      },
-      syncThemeFromServer: async () => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          return { success: false, error: 'No token' };
-        }
-        try {
-          const response = await settingsAPI.getThemeSettings();
-          const theme = response?.data?.data?.theme;
-          const isDark = theme === 'dark';
-          get().setThemeMode(isDark);
-          return { success: true, isDarkMode: isDark };
-        } catch (error) {
-          const errorMessage = handleApiError(error);
-          return { success: false, error: errorMessage };
-        }
-      },
-
+      toggleTheme: () => get().setThemeMode(!get().isDarkMode),
       // Loading states
       loading: false,
       error: null,
@@ -444,17 +421,17 @@ const useApiStore = create(
         const state = get();
         const now = Date.now();
         const TTL = 5 * 60 * 1000; // 5 minutes
-        
+
         // Return cached user if fresh and not forcing refresh
         if (!options.force && state.user && state.cacheMeTs && (now - state.cacheMeTs < TTL)) {
           return { success: true, user: state.user, cached: true };
         }
-        
+
         try {
           const response = await authAPI.getMe();
           const { user } = response.data.data;
           set({ user, isAuthenticated: true, cacheMeTs: now });
-          await get().syncThemeFromServer();
+
           // Fetch dashboard years separately from the new endpoint
           get().getDashboardYears();
           return { success: true, user };
@@ -632,14 +609,14 @@ const useApiStore = create(
           if (sort) params.sort = sort;
           if (year != null) params.year = year;
           const cacheKey = JSON.stringify([get().user?.id || get().user?._id, get()._cacheKeyFromParams(params)]);
-          
+
           const ts = get().cacheHabitsTs || 0;
           const ttl = get().cacheTTLs.habits;
           if (!force && ts && Date.now() - ts < ttl && Array.isArray(get().habits) && get().cacheHabitsKey === cacheKey) {
             set({ loading: false });
             return { success: true, habits: get().habits, pagination: get().habitsPagination };
           }
-          
+
           const res = await habitsAPI.list(params);
           const habits = res?.data?.data?.habits || [];
           const pagination = res?.data?.data?.pagination || null;
@@ -657,7 +634,7 @@ const useApiStore = create(
           const page = opts.page || 1;
           const limit = opts.limit || 50;
           const sort = opts.sort; // Pass sort parameter
-          
+
           const params = { q: query, page, limit };
           if (sort) params.sort = sort;
           const res = await habitsAPI.search(params);
@@ -684,24 +661,24 @@ const useApiStore = create(
         try {
           // Get current date key in user's timezone
           const dateKey = getCurrentDateKey();
-          
-          const response = await habitsAPI.log(id, { 
-            status, 
+
+          const response = await habitsAPI.log(id, {
+            status,
             mood,
             count,
             date: dateKey  // Send date_key calculated in user's timezone
           });
           const data = response?.data?.data || response?.data;
           const updatedHabit = data?.habit;
-          
+
           set(state => ({
             habits: (state.habits || []).map(h => {
               const match = h.id === id || h._id === id || String(h.id) === String(id);
               if (!match) return h;
               // Use the updated habit data from the server if available
               if (updatedHabit) {
-                return { 
-                  ...h, 
+                return {
+                  ...h,
                   todayStatus: status, // optimistically update today's status
                   totalCompletions: updatedHabit.totalCompletions ?? h.totalCompletions,
                   totalDays: updatedHabit.totalDays ?? h.totalDays,
@@ -1186,17 +1163,17 @@ const useApiStore = create(
           const ttlMs = get().cacheTTLs?.goalAnalytics || 5 * 60 * 1000; // 5 minutes
           const bucket = get().cacheGoalAnalytics || {};
           const key = `analytics:${String(id)}:${days}`;
-          
+
           if (!force) {
             const entry = bucket[key];
             if (entry && typeof entry.ts === 'number' && Date.now() - entry.ts < ttlMs) {
               return { success: true, ...entry.data };
             }
           }
-          
+
           const response = await goalsAPI.getGoalAnalytics(id, { days });
           const resp = response?.data || {};
-          
+
           // Cache the response
           try {
             const now = Date.now();
@@ -1204,7 +1181,7 @@ const useApiStore = create(
             const next = { ...current, [key]: { data: resp, ts: now } };
             set({ cacheGoalAnalytics: next });
           } catch { }
-          
+
           return { success: true, ...resp };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -1696,7 +1673,7 @@ const useApiStore = create(
           const entry = res?.data?.data?.entry;
           if (entry) {
             const entryId = entry.id || entry._id;
-            set(state => ({ 
+            set(state => ({
               dailyLogsEntries: state.dailyLogsEntries.map(e => {
                 const eId = e.id || e._id;
                 return eId === entryId ? entry : e;
@@ -1805,7 +1782,7 @@ const useApiStore = create(
 
           // Update in activity feed
           set(state => ({
-            activityFeed: Array.isArray(state.activityFeed) 
+            activityFeed: Array.isArray(state.activityFeed)
               ? state.activityFeed.map(activity =>
                   activity._id === activityId
                     ? { ...activity, likeCount, isLiked }
@@ -2007,15 +1984,15 @@ const useApiStore = create(
             }
           } catch { }
         }
-        
+
         // 🔥 NEW: Register callback for axios interceptor to update store after refresh
         if (typeof window !== 'undefined') {
           window.__updateAuthToken = (newToken) => {
             if (newToken) {
               set({ token: newToken, isAuthenticated: true });
             } else {
-              set({ 
-                token: null, 
+              set({
+                token: null,
                 isAuthenticated: false,
                 user: null
               });
@@ -2048,6 +2025,7 @@ const useApiStore = create(
       name: 'wishtrail-api-store',
       partialize: (state) => ({
         isDarkMode: state.isDarkMode,
+        themeMode: state.themeMode,
         token: state.token,
         user: state.user,
         isAuthenticated: state.isAuthenticated
@@ -2057,6 +2035,8 @@ const useApiStore = create(
         return {
           ...currentState,
           ...persistedState,
+          themeMode: readThemeMode(),
+          isDarkMode: resolveDarkMode(readThemeMode()),
           // Explicitly ensure critical arrays are never undefined
           notifications: currentState.notifications || [],
           goals: currentState.goals || [],

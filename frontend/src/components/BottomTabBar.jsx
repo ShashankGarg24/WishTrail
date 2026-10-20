@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { BarChart3, BookOpen, Compass, Home, Plus, Trophy, Target, User, Zap } from 'lucide-react'
+import { BarChart3, BookOpen, Compass, Home, Plus, Newspaper, Target, User, Zap } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import AccountMenuSheet from './account/AccountMenuSheet'
 
@@ -68,9 +68,9 @@ const BottomTabBar = () => {
           <div className="wt-bottom-shell">
             <div className="flex w-full items-stretch px-2">
               <TabButton active={path.startsWith('/home') || path.startsWith('/dashboard')} label="Home" Icon={Home} onClick={() => navigate('/home')} />
-              <TabButton active={path.startsWith('/feed')} label="Feed" Icon={Compass} onClick={() => navigate('/feed')} />
+              <TabButton active={path.startsWith('/feed')} label="Feed" Icon={Newspaper} onClick={() => navigate('/feed')} />
               <div className="flex-1" />
-              <TabButton active={path.startsWith('/leaderboard')} label="Leaderboard" Icon={Trophy} onClick={() => navigate('/leaderboard')} />
+              <TabButton active={path.startsWith('/discover')} label="Discover" Icon={Compass} onClick={() => navigate('/discover')} />
               <TabButton
                 active={path.startsWith('/profile')}
                 label="Profile"
@@ -98,7 +98,7 @@ const BottomTabBar = () => {
             role="dialog"
             aria-modal="true"
             aria-labelledby="bottom-quick-actions-title"
-            className="relative w-full rounded-t-[28px] bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl dark:bg-gray-900"
+            className="relative w-full rounded-t-[28px] bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl dark:bg-canvas"
             initial={{ opacity: 0, y: 30, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.98 }}
@@ -107,13 +107,13 @@ const BottomTabBar = () => {
             <h2 id="bottom-quick-actions-title" className="mb-5 text-xl font-bold text-slate-950 dark:text-white">What would you like to do?</h2>
             <div className="space-y-2">
               {actions.map(([action, label, hint, Icon, destination, tone]) => (
-                <button key={action} type="button" onClick={() => runAction(action, destination)} className="flex w-full items-center gap-3 rounded-xl border border-slate-100 bg-white p-3 text-left transition hover:border-blue-200 hover:bg-blue-50/40 dark:border-gray-700 dark:bg-gray-800">
+                <button key={action} type="button" onClick={() => runAction(action, destination)} className="flex w-full items-center gap-3 rounded-xl border border-slate-100 bg-white p-3 text-left transition hover:border-blue-200 hover:bg-blue-50/40 dark:border-line dark:bg-surface">
                   <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tone}`}><Icon className="h-5 w-5" strokeWidth={2.4} /></span>
                   <span className="min-w-0"><span className="block text-sm font-bold text-slate-900 dark:text-white">{label}</span><span className="mt-0.5 block text-xs text-slate-500">{hint}</span></span>
                 </button>
               ))}
             </div>
-            <button type="button" onClick={() => setQuickActionsOpen(false)} className="mt-3 w-full rounded-xl bg-gray-100 py-3 text-sm font-semibold text-slate-600 dark:bg-gray-800 dark:text-gray-300">Cancel</button>
+            <button type="button" onClick={() => setQuickActionsOpen(false)} className="mt-3 w-full rounded-xl bg-gray-100 py-3 text-sm font-semibold text-slate-600 dark:bg-surface dark:text-muted">Cancel</button>
           </motion.div>
         </div>
       )}

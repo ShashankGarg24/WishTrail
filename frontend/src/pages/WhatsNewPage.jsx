@@ -56,13 +56,13 @@ const WhatsNewPage = () => {
 
   const typeBadgeColors = {
     feature: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100',
-    enhancement: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-100',
+    enhancement: 'bg-slate-100 text-slate-700 dark:bg-elevated dark:text-ink',
     bug_fix: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-100'
   }
 
   const releaseBadgeColors = {
     major: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-100',
-    minor: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
+    minor: 'bg-gray-100 text-gray-700 dark:bg-elevated dark:text-ink'
   }
 
   const formatUpdateDate = (value) => {
@@ -91,7 +91,7 @@ const WhatsNewPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] dark:bg-gray-900 transition-colors">
+    <div className="min-h-screen bg-[#f5f5f5] dark:bg-canvas transition-colors">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         {/* Header */}
         <div className="mb-12 text-center">
@@ -106,7 +106,7 @@ const WhatsNewPage = () => {
             <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
               What’s New on WishTrail
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
+            <p className="text-gray-600 dark:text-muted mt-2">
               Follow our journey as we build the best tools for your personal growth.
             </p>
           </motion.div>
@@ -141,7 +141,7 @@ const WhatsNewPage = () => {
           >
             {sortedMonths.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-gray-500 dark:text-gray-400 text-lg">
+                <p className="text-gray-500 dark:text-muted text-lg">
                   No updates yet. Check back soon!
                 </p>
               </div>
@@ -158,7 +158,7 @@ const WhatsNewPage = () => {
                     transition={{ delay: monthIdx * 0.1 }}
                     className="relative pl-7"
                   >
-                    <div className="absolute left-0 top-2 bottom-0 w-px bg-gray-200 dark:bg-gray-700" />
+                    <div className="absolute left-0 top-2 bottom-0 w-px bg-gray-200 dark:bg-elevated" />
                     <div className="absolute left-[-4px] top-2 w-2 h-2 rounded-full bg-[#4c99e6]" />
 
                     {/* Month Label */}
@@ -176,7 +176,7 @@ const WhatsNewPage = () => {
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: idx * 0.05 }}
-                          className="group bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-6 border border-gray-200 dark:border-gray-700"
+                          className="group bg-white dark:bg-surface rounded-2xl p-5 sm:p-6 border border-gray-200 dark:border-line"
                         >
                           <div className="flex-1 min-w-0">
                             <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
@@ -203,16 +203,16 @@ const WhatsNewPage = () => {
                                 ))}
                               </div>
 
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                              <p className="text-xs text-gray-500 dark:text-muted">
                                 {formatUpdateDate(update.createdAt)}
                               </p>
                             </div>
 
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                            <p className="text-sm text-gray-500 dark:text-muted mb-3">
                               v{update.version}
                             </p>
 
-                            <p className="text-gray-700 dark:text-gray-300 text-sm leading-7 whitespace-pre-line">
+                            <p className="text-gray-700 dark:text-muted text-sm leading-7 whitespace-pre-line">
                               {update.description}
                             </p>
                           </div>

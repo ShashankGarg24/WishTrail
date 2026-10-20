@@ -200,7 +200,7 @@ const AuthPage = () => {
         </div>
 
         {/* Right Side - Signup Form */}
-        <div className="flex-1 flex items-center justify-center p-4 sm:p-6 bg-white dark:bg-gray-900">
+        <div className="flex-1 flex items-center justify-center p-4 sm:p-6 bg-white dark:bg-canvas">
           <div className="w-full max-w-md">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -214,7 +214,7 @@ const AuthPage = () => {
 
               {/* Toggle Auth Mode */}
               <div className="text-center mt-4 sm:mt-6">
-                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+                <p className="text-sm sm:text-base text-gray-600 dark:text-muted">
                   Already have an account?{" "}
                   <button
                     onClick={toggleAuthMode}
@@ -265,7 +265,7 @@ const AuthPage = () => {
       </div>
 
       {/* Right Side - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-4 sm:p-6 bg-white dark:bg-gray-900">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-6 bg-white dark:bg-canvas">
         <div className="w-full max-w-md">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -278,7 +278,7 @@ const AuthPage = () => {
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
                 Welcome Back
               </h2>
-              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+              <p className="text-sm sm:text-base text-gray-600 dark:text-muted">
                 Please enter your details to access your dashboard.
               </p>
             </div>
@@ -313,10 +313,10 @@ const AuthPage = () => {
             {/* Divider */}
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                <div className="w-full border-t border-gray-300 dark:border-line"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 uppercase tracking-wide text-[10px] sm:text-xs font-medium">
+                <span className="px-2 bg-white dark:bg-canvas text-gray-500 dark:text-muted uppercase tracking-wide text-[10px] sm:text-xs font-medium">
                   Or with email or username
                 </span>
               </div>
@@ -335,10 +335,10 @@ const AuthPage = () => {
                     autoComplete="username"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className={`peer w-full px-3 sm:px-4 pt-5 pb-1.5 sm:pt-6 sm:pb-2 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white ${errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                    className={`peer w-full px-3 sm:px-4 pt-5 pb-1.5 sm:pt-6 sm:pb-2 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-canvas text-gray-900 dark:text-white ${errors.email ? 'border-red-500' : 'border-gray-300 dark:border-line'
                       }`}
                   />
-                  <label htmlFor="email" className={`pointer-events-none absolute left-3 sm:left-4 origin-left transition-all duration-150 ${formData.email ? 'top-1.5 text-[10px] sm:text-xs' : 'top-1/2 -translate-y-1/2 text-sm sm:text-base peer-focus:top-1.5 peer-focus:translate-y-0 peer-focus:text-[10px] sm:peer-focus:text-xs'} text-gray-500 dark:text-gray-400 peer-focus:text-blue-500`}>
+                  <label htmlFor="email" className={`pointer-events-none absolute left-3 sm:left-4 origin-left transition-all duration-150 ${formData.email ? 'top-1.5 text-[10px] sm:text-xs' : 'top-1/2 -translate-y-1/2 text-sm sm:text-base peer-focus:top-1.5 peer-focus:translate-y-0 peer-focus:text-[10px] sm:peer-focus:text-xs'} text-gray-500 dark:text-muted peer-focus:text-blue-500`}>
                     Email or username
                   </label>
                 </div>
@@ -366,16 +366,16 @@ const AuthPage = () => {
                     autoComplete="current-password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    className={`peer w-full px-3 sm:px-4 pt-5 pb-1.5 sm:pt-6 sm:pb-2 pr-10 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white ${errors.password ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                    className={`peer w-full px-3 sm:px-4 pt-5 pb-1.5 sm:pt-6 sm:pb-2 pr-10 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-canvas text-gray-900 dark:text-white ${errors.password ? 'border-red-500' : 'border-gray-300 dark:border-line'
                       }`}
                   />
-                  <label htmlFor="password" className={`pointer-events-none absolute left-3 sm:left-4 origin-left transition-all duration-150 ${formData.password ? 'top-1.5 text-[10px] sm:text-xs' : 'top-1/2 -translate-y-1/2 text-sm sm:text-base peer-focus:top-1.5 peer-focus:translate-y-0 peer-focus:text-[10px] sm:peer-focus:text-xs'} text-gray-500 dark:text-gray-400 peer-focus:text-blue-500`}>
+                  <label htmlFor="password" className={`pointer-events-none absolute left-3 sm:left-4 origin-left transition-all duration-150 ${formData.password ? 'top-1.5 text-[10px] sm:text-xs' : 'top-1/2 -translate-y-1/2 text-sm sm:text-base peer-focus:top-1.5 peer-focus:translate-y-0 peer-focus:text-[10px] sm:peer-focus:text-xs'} text-gray-500 dark:text-muted peer-focus:text-blue-500`}>
                     Password
                   </label>
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2.5 sm:right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    className="absolute right-2.5 sm:right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-muted"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
                   </button>
@@ -404,7 +404,7 @@ const AuthPage = () => {
 
             {/* Toggle Auth Mode */}
             <div className="text-center mt-4 sm:mt-6">
-              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+              <p className="text-sm sm:text-base text-gray-600 dark:text-muted">
                 Don't have an account?{" "}
                 <button
                   onClick={toggleAuthMode}

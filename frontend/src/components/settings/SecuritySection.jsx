@@ -53,9 +53,9 @@ const SecuritySection = () => {
     const hasLetter = /[a-zA-Z]/.test(newPassword);
     const hasNumber = /[0-9]/.test(newPassword);
     const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(newPassword);
-    
+
     const strength = [hasLength, hasLetter, hasNumber].filter(Boolean).length;
-    
+
     if (strength === 3 && hasSpecial) return { text: 'Strong', color: 'text-green-600 dark:text-green-400' };
     if (strength === 3) return { text: 'Good', color: 'text-blue-600 dark:text-blue-400' };
     if (strength === 2) return { text: 'Fair', color: 'text-yellow-600 dark:text-yellow-400' };
@@ -83,7 +83,7 @@ const SecuritySection = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
-    
+
     if (!currentPassword || !newPassword || !confirmPassword) {
       setError('Please fill in all fields');
       return;
@@ -118,12 +118,12 @@ const SecuritySection = () => {
         newPassword
       });
       setSuccess("Password updated successfully! Logging you out...");
-      
+
       // Clear form
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      
+
       // Wait 2 seconds then logout
       setTimeout(async () => {
         await logout();
@@ -140,7 +140,7 @@ const SecuritySection = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
-    
+
     setLoading(true);
     try {
       const response = await authAPI.requestPasswordSetupOTP();
@@ -180,7 +180,7 @@ const SecuritySection = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
-    
+
     if (!otp || otp.length !== 6) {
       setError('Please enter a valid 6-digit OTP');
       return;
@@ -215,7 +215,7 @@ const SecuritySection = () => {
         newPassword
       });
       setSuccess('Password set successfully! Logging you out...');
-      
+
       // Wait 2 seconds to show success message
       setTimeout(async () => {
         await logout();
@@ -231,7 +231,7 @@ const SecuritySection = () => {
   // Warning Dialog Component
   const WarningDialog = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-4 sm:p-6 space-y-3 sm:space-y-4">
+      <div className="bg-white dark:bg-surface rounded-lg max-w-md w-full p-4 sm:p-6 space-y-3 sm:space-y-4">
         <div className="flex items-start gap-2 sm:gap-3">
           <div className="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-100 dark:bg-yellow-900/20 rounded-full flex items-center justify-center flex-shrink-0">
             <LogOut className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600 dark:text-yellow-400" />
@@ -240,17 +240,17 @@ const SecuritySection = () => {
             <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1 sm:mb-2">
               You'll be logged out
             </h3>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-muted">
               For security reasons, you'll be logged out after {hasPassword ? 'changing' : 'setting'} your password. You'll need to log in again with your new password.
             </p>
           </div>
         </div>
-        
+
         <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3">
           <button
             type="button"
             onClick={() => setShowWarning(false)}
-            className="w-full sm:flex-1 px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors"
+            className="w-full sm:flex-1 px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 dark:border-line text-gray-700 dark:text-muted rounded-lg hover:bg-gray-50 dark:hover:bg-elevated font-medium transition-colors"
           >
             Cancel
           </button>
@@ -269,28 +269,28 @@ const SecuritySection = () => {
   return (
     <div className="p-3 sm:p-4 md:p-6">
       {showWarning && <WarningDialog />}
-      
+
       {/* Header */}
       <div className="mb-4 sm:mb-6">
         <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Security</h2>
-        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
+        <p className="text-xs sm:text-sm text-gray-600 dark:text-muted mt-1">
           Manage your account protection and sign-in preferences.
         </p>
       </div>
 
       <div className="space-y-4 sm:space-y-6">
         {/* Password Section - Different UI based on hasPassword */}
-        <div className="border-b border-gray-200 dark:border-gray-700 pb-4 sm:pb-6">
+        <div className="border-b border-gray-200 dark:border-line pb-4 sm:pb-6">
           <div className="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">
-            <div className="p-1.5 sm:p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
-              <Lock className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-400" />
+            <div className="p-1.5 sm:p-2 rounded-lg bg-gray-100 dark:bg-surface">
+              <Lock className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 dark:text-muted" />
             </div>
             <div className="flex-1">
               <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">
                 {hasPassword ? 'Change Password' : 'Set a Password'}
               </h3>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5 sm:mt-1">
-                {hasPassword 
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-muted mt-0.5 sm:mt-1">
+                {hasPassword
                   ? 'Update your login credentials regularly for better safety.'
                   : 'You signed up using social login. Set a password to enable traditional login as an alternative.'
                 }
@@ -329,7 +329,7 @@ const SecuritySection = () => {
           {/* Password Setup Flow for Google SSO Users */}
           {!hasPassword && otpStep === 1 && (
             <form onSubmit={handleRequestOTP} className="space-y-3 sm:space-y-4">
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-muted">
                 Click the button below to receive a verification code via email. You'll use this code to set your new password.
               </p>
 
@@ -352,14 +352,14 @@ const SecuritySection = () => {
                 <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-white mb-1 sm:mb-2">
                   Verify Your Email
                 </h3>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-muted">
                   We've sent a 6-digit code to your email
                 </p>
               </div>
 
               <form onSubmit={handleSetPasswordWithOTP} className="space-y-3 sm:space-y-4">
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-muted mb-1.5 sm:mb-2">
                     VERIFICATION CODE
                   </label>
                   <input
@@ -367,7 +367,7 @@ const SecuritySection = () => {
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
                     maxLength={6}
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 text-center text-xl sm:text-2xl tracking-widest border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 text-center text-xl sm:text-2xl tracking-widest border border-gray-300 dark:border-line rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-elevated text-gray-900 dark:text-white transition-colors"
                     placeholder="000000"
                     required
                   />
@@ -375,7 +375,7 @@ const SecuritySection = () => {
 
                 {otpExpiresAt && (
                   <div className="text-center">
-                    <div className="flex items-center justify-center space-x-1.5 sm:space-x-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                    <div className="flex items-center justify-center space-x-1.5 sm:space-x-2 text-xs sm:text-sm text-gray-600 dark:text-muted">
                       <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       <span>Code expires in {formatTime(Math.max(0, Math.floor((new Date(otpExpiresAt) - new Date()) / 1000)))}</span>
                     </div>
@@ -383,7 +383,7 @@ const SecuritySection = () => {
                 )}
 
                 <div className="text-center">
-                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1.5 sm:mb-2">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-muted mb-1.5 sm:mb-2">
                     Didn't receive the code?
                   </p>
                   <button
@@ -394,7 +394,7 @@ const SecuritySection = () => {
                       canResendOTP ? 'text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300' : 'text-gray-400 cursor-not-allowed'
                     } transition-colors`}
                   >
-                    {!canResendOTP && otpTimer > 0 
+                    {!canResendOTP && otpTimer > 0
                       ? `Resend in ${formatTime(otpTimer)}`
                       : 'Resend Code'
                     }
@@ -403,7 +403,7 @@ const SecuritySection = () => {
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-muted">
                       NEW PASSWORD
                     </label>
                     {newPassword && (
@@ -417,7 +417,7 @@ const SecuritySection = () => {
                       type={showNewPassword ? 'text' : 'password'}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 pr-10 sm:pr-12 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 pr-10 sm:pr-12 text-sm sm:text-base border border-gray-300 dark:border-line rounded-lg bg-white dark:bg-elevated text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Min. 8 characters"
                       required
                       minLength={8}
@@ -425,7 +425,7 @@ const SecuritySection = () => {
                     <button
                       type="button"
                       onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-muted"
                     >
                       {showNewPassword ? <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
                     </button>
@@ -433,7 +433,7 @@ const SecuritySection = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-muted mb-1.5 sm:mb-2">
                     CONFIRM NEW PASSWORD
                   </label>
                   <div className="relative">
@@ -441,14 +441,14 @@ const SecuritySection = () => {
                       type={showConfirmPassword ? 'text' : 'password'}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 pr-10 sm:pr-12 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 pr-10 sm:pr-12 text-sm sm:text-base border border-gray-300 dark:border-line rounded-lg bg-white dark:bg-elevated text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Re-enter password"
                       required
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-muted"
                     >
                       {showConfirmPassword ? <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
                     </button>
@@ -484,7 +484,7 @@ const SecuritySection = () => {
                       setError('');
                       setSuccess('');
                     }}
-                    className="w-full sm:flex-1 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors"
+                    className="w-full sm:flex-1 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 dark:border-line text-gray-700 dark:text-muted rounded-lg hover:bg-gray-50 dark:hover:bg-elevated font-medium transition-colors"
                   >
                     Back
                   </button>
@@ -505,7 +505,7 @@ const SecuritySection = () => {
             <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               {/* Current Password */}
               <div>
-                <label htmlFor="current-password" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
+                <label htmlFor="current-password" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-muted mb-1.5 sm:mb-2">
                   CURRENT PASSWORD
                 </label>
                 <div className="relative">
@@ -515,12 +515,12 @@ const SecuritySection = () => {
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder="••••••••••••"
-                    className="w-full px-3 sm:px-4 py-2 sm:py-2.5 pr-10 sm:pr-12 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-2.5 pr-10 sm:pr-12 text-sm sm:text-base border border-gray-300 dark:border-line rounded-lg bg-white dark:bg-elevated text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <button
                     type="button"
                     onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-muted"
                   >
                     {showCurrentPassword ? <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
                   </button>
@@ -530,7 +530,7 @@ const SecuritySection = () => {
               {/* New Password */}
               <div>
                 <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-                  <label htmlFor="new-password" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label htmlFor="new-password" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-muted">
                     NEW PASSWORD
                   </label>
                   {newPassword && (
@@ -546,12 +546,12 @@ const SecuritySection = () => {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Min. 8 characters"
-                    className="w-full px-3 sm:px-4 py-2 sm:py-2.5 pr-10 sm:pr-12 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-2.5 pr-10 sm:pr-12 text-sm sm:text-base border border-gray-300 dark:border-line rounded-lg bg-white dark:bg-elevated text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <button
                     type="button"
                     onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-muted"
                   >
                     {showNewPassword ? <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
                   </button>
@@ -560,7 +560,7 @@ const SecuritySection = () => {
 
               {/* Confirm Password */}
               <div>
-                <label htmlFor="confirm-password" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
+                <label htmlFor="confirm-password" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-muted mb-1.5 sm:mb-2">
                   CONFIRM NEW PASSWORD
                 </label>
                 <div className="relative">
@@ -570,12 +570,12 @@ const SecuritySection = () => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter password"
-                    className="w-full px-3 sm:px-4 py-2 sm:py-2.5 pr-10 sm:pr-12 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-2.5 pr-10 sm:pr-12 text-sm sm:text-base border border-gray-300 dark:border-line rounded-lg bg-white dark:bg-elevated text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-muted"
                   >
                     {showConfirmPassword ? <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
                   </button>
@@ -594,22 +594,22 @@ const SecuritySection = () => {
         </div>
 
         {/* Two-Factor Authentication Section - COMMENTED OUT */}
-        {/* <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
+        {/* <div className="border-b border-gray-200 dark:border-line pb-6">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3 flex-1">
-              <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
-                <Lock className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+              <div className="p-2 rounded-lg bg-gray-100 dark:bg-surface">
+                <Lock className="h-5 w-5 text-gray-600 dark:text-muted" />
               </div>
               <div className="flex-1">
                 <h3 className="text-base font-semibold text-gray-900 dark:text-white">Two-Factor Authentication</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                <p className="text-sm text-gray-600 dark:text-muted mt-1">
                   Add an extra layer of security to your account.
                 </p>
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" className="sr-only peer" defaultChecked />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-elevated peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-line peer-checked:bg-blue-600"></div>
             </label>
           </div>
           <div className="mt-4 ml-11 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
@@ -622,22 +622,22 @@ const SecuritySection = () => {
         {/* Logged in Devices Section - COMMENTED OUT */}
         {/* <div>
           <div className="flex items-start gap-3 mb-4">
-            <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
-              <Smartphone className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+            <div className="p-2 rounded-lg bg-gray-100 dark:bg-surface">
+              <Smartphone className="h-5 w-5 text-gray-600 dark:text-muted" />
             </div>
             <div className="flex-1">
               <h3 className="text-base font-semibold text-gray-900 dark:text-white">Logged in Devices</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              <p className="text-sm text-gray-600 dark:text-muted mt-1">
                 Review and manage your active sessions.
               </p>
             </div>
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-line rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                  <Laptop className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                <div className="p-2 bg-gray-100 dark:bg-surface rounded-lg">
+                  <Laptop className="h-5 w-5 text-gray-600 dark:text-muted" />
                 </div>
                 <div>
                   <p className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
@@ -646,7 +646,7 @@ const SecuritySection = () => {
                       CURRENT
                     </span>
                   </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">San Francisco, USA • Chrome 126.0.0</p>
+                  <p className="text-sm text-gray-600 dark:text-muted">San Francisco, USA • Chrome 126.0.0</p>
                 </div>
               </div>
               <button className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium">
@@ -654,14 +654,14 @@ const SecuritySection = () => {
               </button>
             </div>
 
-            <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-line rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                  <Smartphone className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                <div className="p-2 bg-gray-100 dark:bg-surface rounded-lg">
+                  <Smartphone className="h-5 w-5 text-gray-600 dark:text-muted" />
                 </div>
                 <div>
                   <p className="font-medium text-gray-900 dark:text-white">iPhone 15 Pro</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">London, UK • Safari Mobile</p>
+                  <p className="text-sm text-gray-600 dark:text-muted">London, UK • Safari Mobile</p>
                 </div>
               </div>
               <button className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium">
@@ -669,14 +669,14 @@ const SecuritySection = () => {
               </button>
             </div>
 
-            <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-line rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                  <Laptop className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                <div className="p-2 bg-gray-100 dark:bg-surface rounded-lg">
+                  <Laptop className="h-5 w-5 text-gray-600 dark:text-muted" />
                 </div>
                 <div>
                   <p className="font-medium text-gray-900 dark:text-white">iPad Air 5</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Berlin, Germany • WishTrail App v2.4</p>
+                  <p className="text-sm text-gray-600 dark:text-muted">Berlin, Germany • WishTrail App v2.4</p>
                 </div>
               </div>
               <button className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium">

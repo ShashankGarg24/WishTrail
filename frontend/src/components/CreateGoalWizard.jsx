@@ -67,7 +67,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
       setShowAdditionalDetails(false)
       setErrors({})
     }
-    
+
     // Track modal closed state
     if (!isOpen) {
       prevIsOpenRef.current = false
@@ -136,11 +136,11 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
   const handleSave = async () => {
     // Check premium limits before saving (only for new goals)
     if (!editMode && !goalLimits.canCreate) {
-      window.dispatchEvent(new CustomEvent('wt_toast', { 
-        detail: { 
-          message: 'You have reached the limit for goal creation.', 
-          type: 'error' 
-        } 
+      window.dispatchEvent(new CustomEvent('wt_toast', {
+        detail: {
+          message: 'You have reached the limit for goal creation.',
+          type: 'error'
+        }
       }))
       return
     }
@@ -195,7 +195,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         input[type="date"]::-webkit-calendar-picker-indicator {
           cursor: pointer;
         }
-        
+
         /* Force date picker to open upward when near bottom */
         .date-picker-container {
           position: relative;
@@ -213,19 +213,19 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="goal-form-dialog bg-[#f8fafc] dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-[760px] h-[94dvh] sm:h-[min(84dvh,760px)] sm:max-h-[calc(100dvh-2rem)] relative shadow-2xl sm:border border-slate-200 dark:border-gray-800 overflow-hidden flex flex-col"
+        className="goal-form-dialog bg-[#f8fafc] dark:bg-canvas rounded-t-3xl sm:rounded-2xl w-full sm:max-w-[760px] h-[94dvh] sm:h-[min(84dvh,760px)] sm:max-h-[calc(100dvh-2rem)] relative shadow-2xl sm:border border-slate-200 dark:border-line overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
         style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}
       >
         {/* Header */}
-        <div className="bg-white dark:bg-gray-900 px-5 sm:px-8 py-4 sm:py-5 border-b border-slate-200 dark:border-gray-700 relative">
-          <button 
-            onClick={onClose} 
-            className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-400"
+        <div className="bg-white dark:bg-canvas px-5 sm:px-8 py-4 sm:py-5 border-b border-slate-200 dark:border-line relative">
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-elevated transition-colors text-gray-600 dark:text-muted"
           >
             <X className="h-5 w-5" />
           </button>
-          
+
           <div className="flex items-center gap-3 pr-10">
             <div className="p-2.5 rounded-xl" style={{ backgroundColor: `${THEME_COLOR}20` }}>
               <Target className="h-6 w-6" style={{ color: THEME_COLOR }} />
@@ -234,7 +234,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'Manrope' }}>
                 {editMode ? 'Edit Goal' : 'Create New Goal'}
               </h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5" style={{ fontFamily: 'Manrope' }}>
+              <p className="text-xs text-gray-500 dark:text-muted mt-0.5" style={{ fontFamily: 'Manrope' }}>
                 {editMode ? 'Update your goal details' : 'Define what you want to achieve'}
               </p>
             </div>
@@ -248,7 +248,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
           <div className="flex items-center justify-center gap-2 sm:gap-3">
             <button
               type="button"
-              className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium border-2 border-gray-300 dark:border-line bg-white dark:bg-surface text-gray-900 dark:text-white"
               style={{ borderColor: THEME_COLOR, backgroundColor: `${THEME_COLOR}10` }}
             >
               <span
@@ -283,7 +283,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                     <p className="text-xs font-medium" style={{ color: THEME_COLOR, fontFamily: 'Manrope' }}>
                       Free plan: up to {goalLimits.maxGoals} active goals, analytics limited to 30 days
                     </p>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1" style={{ fontFamily: 'Manrope' }}>
+                    <p className="text-[11px] text-gray-500 dark:text-muted mt-0.5 flex items-center gap-1" style={{ fontFamily: 'Manrope' }}>
                       <Crown className="h-3 w-3" style={{ color: '#f59e0b' }} />
                       Upgrade to Premium for more goals and full analytics history
                     </p>
@@ -293,7 +293,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
 
               {/* Title */}
               <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" style={{ fontFamily: 'Manrope' }}>
+                <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-muted mb-2" style={{ fontFamily: 'Manrope' }}>
                   Goal Title <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -302,14 +302,14 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                   name="title"
                   value={formData.title}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 transition-colors ${errors.title ? 'border-red-500' : 'border-slate-200 dark:border-gray-700'}`}
+                  className={`w-full px-4 py-3 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white dark:bg-surface text-gray-900 dark:text-white placeholder-gray-400 transition-colors ${errors.title ? 'border-red-500' : 'border-slate-200 dark:border-line'}`}
                   style={{ fontFamily: 'Manrope', borderColor: errors.title ? '#ef4444' : (formData.title ? THEME_COLOR : undefined) }}
                   placeholder="e.g., Run a marathon, Learn Spanish, Start a business"
                   required
                   maxLength={MAX_TITLE_CHARS}
                   disabled={!editMode && !goalLimits.canCreate}
                 />
-                <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right" style={{ fontFamily: 'Manrope' }}>{formData.title.length}/{MAX_TITLE_CHARS}</div>
+                <div className="mt-1 text-xs text-gray-500 dark:text-muted text-right" style={{ fontFamily: 'Manrope' }}>{formData.title.length}/{MAX_TITLE_CHARS}</div>
                 {errors.title && (
                   <div className="flex items-center gap-2 mt-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm" style={{ fontFamily: 'Manrope' }}>
                     <AlertCircle className="h-4 w-4 flex-shrink-0" />
@@ -320,7 +320,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
 
               {/* Category */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" style={{ fontFamily: 'Manrope' }}>
+                <label className="block text-sm font-medium text-gray-700 dark:text-muted mb-2" style={{ fontFamily: 'Manrope' }}>
                   Category <span className="text-red-500">*</span>
                 </label>
                 <GoalCategorySelector value={formData.category} onChange={category => setFormData(current => ({ ...current, category }))} disabled={!editMode && !goalLimits.canCreate}/>
@@ -333,7 +333,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
               </div>
 
               {/* Additional details (optional) */}
-              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-800/40">
+              <div className="rounded-xl border border-gray-200 dark:border-line bg-gray-50/60 dark:bg-gray-800/40">
                 <button
                   type="button"
                   onClick={() => setShowAdditionalDetails(prev => !prev)}
@@ -343,7 +343,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                     <div className="text-sm font-semibold text-gray-900 dark:text-white" style={{ fontFamily: 'Manrope' }}>
                       Additional Details
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400" style={{ fontFamily: 'Manrope' }}>
+                    <div className="text-xs text-gray-500 dark:text-muted" style={{ fontFamily: 'Manrope' }}>
                       Optional fields for richer goal setup
                     </div>
                   </div>
@@ -355,10 +355,10 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                 </button>
 
                 {showAdditionalDetails && (
-                  <div className="px-4 pb-4 space-y-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="px-4 pb-4 space-y-4 border-t border-gray-200 dark:border-line">
                     {/* Description */}
                     <div>
-                      <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mt-2 mb-2" style={{ fontFamily: 'Manrope' }}>
+                      <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-muted mt-2 mb-2" style={{ fontFamily: 'Manrope' }}>
                         Description
                       </label>
                       <textarea
@@ -367,13 +367,13 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                         value={formData.description}
                         onChange={handleInputChange}
                         rows={4}
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none transition-colors ${errors.description ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'}`}
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white dark:bg-surface text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none transition-colors ${errors.description ? 'border-red-500' : 'border-gray-300 dark:border-line'}`}
                         style={{ fontFamily: 'Manrope', borderColor: errors.description ? '#ef4444' : (formData.description ? THEME_COLOR : undefined) }}
                         placeholder="Describe your goal in detail, including why it's important to you"
                         disabled={!editMode && !goalLimits.canCreate}
                         maxLength={MAX_DESC_CHARS}
                       />
-                      <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right" style={{ fontFamily: 'Manrope' }}>{formData.description.length}/{MAX_DESC_CHARS}</div>
+                      <div className="mt-1 text-xs text-gray-500 dark:text-muted text-right" style={{ fontFamily: 'Manrope' }}>{formData.description.length}/{MAX_DESC_CHARS}</div>
                       {errors.description && (
                         <div className="flex items-center gap-2 mt-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm" style={{ fontFamily: 'Manrope' }}>
                           <AlertCircle className="h-4 w-4 flex-shrink-0" />
@@ -384,7 +384,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
 
                     {/* Target Date */}
                     <div className="relative min-w-0 max-w-full overflow-hidden">
-                      <label htmlFor="targetDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" style={{ fontFamily: 'Manrope' }}>
+                      <label htmlFor="targetDate" className="block text-sm font-medium text-gray-700 dark:text-muted mb-2" style={{ fontFamily: 'Manrope' }}>
                         <Calendar className="h-3.5 w-3.5 inline mr-1" />
                         Target Date
                       </label>
@@ -396,7 +396,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                         value={formData.targetDate}
                         onChange={handleInputChange}
                         min={getMinDate()}
-                        className={`block w-full min-w-0 max-w-full box-border px-3 sm:px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors ${errors.targetDate ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'}`}
+                        className={`block w-full min-w-0 max-w-full box-border px-3 sm:px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 bg-white dark:bg-surface text-gray-900 dark:text-white transition-colors ${errors.targetDate ? 'border-red-500' : 'border-gray-300 dark:border-line'}`}
                         style={{ fontFamily: 'Manrope', borderColor: errors.targetDate ? '#ef4444' : (formData.targetDate ? THEME_COLOR : undefined), position: 'relative', WebkitAppearance: 'none' }}
                       />
                       {errors.targetDate && (
@@ -408,11 +408,11 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                     </div>
 
                     {/* Visibility settings */}
-                    <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-line">
                       <label className="flex items-center justify-between gap-3 cursor-pointer">
                         <div>
                           <div className="text-sm font-medium text-gray-900 dark:text-white" style={{ fontFamily: 'Manrope' }}>Make this goal public</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400" style={{ fontFamily: 'Manrope' }}>Others can see and interact with your goal</div>
+                          <div className="text-xs text-gray-500 dark:text-muted" style={{ fontFamily: 'Manrope' }}>Others can see and interact with your goal</div>
                         </div>
                         <span className="relative inline-flex items-center">
                           <input
@@ -440,7 +440,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                         <div><p className="text-sm font-medium text-gray-900 dark:text-white">Add Sub-goals <span className="font-normal text-gray-400">(optional)</span></p><p className="text-xs text-gray-500">Break the goal into smaller milestones.</p></div>
                         <button type="button" onClick={() => setFormData(prev => ({ ...prev, subGoals: [...prev.subGoals, { title: '', description: '' }] }))} className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2.5 py-2 text-xs font-semibold text-[#1683ed] dark:bg-blue-950/40"><Plus className="h-3.5 w-3.5"/> Add</button>
                       </div>
-                      <div className="space-y-2">{formData.subGoals.map((subGoal, index) => <div key={index} className="flex items-center gap-2"><input value={subGoal.title} onChange={(event) => setFormData(prev => ({ ...prev, subGoals: prev.subGoals.map((item, itemIndex) => itemIndex === index ? { ...item, title: event.target.value.slice(0, 100) } : item) }))} placeholder={`Sub-goal ${index + 1}`} className="min-w-0 flex-1 rounded-xl border-2 border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#1683ed] dark:border-gray-700 dark:bg-gray-800 dark:text-white"/><button type="button" aria-label="Remove sub-goal" onClick={() => setFormData(prev => ({ ...prev, subGoals: prev.subGoals.filter((_, itemIndex) => itemIndex !== index) }))} className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500"><Trash2 className="h-4 w-4"/></button></div>)}</div>
+                      <div className="space-y-2">{formData.subGoals.map((subGoal, index) => <div key={index} className="flex items-center gap-2"><input value={subGoal.title} onChange={(event) => setFormData(prev => ({ ...prev, subGoals: prev.subGoals.map((item, itemIndex) => itemIndex === index ? { ...item, title: event.target.value.slice(0, 100) } : item) }))} placeholder={`Sub-goal ${index + 1}`} className="min-w-0 flex-1 rounded-xl border-2 border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#1683ed] dark:border-line dark:bg-surface dark:text-white"/><button type="button" aria-label="Remove sub-goal" onClick={() => setFormData(prev => ({ ...prev, subGoals: prev.subGoals.filter((_, itemIndex) => itemIndex !== index) }))} className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500"><Trash2 className="h-4 w-4"/></button></div>)}</div>
                     </div>
                     */}
                   </div>
@@ -449,18 +449,18 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
             </div>
 
             {/* Actions Footer */}
-            <div className="bg-white dark:bg-gray-900 px-4 sm:px-8 py-4 sm:py-5 border-t border-slate-200 dark:border-gray-700 flex items-center gap-3">
-              <button 
-                type="button" 
+            <div className="bg-white dark:bg-canvas px-4 sm:px-8 py-4 sm:py-5 border-t border-slate-200 dark:border-line flex items-center gap-3">
+              <button
+                type="button"
                 onClick={onClose}
-                className="flex-1 py-3 px-5 border border-slate-300 dark:border-gray-600 bg-white text-slate-700 dark:bg-gray-800 dark:text-gray-300 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-700 font-semibold transition-all text-sm"
+                className="flex-1 py-3 px-5 border border-slate-300 dark:border-line bg-white text-slate-700 dark:bg-surface dark:text-muted rounded-xl hover:bg-slate-50 dark:hover:bg-elevated font-semibold transition-all text-sm"
                 style={{ fontFamily: 'Manrope' }}
               >
                 Cancel
               </button>
-              <button 
-                type="submit" 
-                disabled={saving || (!editMode && !goalLimits.canCreate)} 
+              <button
+                type="submit"
+                disabled={saving || (!editMode && !goalLimits.canCreate)}
                 className="flex-1 py-3 px-5 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-sm transition-all hover:brightness-95 text-sm"
                 style={{ backgroundColor: THEME_COLOR, fontFamily: 'Manrope' }}
               >

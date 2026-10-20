@@ -135,46 +135,46 @@ export default function ShareSheet({ isOpen, onClose, url, title = 'WishTrail' }
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        className="absolute left-0 right-0 bottom-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 rounded-t-2xl p-4 shadow-2xl"
+        className="absolute left-0 right-0 bottom-0 bg-white dark:bg-canvas border-t border-gray-200 dark:border-line rounded-t-2xl p-4 shadow-2xl"
         style={{ transform: `translateY(${dragY}px)`, transition: dragY === 0 ? 'transform 180ms ease-out' : 'none' }}
       >
-        <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-4" />
+        <div className="w-12 h-1.5 bg-gray-300 dark:bg-elevated rounded-full mx-auto mb-4" />
         <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-1">
           <button onClick={handleShareNative} className="flex flex-col items-center min-w-[72px]">
-            <div className="h-12 w-12 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-800 dark:text-gray-200">
+            <div className="h-12 w-12 rounded-2xl bg-gray-100 dark:bg-surface flex items-center justify-center text-gray-800 dark:text-ink">
               <Share2 className="h-6 w-6" />
             </div>
-            <div className="mt-1 text-xs text-gray-700 dark:text-gray-300">Share</div>
+            <div className="mt-1 text-xs text-gray-700 dark:text-muted">Share</div>
           </button>
           <button onClick={handleCopy} className="flex flex-col items-center min-w-[72px]">
-            <div className="h-12 w-12 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-800 dark:text-gray-200">
+            <div className="h-12 w-12 rounded-2xl bg-gray-100 dark:bg-surface flex items-center justify-center text-gray-800 dark:text-ink">
               <Copy className="h-6 w-6" />
             </div>
-            <div className="mt-1 text-xs text-gray-700 dark:text-gray-300">Copy</div>
+            <div className="mt-1 text-xs text-gray-700 dark:text-muted">Copy</div>
           </button>
           <button onClick={handleWhatsApp} className="flex flex-col items-center min-w-[72px]">
             <div className="h-12 w-12 rounded-2xl bg-[#25D366]/10 text-[#25D366] flex items-center justify-center border border-[#25D366]/30">
               <MessageCircle className="h-6 w-6" />
             </div>
-            <div className="mt-1 text-xs text-gray-700 dark:text-gray-300">WhatsApp</div>
+            <div className="mt-1 text-xs text-gray-700 dark:text-muted">WhatsApp</div>
           </button>
           <button onClick={handleInstagram} className="flex flex-col items-center min-w-[72px]">
             <div className="h-12 w-12 rounded-2xl bg-pink-500/10 text-pink-600 flex items-center justify-center border border-pink-400/40">
               <Instagram className="h-6 w-6" />
             </div>
-            <div className="mt-1 text-xs text-gray-700 dark:text-gray-300">Instagram</div>
+            <div className="mt-1 text-xs text-gray-700 dark:text-muted">Instagram</div>
           </button>
           <button onClick={handleTwitter} className="flex flex-col items-center min-w-[72px]">
             <div className="h-12 w-12 rounded-2xl bg-[#1DA1F2]/10 text-[#1DA1F2] flex items-center justify-center border border-[#1DA1F2]/30">
               <Twitter className="h-6 w-6" />
             </div>
-            <div className="mt-1 text-xs text-gray-700 dark:text-gray-300">Twitter</div>
+            <div className="mt-1 text-xs text-gray-700 dark:text-muted">Twitter</div>
           </button>
           <button onClick={handleFacebook} className="flex flex-col items-center min-w-[72px]">
             <div className="h-12 w-12 rounded-2xl bg-[#1877F2]/10 text-[#1877F2] flex items-center justify-center border border-[#1877F2]/30">
               <Facebook className="h-6 w-6" />
             </div>
-            <div className="mt-1 text-xs text-gray-700 dark:text-gray-300">Facebook</div>
+            <div className="mt-1 text-xs text-gray-700 dark:text-muted">Facebook</div>
           </button>
         </div>
       </div>

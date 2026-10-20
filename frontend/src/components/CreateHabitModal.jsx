@@ -97,18 +97,18 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
       setError(`Description cannot exceed ${MAX_HABIT_DESC_CHARS} characters`);
       return;
     }
-    
+
     // Check premium limits
     if (!habitLimits.canCreate) {
-      window.dispatchEvent(new CustomEvent('wt_toast', { 
-        detail: { 
-          message: 'You have reached the limit for habit creation.', 
-          type: 'error' 
-        } 
+      window.dispatchEvent(new CustomEvent('wt_toast', {
+        detail: {
+          message: 'You have reached the limit for habit creation.',
+          type: 'error'
+        }
       }))
       return
     }
-    
+
     setSubmitting(true);
     setError(''); // Clear previous errors
     try {
@@ -121,7 +121,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
         daysOfWeek: frequency === 'daily' ? [] : daysOfWeek.sort()
         // reminders: reminders.filter(Boolean).map(t => ({ time: t })),
       };
-      
+
       // Add targets if provided
       if (dailyTargetCount && parseInt(dailyTargetCount) > 0) {
         payload.dailyTargetCount = parseInt(dailyTargetCount);
@@ -129,7 +129,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
       if (targetDays && parseInt(targetDays) > 0) {
         payload.targetDays = parseInt(targetDays);
       }
-      
+
       const res = await habitsAPI.create(payload);
       if (res?.data?.success) {
         onCreated?.(res.data.data.habit);
@@ -155,19 +155,19 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
   return (
     <div className="habit-form-modal fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
       <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="habit-form-dialog relative bg-[#f8fafc] dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-[760px] sm:border border-slate-200 dark:border-gray-700 h-[94dvh] sm:h-[min(84dvh,760px)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden flex flex-col">
+      <div className="habit-form-dialog relative bg-[#f8fafc] dark:bg-canvas rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-[760px] sm:border border-slate-200 dark:border-line h-[94dvh] sm:h-[min(84dvh,760px)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="bg-white dark:bg-gray-900 px-4 sm:px-8 py-4 sm:py-5 border-b border-slate-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
+        <div className="bg-white dark:bg-canvas px-4 sm:px-8 py-4 sm:py-5 border-b border-slate-200 dark:border-line flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
               <Calendar className="h-5 w-5" />
             </div>
             <div>
               <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Create New Habit</h3>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">Build a positive routine</p>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-muted mt-0.5">Build a positive routine</p>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors" aria-label="Close">
+          <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-elevated text-gray-500 transition-colors" aria-label="Close">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -201,7 +201,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
                   <p className="text-xs font-medium" style={{ color: THEME_COLOR }}>
                     Log history limited to {habitFeatureLimits?.historyRetentionDays ?? 60} days
                   </p>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1">
+                  <p className="text-[11px] text-gray-500 dark:text-muted mt-0.5 flex items-center gap-1">
                     <Crown className="h-3 w-3" style={{ color: '#f59e0b' }} />
                     Upgrade to Premium for unlimited history
                   </p>
@@ -211,41 +211,41 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
 
             {/* Basic Information */}
             <div className="space-y-3 sm:space-y-4">
-              <h4 className="text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-2">
+              <h4 className="text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-muted uppercase tracking-wide flex items-center gap-2">
                 <span className="w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center text-white text-[10px] sm:text-xs" style={{ backgroundColor: THEME_COLOR }}>i</span>
                 Required Details
               </h4>
               <div>
-                <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Habit Name *</label>
-                <input 
-                  value={name} 
-                  onChange={(e) => setName(e.target.value.slice(0, MAX_HABIT_TITLE_CHARS))} 
+                <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-muted uppercase tracking-wide mb-1.5">Habit Name *</label>
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value.slice(0, MAX_HABIT_TITLE_CHARS))}
                   placeholder="e.g., Morning meditation"
                   maxLength={MAX_HABIT_TITLE_CHARS}
-                  required 
-                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4c99e6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+                  required
+                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-line bg-white dark:bg-surface text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4c99e6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 />
-                <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right">{name.length}/{MAX_HABIT_TITLE_CHARS}</div>
+                <div className="mt-1 text-xs text-gray-500 dark:text-muted text-right">{name.length}/{MAX_HABIT_TITLE_CHARS}</div>
               </div>
 
               <div>
-                <label className="mb-2 block text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:text-xs">Choose a category</label>
+                <label className="mb-2 block text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-muted sm:text-xs">Choose a category</label>
                 <HabitCategorySelector value={category} onChange={setCategory}/>
               </div>
 
               <div>
-                <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:text-xs">Year *</label>
-                <select value={year} onChange={(event) => setYear(Number(event.target.value))} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#4c99e6] dark:border-gray-600 dark:bg-gray-800 dark:text-white sm:px-4 sm:py-2.5 sm:text-base">
+                <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-muted sm:text-xs">Year *</label>
+                <select value={year} onChange={(event) => setYear(Number(event.target.value))} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#4c99e6] dark:border-line dark:bg-surface dark:text-white sm:px-4 sm:py-2.5 sm:text-base">
                   {[...new Set([year, ...Array.from({ length: 11 }, (_, index) => new Date().getFullYear() - 5 + index)])].sort((a, b) => b - a).map(optionYear => <option key={optionYear} value={optionYear}>{optionYear}</option>)}
                 </select>
               </div>
 
               <div>
-                <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Frequency *</label>
+                <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-muted uppercase tracking-wide mb-1.5">Frequency *</label>
                 <select
                   value={frequency}
                   onChange={(e) => setFrequency(e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-line bg-white dark:bg-surface text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="daily">Daily</option>
                   <option value="custom">Custom</option>
@@ -254,7 +254,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
 
               {(frequency === 'custom') && (
                 <div>
-                  <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Select Days</label>
+                  <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-muted mb-2">Select Days</label>
                   <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {dayOptions.map(d => (
                       <button
@@ -264,7 +264,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
                         className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium border transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                           daysOfWeek.includes(d.value)
                             ? 'text-white border-transparent'
-                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                            : 'bg-white dark:bg-surface text-gray-700 dark:text-muted border-gray-300 dark:border-line hover:bg-gray-50 dark:hover:bg-elevated'
                         }`}
                         style={daysOfWeek.includes(d.value) ? { backgroundColor: THEME_COLOR } : {}}
                       >
@@ -277,7 +277,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
             </div>
 
             {/* Additional details (optional) */}
-            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-800/40">
+            <div className="rounded-xl border border-gray-200 dark:border-line bg-gray-50/60 dark:bg-gray-800/40">
               <button
                 type="button"
                 onClick={() => setShowAdditionalDetails(prev => !prev)}
@@ -286,7 +286,7 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
               >
                 <div>
                   <div className="text-sm font-semibold text-gray-900 dark:text-white">Additional Details</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Optional fields for richer habit setup</div>
+                  <div className="text-xs text-gray-500 dark:text-muted">Optional fields for richer habit setup</div>
                 </div>
                 {showAdditionalDetails ? (
                   <ChevronDown className="h-4 w-4 text-gray-500" />
@@ -296,50 +296,50 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
               </button>
 
               {showAdditionalDetails && (
-                <div className="px-4 pb-4 space-y-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="px-4 pb-4 space-y-4 border-t border-gray-200 dark:border-line">
                   <div>
-                    <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mt-2 mb-1.5">Description</label>
+                    <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-muted uppercase tracking-wide mt-2 mb-1.5">Description</label>
                     <textarea
                       value={description}
                       onChange={(e) => setDescription(e.target.value.slice(0, MAX_HABIT_DESC_CHARS))}
                       placeholder="Add any notes or motivation for this habit"
                       maxLength={MAX_HABIT_DESC_CHARS}
                       rows={3}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4c99e6] transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-line bg-white dark:bg-surface text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4c99e6] transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                     />
-                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right">{description.length}/{MAX_HABIT_DESC_CHARS}</div>
+                    <div className="mt-1 text-xs text-gray-500 dark:text-muted text-right">{description.length}/{MAX_HABIT_DESC_CHARS}</div>
                   </div>
 
                   {/* Goals */}
                   <div className="space-y-3 sm:space-y-4">
-                    <h4 className="text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-2">
+                    <h4 className="text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-muted uppercase tracking-wide flex items-center gap-2">
                       <Info className="h-3.5 w-3.5 sm:h-4 sm:w-4" style={{ color: THEME_COLOR }} />
                       Goals
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div>
-                        <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Daily Target Count</label>
+                        <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-muted mb-1.5">Daily Target Count</label>
                         <input
                           type="number"
                           min="1"
                           value={dailyTargetCount}
                           onChange={(e) => setDailyTargetCount(e.target.value)}
                           placeholder="1"
-                          className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-line bg-white dark:bg-surface text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] disabled:opacity-50 disabled:cursor-not-allowed"
                         />
-                        <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">Completions expected on each scheduled day</p>
+                        <p className="text-[10px] sm:text-xs text-gray-500 dark:text-muted mt-1">Completions expected on each scheduled day</p>
                       </div>
                       <div>
-                        <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Target Days</label>
+                        <label className="block text-[10px] sm:text-xs font-medium text-gray-500 dark:text-muted mb-1.5">Target Days</label>
                         <input
                           type="number"
                           min="0"
                           value={targetDays}
                           onChange={(e) => setTargetDays(e.target.value)}
                           placeholder="e.g., 30"
-                          className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border border-gray-300 dark:border-line bg-white dark:bg-surface text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6] disabled:opacity-50 disabled:cursor-not-allowed"
                         />
-                        <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">Number of unique days</p>
+                        <p className="text-[10px] sm:text-xs text-gray-500 dark:text-muted mt-1">Number of unique days</p>
                       </div>
                     </div>
                   </div>
@@ -351,17 +351,17 @@ export default function CreateHabitModal({ isOpen, onClose, onCreated, initialDa
           </div>
 
           {/* Footer */}
-          <div className="shrink-0 bg-white dark:bg-gray-900 px-4 sm:px-8 py-4 sm:py-5 border-t border-slate-200 dark:border-gray-700 flex items-center gap-3">
-            <button 
-              type="button" 
-              onClick={onClose} 
-              className="flex-1 py-3 px-5 border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-300 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-700 font-semibold transition-all text-sm"
+          <div className="shrink-0 bg-white dark:bg-canvas px-4 sm:px-8 py-4 sm:py-5 border-t border-slate-200 dark:border-line flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-3 px-5 border border-slate-300 dark:border-line bg-white dark:bg-surface text-slate-700 dark:text-muted rounded-xl hover:bg-slate-50 dark:hover:bg-elevated font-semibold transition-all text-sm"
             >
               Cancel
             </button>
-            <button 
-              type="submit" 
-              disabled={submitting || !habitLimits.canCreate} 
+            <button
+              type="submit"
+              disabled={submitting || !habitLimits.canCreate}
               className="flex-1 py-3 px-5 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-sm transition-all hover:brightness-95 text-sm"
               style={{ backgroundColor: THEME_COLOR }}
             >

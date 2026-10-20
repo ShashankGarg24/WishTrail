@@ -17,6 +17,7 @@ export default function PillTabs({ items, value, onChange, label = 'Choose view'
     if (node) setEdges({ left: node.scrollLeft > 2, right: node.scrollLeft + node.clientWidth < node.scrollWidth - 2 })
   }
   useEffect(() => {
+    if (!rail.current || typeof ResizeObserver === 'undefined') return
     const observer = new ResizeObserver(measure)
     observer.observe(rail.current)
     measure()

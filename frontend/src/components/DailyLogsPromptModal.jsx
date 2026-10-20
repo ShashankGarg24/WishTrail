@@ -136,17 +136,17 @@ const DailyLogsPromptModal = ({ isOpen, onClose, onSubmitted, existingEntry = nu
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative flex h-[94dvh] w-full flex-col overflow-hidden rounded-t-3xl bg-[#f8fafc] shadow-2xl dark:bg-gray-900 sm:h-[min(84dvh,760px)] sm:max-h-[calc(100dvh-2rem)] sm:max-w-[760px] sm:rounded-2xl sm:border sm:border-slate-200 dark:sm:border-gray-700 font-manrope"
+          className="relative flex h-[94dvh] w-full flex-col overflow-hidden rounded-t-3xl bg-[#f8fafc] shadow-2xl dark:bg-canvas sm:h-[min(84dvh,760px)] sm:max-h-[calc(100dvh-2rem)] sm:max-w-[760px] sm:rounded-2xl sm:border sm:border-slate-200 dark:sm:border-gray-700 font-manrope"
           style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}
         >
-          <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-5 py-4 dark:border-gray-700 dark:bg-gray-900 sm:px-8 sm:py-5">
+          <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-5 py-4 dark:border-line dark:bg-canvas sm:px-8 sm:py-5">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <span className="flex items-center justify-center w-9 h-9 rounded-lg" style={{ backgroundColor: 'rgba(76, 153, 230, 0.12)' }}>
                 <CheckCircle className="h-5 w-5" style={{ color: THEME_COLOR }} />
               </span>
               {existingEntry ? 'Edit Journal Entry' : 'Add Journal Entry'}
             </h3>
-            <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors" aria-label="Close">
+            <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-elevated text-gray-500 transition-colors" aria-label="Close">
               <X className="h-5 w-5" />
             </button>
           </div>
@@ -162,10 +162,10 @@ const DailyLogsPromptModal = ({ isOpen, onClose, onSubmitted, existingEntry = nu
                     placeholder="Share your progress, small wins, or lessons learned..."
                     rows={4}
                     maxLength={maxChars}
-                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-transparent bg-white dark:bg-gray-900/50 text-sm text-gray-900 dark:text-white placeholder-gray-400 resize-none ${overLimit ? 'border-red-400 focus:ring-red-300' : 'border-gray-300 dark:border-gray-600 focus:ring-wt'}`}
+                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-transparent bg-white dark:bg-gray-900/50 text-sm text-gray-900 dark:text-white placeholder-gray-400 resize-none ${overLimit ? 'border-red-400 focus:ring-red-300' : 'border-gray-300 dark:border-line focus:ring-wt'}`}
                   />
                   <div className="mt-2 flex items-center justify-between">
-                    <span className="text-xs text-gray-400 dark:text-gray-500">{chars}/{maxChars}</span>
+                    <span className="text-xs text-gray-400 dark:text-muted">{chars}/{maxChars}</span>
                   </div>
                 </div>
 
@@ -183,12 +183,12 @@ const DailyLogsPromptModal = ({ isOpen, onClose, onSubmitted, existingEntry = nu
                           className="flex flex-col items-center gap-1"
                         >
                           <span
-                            className={`w-11 h-11 rounded-full border flex items-center justify-center transition-all ${selected ? 'text-white border-transparent shadow-sm' : 'text-gray-500 dark:text-gray-300 border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-800'}`}
+                            className={`w-11 h-11 rounded-full border flex items-center justify-center transition-all ${selected ? 'text-white border-transparent shadow-sm' : 'text-gray-500 dark:text-muted border-gray-200 dark:border-line bg-gray-100 dark:bg-surface'}`}
                             style={selected ? { backgroundColor: THEME_COLOR } : undefined}
                           >
                             <Icon className="h-4 w-4" />
                           </span>
-                          <span className={`text-[10px] tracking-wide ${selected ? 'text-[#4c99e6] font-semibold' : 'text-gray-400 dark:text-gray-500'}`}>{option.label}</span>
+                          <span className={`text-[10px] tracking-wide ${selected ? 'text-[#4c99e6] font-semibold' : 'text-gray-400 dark:text-muted'}`}>{option.label}</span>
                         </button>
                       )
                     })}
@@ -196,13 +196,13 @@ const DailyLogsPromptModal = ({ isOpen, onClose, onSubmitted, existingEntry = nu
                 </div>
 
                 </div>
-                <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-white px-5 py-4 dark:border-gray-700 dark:bg-gray-900 sm:px-8 sm:py-5">
+                <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-white px-5 py-4 dark:border-line dark:bg-canvas sm:px-8 sm:py-5">
                   {existingEntry ? (
                     <button
                       type="button"
                       onClick={handleClearToday}
                       disabled={submitting}
-                      className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-line bg-white dark:bg-surface text-gray-700 dark:text-muted text-sm font-medium hover:bg-gray-50 dark:hover:bg-elevated transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       Clear today
                     </button>
@@ -210,7 +210,7 @@ const DailyLogsPromptModal = ({ isOpen, onClose, onSubmitted, existingEntry = nu
                     <button
                       type="button"
                       onClick={onClose}
-                      className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-line bg-white dark:bg-surface text-gray-700 dark:text-muted text-sm font-medium hover:bg-gray-50 dark:hover:bg-elevated transition-colors"
                     >
                       Cancel
                     </button>
@@ -235,7 +235,7 @@ const DailyLogsPromptModal = ({ isOpen, onClose, onSubmitted, existingEntry = nu
                   }
                   navigate('/dashboard');
                 }}
-                className="mx-5 mb-4 inline-flex w-[calc(100%-2.5rem)] items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white py-2.5 text-sm font-semibold text-[#1683ed] hover:bg-blue-50 dark:border-blue-900 dark:bg-gray-900 dark:hover:bg-blue-950/30 sm:mx-8 sm:mb-5 sm:w-[calc(100%-4rem)]"
+                className="mx-5 mb-4 inline-flex w-[calc(100%-2.5rem)] items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white py-2.5 text-sm font-semibold text-[#1683ed] hover:bg-blue-50 dark:border-blue-900 dark:bg-canvas dark:hover:bg-blue-950/30 sm:mx-8 sm:mb-5 sm:w-[calc(100%-4rem)]"
               >
                 <History className="h-4 w-4" />
                 See All History Logs

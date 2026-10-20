@@ -21,12 +21,12 @@ export default function InterestsMultiSelect({ value = [], onChange }) {
           const active = selected.includes(i);
           const label = i.replace(/_/g,' ');
           return (
-            <button key={i} onClick={() => toggle(i)} className={`px-2.5 py-1.5 rounded-full text-xs border ${active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700'}`}>{label}</button>
+            <button key={i} onClick={() => toggle(i)} className={`px-2.5 py-1.5 rounded-full text-xs border ${active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-canvas text-gray-700 dark:text-muted border-gray-200 dark:border-line'}`}>{label}</button>
           );
         })}
       </div>
       {selected.length > 0 && (
-        <div className="text-xs text-gray-500 dark:text-gray-400">{selected.length}/5 selected</div>
+        <div className="text-xs text-gray-500 dark:text-muted">{selected.length}/5 selected</div>
       )}
     </div>
   );

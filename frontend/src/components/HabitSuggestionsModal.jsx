@@ -50,14 +50,14 @@ const HabitSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, onCr
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="relative bg-white dark:bg-gray-800 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-gray-200 dark:border-gray-700 shadow-xl"
+          className="relative bg-white dark:bg-surface rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-gray-200 dark:border-line shadow-xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-100 dark:border-gray-700 flex items-start justify-between gap-3 flex-shrink-0">
+          <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-100 dark:border-line flex items-start justify-between gap-3 flex-shrink-0">
             <div>
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">{title}</h2>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-muted mt-1">
                 Pick a habit idea and customize the details. You can always edit later.
               </p>
             </div>
@@ -74,7 +74,7 @@ const HabitSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, onCr
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 sm:p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors"
+                className="p-2 sm:p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-elevated text-gray-500 transition-colors"
                 aria-label="Close"
               >
                   <X className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -82,7 +82,7 @@ const HabitSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, onCr
             </div>
           </div>
 
-          <div className="px-4 sm:px-6 pt-3 border-b border-gray-100 dark:border-gray-700">
+          <div className="px-4 sm:px-6 pt-3 border-b border-gray-100 dark:border-line">
             <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide" aria-label="Habit categories">
               {['all', ...ALL_HABIT_CATEGORIES].map((category) => {
                 const active = selectedCategory === category
@@ -106,18 +106,18 @@ const HabitSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, onCr
                     tabIndex={0}
                     onClick={() => { onSelect?.(h); onClose?.() }}
                     onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect?.(h); onClose?.() } }}
-                    className="bg-white dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600 p-3 sm:p-4 flex flex-col cursor-pointer hover:border-[#4c99e6]/60 hover:shadow-md transition-all"
+                    className="bg-white dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-line p-3 sm:p-4 flex flex-col cursor-pointer hover:border-[#4c99e6]/60 hover:shadow-md transition-all"
                   >
                     <div className="flex items-start gap-2 sm:gap-3 mb-2 sm:mb-3">
                       <HabitCategoryIcon category={h.category} size="lg" />
                       <div className="min-w-0 flex-1">
-                        <p className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                        <p className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-muted uppercase tracking-wide">
                           {categoryLabel}
                         </p>
                         <h3 className="font-bold text-sm sm:text-base text-gray-900 dark:text-white mt-0.5">{h.name}</h3>
                       </div>
                     </div>
-                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 line-clamp-2 flex-1 mb-3 sm:mb-4">
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-muted line-clamp-2 flex-1 mb-3 sm:mb-4">
                       {h.description}
                     </p>
                   </motion.div>
@@ -127,9 +127,9 @@ const HabitSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, onCr
           </div>
 
           {/* Footer */}
-          <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-100 dark:border-gray-700 flex-shrink-0">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-100 dark:border-line flex-shrink-0">
             <div className="max-w-full mx-auto text-center">
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400" style={{ fontFamily: 'Manrope' }}>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-muted" style={{ fontFamily: 'Manrope' }}>
                 Can't find what you're looking for?{' '}
                 <button onClick={() => onCreate?.()} className="font-semibold transition-opacity hover:opacity-80" style={{ color: THEME_COLOR, fontFamily: 'Manrope' }}>
                   Create from scratch

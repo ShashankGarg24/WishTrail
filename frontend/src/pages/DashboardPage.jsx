@@ -155,7 +155,7 @@ const DashboardPageNew = () => {
     getRecentActivities: state.getRecentActivities,
   }), shallow)
 
-  
+
   // Load initial data
   useEffect(() => {
     if (!isAuthenticated) return
@@ -311,7 +311,7 @@ const DashboardPageNew = () => {
   // Filter and sort data
   const filteredGoals = useMemo(() => {
     let filtered = goals || []
-    
+
     // Apply search
     if (searchQuery) {
       filtered = filtered.filter(g =>
@@ -319,7 +319,7 @@ const DashboardPageNew = () => {
         g.description?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     }
-    
+
     // Apply filter
     if (goalFilter === 'completed') {
       filtered = filtered.filter(g => g.completedAt)
@@ -332,14 +332,14 @@ const DashboardPageNew = () => {
     if (goalCategoryFilter !== 'all') {
       filtered = filtered.filter(g => g.category === goalCategoryFilter)
     }
-    
+
     // Apply sort
     if (goalSort === 'newest') {
       filtered = [...filtered].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     } else if (goalSort === 'oldest') {
       filtered = [...filtered].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
     }
-    
+
     return filtered
   }, [goals, searchQuery, goalFilter, goalCategoryFilter, goalSort])
 
@@ -397,8 +397,8 @@ const DashboardPageNew = () => {
   if (isAuthenticated && isInitialDashboardLoading && activeTab !== 'overview') return <StartupSkeleton />
 
   return (
-    <div className="wt-dashboard min-h-screen bg-[#f5f5f5] dark:bg-gray-900">
-      <aside className="wt-home-sidebar fixed bottom-0 left-0 top-16 z-30 hidden w-56 flex-col border-r border-gray-100 bg-white px-4 py-6 dark:border-gray-800 dark:bg-gray-900 lg:flex">
+    <div className="wt-dashboard min-h-screen bg-[#f5f5f5] dark:bg-canvas">
+      <aside className="wt-home-sidebar fixed bottom-0 left-0 top-16 z-30 hidden w-56 flex-col border-r border-gray-100 bg-white px-4 py-6 dark:border-line dark:bg-canvas lg:flex">
         <nav className="space-y-1">
           {[
             ['Home', Home, '/home'],
@@ -409,15 +409,15 @@ const DashboardPageNew = () => {
             ['Journal', Edit, '/feed'],
             ['Leaderboard', TrendingUp, '/leaderboard']
           ].map(([label, Icon, destination]) => (
-            <button key={label} type="button" onClick={() => navigate(destination)} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium ${(label === 'Goals' && activeTab === 'goals') || (label === 'Habits' && activeTab === 'habits') || (label === 'Home' && activeTab === 'overview') ? 'bg-blue-50 text-[#1683ed] dark:bg-blue-950/30' : 'text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800'}`}>
+            <button key={label} type="button" onClick={() => navigate(destination)} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium ${(label === 'Goals' && activeTab === 'goals') || (label === 'Habits' && activeTab === 'habits') || (label === 'Home' && activeTab === 'overview') ? 'bg-blue-50 text-[#1683ed] dark:bg-blue-950/30' : 'text-gray-500 hover:bg-gray-50 dark:text-muted dark:hover:bg-surface'}`}>
               <Icon className="h-4 w-4" />
               {label}
             </button>
           ))}
         </nav>
-        <div className="mt-auto space-y-1 border-t border-gray-100 pt-4 dark:border-gray-800">
-          <button type="button" onClick={() => navigate(`/profile/@${user?.username || ''}`)} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800"><Users className="h-4 w-4" />Profile</button>
-          <button type="button" onClick={() => navigate('/settings')} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800"><Settings className="h-4 w-4" />Settings</button>
+        <div className="mt-auto space-y-1 border-t border-gray-100 pt-4 dark:border-line">
+          <button type="button" onClick={() => navigate(`/profile/@${user?.username || ''}`)} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-gray-500 hover:bg-gray-50 dark:text-muted dark:hover:bg-surface"><Users className="h-4 w-4" />Profile</button>
+          <button type="button" onClick={() => navigate('/settings')} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-gray-500 hover:bg-gray-50 dark:text-muted dark:hover:bg-surface"><Settings className="h-4 w-4" />Settings</button>
         </div>
       </aside>
       <div className="wt-home-content max-w-[1400px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
@@ -427,14 +427,14 @@ const DashboardPageNew = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1 }}
-          className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between mb-4 sm:mb-6 pb-4 border-b border-gray-200 dark:border-gray-700 gap-4"
+          className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between mb-4 sm:mb-6 pb-4 border-b border-gray-200 dark:border-line gap-4"
         >
           {/* Tabs */}
           <div className="flex items-center gap-6 sm:gap-8">
             <button
               onClick={() => handleTabChange('overview')}
               className={`relative pb-2 font-medium font-manrope transition-colors text-sm sm:text-base ${
-                activeTab === 'overview' ? 'text-[#4c99e6]' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                activeTab === 'overview' ? 'text-[#4c99e6]' : 'text-gray-500 hover:text-gray-700 dark:text-muted dark:hover:text-muted'
               }`}
             >
               Overview
@@ -445,7 +445,7 @@ const DashboardPageNew = () => {
               className={`relative pb-2 font-medium font-manrope transition-colors text-sm sm:text-base ${
                 activeTab === 'goals'
                   ? 'text-[#4c99e6]'
-                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                  : 'text-gray-500 hover:text-gray-700 dark:text-muted dark:hover:text-muted'
               }`}
             >
               Goals
@@ -462,7 +462,7 @@ const DashboardPageNew = () => {
               className={`relative pb-2 font-medium font-manrope transition-colors text-sm sm:text-base ${
                 activeTab === 'habits'
                   ? 'text-[#4c99e6]'
-                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                  : 'text-gray-500 hover:text-gray-700 dark:text-muted dark:hover:text-muted'
               }`}
             >
               Habits
@@ -483,10 +483,10 @@ const DashboardPageNew = () => {
               <div className="relative flex-shrink-0">
                 <button
                   onClick={() => setIsYearDropdownOpen(!isYearDropdownOpen)}
-                  className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-manrope text-sm whitespace-nowrap"
+                  className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 bg-white dark:bg-surface border border-gray-200 dark:border-line rounded-lg hover:bg-gray-50 dark:hover:bg-elevated transition-colors font-manrope text-sm whitespace-nowrap"
                 >
-                  <Calendar className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
-                  <span className="font-medium text-gray-700 dark:text-gray-300">
+                  <Calendar className="w-4 h-4 text-gray-500 dark:text-muted flex-shrink-0" />
+                  <span className="font-medium text-gray-700 dark:text-muted">
                     {selectedYear}
                   </span>
                   <ChevronDown className="w-4 h-4 text-gray-500" />
@@ -495,15 +495,15 @@ const DashboardPageNew = () => {
                 <AnimatePresence>
                   {isYearDropdownOpen && (
                     <>
-                      <div 
-                        className="fixed inset-0 z-40" 
+                      <div
+                        className="fixed inset-0 z-40"
                         onClick={() => setIsYearDropdownOpen(false)}
                       />
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-50"
+                        className="absolute left-0 mt-2 w-48 bg-white dark:bg-surface border border-gray-200 dark:border-line rounded-lg shadow-lg overflow-hidden z-50"
                       >
                       {availableYears.map((year) => (
                         <button
@@ -512,10 +512,10 @@ const DashboardPageNew = () => {
                             setSelectedYear(year)
                             setIsYearDropdownOpen(false)
                           }}
-                          className={`w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-manrope ${
+                          className={`w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-elevated transition-colors font-manrope ${
                             selectedYear === year
-                              ? 'bg-blue-50 dark:bg-gray-700 text-[#4c99e6] font-medium'
-                              : 'text-gray-700 dark:text-gray-300'
+                              ? 'bg-blue-50 dark:bg-elevated text-[#4c99e6] font-medium'
+                              : 'text-gray-700 dark:text-muted'
                           }`}
                         >
                           {year}
@@ -565,46 +565,46 @@ const DashboardPageNew = () => {
           {activeTab !== 'habits' ? (
             <>
               {/* Total Goals */}
-              <button type="button" onClick={() => setMetricInfo({ title: 'Total Goals', description: 'The number of goals you have created.', note: 'Completed goals are included so you can see your full goal set.' })} className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700 text-left hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+              <button type="button" onClick={() => setMetricInfo({ title: 'Total Goals', description: 'The number of goals you have created.', note: 'Completed goals are included so you can see your full goal set.' })} className="bg-white dark:bg-surface rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-line text-left hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <Target className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                  <div className="p-2 bg-gray-50 dark:bg-elevated rounded-lg">
+                    <Target className="w-5 h-5 text-gray-500 dark:text-muted" />
                   </div>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 font-manrope">
                   {dashboardStats?.totalGoals || 0}
                 </div>
-                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
+                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-muted font-manrope uppercase tracking-wide">
                   Total Goals
                 </div>
               </button>
 
               {/* Completed */}
-              <button type="button" onClick={() => setMetricInfo({ title: 'Completed Goals', description: 'Goals you have marked as finished.' })} className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700 text-left hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+              <button type="button" onClick={() => setMetricInfo({ title: 'Completed Goals', description: 'Goals you have marked as finished.' })} className="bg-white dark:bg-surface rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-line text-left hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <CheckCircle className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                  <div className="p-2 bg-gray-50 dark:bg-elevated rounded-lg">
+                    <CheckCircle className="w-5 h-5 text-gray-500 dark:text-muted" />
                   </div>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 font-manrope">
                   {(dashboardStats?.completedGoals || 0) + ' / ' + (dashboardStats?.totalGoals || 0)}
                 </div>
-                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
+                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-muted font-manrope uppercase tracking-wide">
                   Completed Goals
                 </div>
               </button>
 
               {/* Today's Wins */}
-              <button type="button" onClick={() => setMetricInfo({ title: "Today's Wins", description: 'Meaningful goals completed today in your local timezone.', note: 'Browsing, likes, comments, and empty logs are not included.' })} className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700 text-left hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+              <button type="button" onClick={() => setMetricInfo({ title: "Today's Wins", description: 'Meaningful goals completed today in your local timezone.', note: 'Browsing, likes, comments, and empty logs are not included.' })} className="bg-white dark:bg-surface rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-line text-left hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <CheckCircle className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                  <div className="p-2 bg-gray-50 dark:bg-elevated rounded-lg">
+                    <CheckCircle className="w-5 h-5 text-gray-500 dark:text-muted" />
                   </div>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 font-manrope">
                   {dashboardStats?.todayCompletions || 0}
                 </div>
-                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
+                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-muted font-manrope uppercase tracking-wide">
                   Today's Wins
                 </div>
               </button>
@@ -612,53 +612,53 @@ const DashboardPageNew = () => {
           ) : (
             <>
               {/* Current Streak */}
-              <button type="button" onClick={() => setMetricInfo({ title: 'Current Streak', description: 'Your longest run of consecutive scheduled habit occurrences completed without a break.' })} className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700 text-left hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+              <button type="button" onClick={() => setMetricInfo({ title: 'Current Streak', description: 'Your longest run of consecutive scheduled habit occurrences completed without a break.' })} className="bg-white dark:bg-surface rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-line text-left hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="p-2 bg-gray-50 dark:bg-elevated rounded-lg">
                     <CheckCircle className="w-5 h-5 text-[#4c99e6]" />
                   </div>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 font-manrope">
                   {dashboardStats?.currentHabitStreak ?? 0}
                 </div>
-                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
+                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-muted font-manrope uppercase tracking-wide">
                   Current Streak
                 </div>
               </button>
 
               {/* Best Streak */}
-              <button type="button" onClick={() => setMetricInfo({ title: 'Best Streak', description: 'The highest streak you have reached for any habit.' })} className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700 text-left hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+              <button type="button" onClick={() => setMetricInfo({ title: 'Best Streak', description: 'The highest streak you have reached for any habit.' })} className="bg-white dark:bg-surface rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-line text-left hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="p-2 bg-gray-50 dark:bg-elevated rounded-lg">
                     <Flag className="w-5 h-5 text-[#4c99e6]" />
                   </div>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 font-manrope">
                   {dashboardStats?.bestStreak ?? 0}
                 </div>
-                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
+                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-muted font-manrope uppercase tracking-wide">
                   Best Streak
                 </div>
               </button>
 
               {/* Today's Habit Progress */}
-              <button type="button" onClick={() => setMetricInfo({ title: "Today's Habit Progress", description: 'How many habit occurrences scheduled for today you have completed.', note: 'Habits not scheduled today are excluded.' })} className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700 text-left hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+              <button type="button" onClick={() => setMetricInfo({ title: "Today's Habit Progress", description: 'How many habit occurrences scheduled for today you have completed.', note: 'Habits not scheduled today are excluded.' })} className="bg-white dark:bg-surface rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-line text-left hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="p-2 bg-gray-50 dark:bg-elevated rounded-lg">
                     <TrendingUp className="w-5 h-5 text-[#4c99e6]" />
                   </div>
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 font-manrope">
                   {(dashboardStats?.todayHabitLogs ?? 0) + ' / ' + (dashboardStats?.activeToday ?? 0)}
                 </div>
-                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">
+                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-muted font-manrope uppercase tracking-wide">
                   Today's Habit Progress
                 </div>
               </button>
-              <button type="button" onClick={() => setMetricInfo({ title: 'Active Days', description: 'Days in the last seven days when you completed at least one meaningful goal, sub-goal, or habit action.' })} className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700 text-left hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
-                <div className="flex items-center justify-between mb-3"><div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg"><Calendar className="w-5 h-5 text-[#4c99e6]" /></div></div>
+              <button type="button" onClick={() => setMetricInfo({ title: 'Active Days', description: 'Days in the last seven days when you completed at least one meaningful goal, sub-goal, or habit action.' })} className="bg-white dark:bg-surface rounded-xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-line text-left hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+                <div className="flex items-center justify-between mb-3"><div className="p-2 bg-gray-50 dark:bg-elevated rounded-lg"><Calendar className="w-5 h-5 text-[#4c99e6]" /></div></div>
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 font-manrope">{(dashboardStats?.activeDays ?? 0) + ' / ' + (dashboardStats?.activeDaysPeriod ?? 7)}</div>
-                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-manrope uppercase tracking-wide">Active Days</div>
+                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-muted font-manrope uppercase tracking-wide">Active Days</div>
               </button>
 
             </>
@@ -691,23 +691,23 @@ const DashboardPageNew = () => {
               <div className="absolute inset-0 bg-slate-950/35" />
               <div className="relative max-w-xl pt-6 sm:pt-10"><p className="text-xs font-medium text-white/80 sm:text-sm">Small steps today, big progress tomorrow.</p><h1 className="mt-2 text-2xl font-bold text-white sm:text-3xl">Keep moving forward, {user?.name?.split(' ')[0] || 'there'}.</h1><p className="mt-2 text-sm text-white/80">Your progress, weekly trail, today&apos;s focus and quick actions in one place.</p></div>
             </div>
-            <div className="flex items-center justify-center gap-1 rounded-xl bg-white p-1 shadow-sm dark:bg-gray-800">
-              {['overview', 'goals', 'habits'].map((tab) => <button key={tab} type="button" onClick={() => handleTabChange(tab)} className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold capitalize transition-colors ${activeTab === tab ? 'bg-blue-50 text-[#1683ed] dark:bg-blue-950/40' : 'text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-700'}`}>{tab}</button>)}
+            <div className="flex items-center justify-center gap-1 rounded-xl bg-white p-1 shadow-sm dark:bg-surface">
+              {['overview', 'goals', 'habits'].map((tab) => <button key={tab} type="button" onClick={() => handleTabChange(tab)} className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold capitalize transition-colors ${activeTab === tab ? 'bg-blue-50 text-[#1683ed] dark:bg-blue-950/40' : 'text-gray-500 hover:bg-gray-50 dark:text-muted dark:hover:bg-elevated'}`}>{tab}</button>)}
             </div>
-            <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-              <div className="bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-5 sm:p-7 dark:from-blue-950/40 dark:via-gray-800 dark:to-cyan-950/30"><div className="flex items-start justify-between gap-4"><div><p className="text-sm font-semibold text-gray-600 dark:text-gray-300">Your Momentum</p><p className="mt-1 text-5xl font-bold tracking-tight text-gray-900 dark:text-white">{dashboardStats?.weekMomentum ?? dashboardStats?.goalProgress ?? 0}</p><p className="mt-1 text-xs font-semibold text-emerald-600">{dashboardStats?.weekMomentum ? '+6 this week' : 'Keep building your momentum'}</p></div><div className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-bold text-emerald-600 dark:bg-emerald-950/40">↗ +6</div></div><div className="mt-4 h-20 overflow-hidden rounded-xl bg-blue-100/50 dark:bg-blue-900/30"><svg viewBox="0 0 600 120" preserveAspectRatio="none" className="h-full w-full"><path d="M0 90 C70 35 95 100 160 72 S245 38 300 78 S380 110 440 58 S510 25 600 70 V120 H0 Z" fill="rgba(96,165,250,.2)" /><path d="M0 90 C70 35 95 100 160 72 S245 38 300 78 S380 110 440 58 S510 25 600 70" fill="none" stroke="#60a5fa" strokeWidth="3" /></svg></div></div>
-              <div className="grid grid-cols-2 gap-px bg-gray-100 dark:bg-gray-700 sm:grid-cols-4">{[['Goals progressed', `${dashboardStats?.goalsProgressed ?? dashboardStats?.completedGoals ?? 0}/5`], ['Consistency', `${dashboardStats?.weekConsistency ?? 0}%`], ['Habit completions', dashboardStats?.todayHabitLogs ?? 0], ['Active goals', dashboardStats?.activeGoals ?? dashboardStats?.totalGoals ?? 0]].map(([label, value]) => <div key={label} className="bg-white p-4 dark:bg-gray-800"><p className="text-xl font-bold text-gray-900 dark:text-white">{value}</p><p className="text-xs text-gray-500">{label}</p></div>)}</div>
+            <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm dark:border-line dark:bg-surface">
+              <div className="bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-5 sm:p-7 dark:from-blue-950/40 dark:via-surface dark:to-cyan-950/30"><div className="flex items-start justify-between gap-4"><div><p className="text-sm font-semibold text-gray-600 dark:text-muted">Your Momentum</p><p className="mt-1 text-5xl font-bold tracking-tight text-gray-900 dark:text-white">{dashboardStats?.weekMomentum ?? dashboardStats?.goalProgress ?? 0}</p><p className="mt-1 text-xs font-semibold text-emerald-600">{dashboardStats?.weekMomentum ? '+6 this week' : 'Keep building your momentum'}</p></div><div className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-bold text-emerald-600 dark:bg-emerald-950/40">↗ +6</div></div><div className="mt-4 h-20 overflow-hidden rounded-xl bg-blue-100/50 dark:bg-blue-900/30"><svg viewBox="0 0 600 120" preserveAspectRatio="none" className="h-full w-full"><path d="M0 90 C70 35 95 100 160 72 S245 38 300 78 S380 110 440 58 S510 25 600 70 V120 H0 Z" fill="rgba(96,165,250,.2)" /><path d="M0 90 C70 35 95 100 160 72 S245 38 300 78 S380 110 440 58 S510 25 600 70" fill="none" stroke="#60a5fa" strokeWidth="3" /></svg></div></div>
+              <div className="grid grid-cols-2 gap-px bg-gray-100 dark:bg-elevated sm:grid-cols-4">{[['Goals progressed', `${dashboardStats?.goalsProgressed ?? dashboardStats?.completedGoals ?? 0}/5`], ['Consistency', `${dashboardStats?.weekConsistency ?? 0}%`], ['Habit completions', dashboardStats?.todayHabitLogs ?? 0], ['Active goals', dashboardStats?.activeGoals ?? dashboardStats?.totalGoals ?? 0]].map(([label, value]) => <div key={label} className="bg-white p-4 dark:bg-surface"><p className="text-xl font-bold text-gray-900 dark:text-white">{value}</p><p className="text-xs text-gray-500">{label}</p></div>)}</div>
             </div>
-            <button type="button" onClick={() => handleTabChange('goals')} className="flex w-full items-center gap-4 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-left transition-colors hover:border-blue-300 dark:border-blue-900 dark:bg-blue-950/30 sm:p-5"><div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-[url('https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=200&q=80')] bg-cover bg-center" /><div className="min-w-0 flex-1"><p className="text-sm font-bold text-gray-900 dark:text-white">Your Weekly Trail is ready!</p><p className="mt-1 text-xs text-gray-600 dark:text-gray-300">You gained +7 momentum this week.</p></div><ChevronRight className="h-5 w-5 text-[#1683ed]" />
+            <button type="button" onClick={() => handleTabChange('goals')} className="flex w-full items-center gap-4 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-left transition-colors hover:border-blue-300 dark:border-blue-900 dark:bg-blue-950/30 sm:p-5"><div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-[url('https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=200&q=80')] bg-cover bg-center" /><div className="min-w-0 flex-1"><p className="text-sm font-bold text-gray-900 dark:text-white">Your Weekly Trail is ready!</p><p className="mt-1 text-xs text-gray-600 dark:text-muted">You gained +7 momentum this week.</p></div><ChevronRight className="h-5 w-5 text-[#1683ed]" />
             </button>
-            <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800"><div className="mb-4 flex items-center justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#1683ed]">Today&apos;s Focus</p><h2 className="mt-1 text-lg font-bold text-gray-900 dark:text-white">Keep one promise to yourself.</h2></div><span className="text-xs font-semibold text-gray-500">1 / 3</span></div><div className="space-y-2"><button type="button" className="flex w-full items-center gap-3 rounded-xl border border-gray-100 p-3 text-left dark:border-gray-700"><span className="h-5 w-5 rounded-full border-2 border-gray-400" /><span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-gray-800 dark:text-gray-200">45 min DSA Practice</span><span className="block text-xs text-gray-500">Supports: Crack SDE-2 Interview</span></span><Play className="h-5 w-5 rounded-full bg-blue-500 p-1 text-white" /></button><button type="button" className="flex w-full items-center gap-3 rounded-xl p-3 text-left"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white"><CheckCircle className="h-4 w-4" /></span><span className="text-sm font-semibold text-gray-400 line-through">Read 20 pages</span><ChevronRight className="ml-auto h-4 w-4 text-gray-400" /></button><button type="button" className="flex w-full items-center gap-3 rounded-xl p-3 text-left"><span className="h-5 w-5 rounded-full border-2 border-gray-400" /><span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-gray-800 dark:text-gray-200">Go for a run</span><span className="block text-xs text-gray-500">Habit · Running</span></span><ChevronRight className="h-4 w-4 text-gray-400" /></button></div></div>
-            <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-line dark:bg-surface"><div className="mb-4 flex items-center justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#1683ed]">Today&apos;s Focus</p><h2 className="mt-1 text-lg font-bold text-gray-900 dark:text-white">Keep one promise to yourself.</h2></div><span className="text-xs font-semibold text-gray-500">1 / 3</span></div><div className="space-y-2"><button type="button" className="flex w-full items-center gap-3 rounded-xl border border-gray-100 p-3 text-left dark:border-line"><span className="h-5 w-5 rounded-full border-2 border-gray-400" /><span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-gray-800 dark:text-ink">45 min DSA Practice</span><span className="block text-xs text-gray-500">Supports: Crack SDE-2 Interview</span></span><Play className="h-5 w-5 rounded-full bg-blue-500 p-1 text-white" /></button><button type="button" className="flex w-full items-center gap-3 rounded-xl p-3 text-left"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white"><CheckCircle className="h-4 w-4" /></span><span className="text-sm font-semibold text-gray-400 line-through">Read 20 pages</span><ChevronRight className="ml-auto h-4 w-4 text-gray-400" /></button><button type="button" className="flex w-full items-center gap-3 rounded-xl p-3 text-left"><span className="h-5 w-5 rounded-full border-2 border-gray-400" /><span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-gray-800 dark:text-ink">Go for a run</span><span className="block text-xs text-gray-500">Habit · Running</span></span><ChevronRight className="h-4 w-4 text-gray-400" /></button></div></div>
+            <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm dark:border-line dark:bg-surface">
               <div className="mb-4 flex items-center justify-between"><h2 className="font-bold text-gray-900 dark:text-white">My Goals</h2><button type="button" onClick={() => handleTabChange('goals')} className="text-xs font-semibold text-[#4c99e6]">See all</button></div>
-              <div className="space-y-3">{(goals || []).slice(0, 3).map((goal) => <button type="button" key={goal.id || goal._id} onClick={() => setSelectedGoal(goal)} className="flex w-full items-center gap-3 text-left"><span className="h-2.5 w-2.5 rounded-full bg-[#4c99e6]" /><span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-800 dark:text-gray-200">{goal.title}</span><span className="text-xs font-semibold text-gray-500">{Math.round(goal.progress?.percent || 0)}%</span></button>)}{(!goals || goals.length === 0) && <p className="text-sm text-gray-500">No active goals yet.</p>}</div>
+              <div className="space-y-3">{(goals || []).slice(0, 3).map((goal) => <button type="button" key={goal.id || goal._id} onClick={() => setSelectedGoal(goal)} className="flex w-full items-center gap-3 text-left"><span className="h-2.5 w-2.5 rounded-full bg-[#4c99e6]" /><span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-800 dark:text-ink">{goal.title}</span><span className="text-xs font-semibold text-gray-500">{Math.round(goal.progress?.percent || 0)}%</span></button>)}{(!goals || goals.length === 0) && <p className="text-sm text-gray-500">No active goals yet.</p>}</div>
             </div>
-            <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm dark:border-line dark:bg-surface">
               <div className="mb-4 flex items-center justify-between"><h2 className="font-bold text-gray-900 dark:text-white">My Habits</h2><button type="button" onClick={() => handleTabChange('habits')} className="text-xs font-semibold text-[#4c99e6]">See all</button></div>
-              <div className="space-y-3">{(habits || []).slice(0, 3).map((habit) => <button type="button" key={habit.id || habit._id} onClick={() => setSelectedHabit(habit)} className="flex w-full items-center gap-3 text-left"><span className="h-2.5 w-2.5 rounded-full bg-emerald-400" /><span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-800 dark:text-gray-200">{habit.name}</span><span className="text-xs font-semibold text-gray-500">{habit.totalDays || 0} days</span></button>)}{(!habits || habits.length === 0) && <p className="text-sm text-gray-500">No active habits yet.</p>}</div>
+              <div className="space-y-3">{(habits || []).slice(0, 3).map((habit) => <button type="button" key={habit.id || habit._id} onClick={() => setSelectedHabit(habit)} className="flex w-full items-center gap-3 text-left"><span className="h-2.5 w-2.5 rounded-full bg-emerald-400" /><span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-800 dark:text-ink">{habit.name}</span><span className="text-xs font-semibold text-gray-500">{habit.totalDays || 0} days</span></button>)}{(!habits || habits.length === 0) && <p className="text-sm text-gray-500">No active habits yet.</p>}</div>
             </div>
           </motion.section>
         )}
@@ -727,17 +727,17 @@ const DashboardPageNew = () => {
                 placeholder="Filter by title..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4c99e6] focus:border-transparent text-sm text-gray-900 dark:text-white placeholder-gray-400 font-manrope"
+                className="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-surface border border-gray-200 dark:border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4c99e6] focus:border-transparent text-sm text-gray-900 dark:text-white placeholder-gray-400 font-manrope"
               />
             </div>
 
             <div className="relative flex-shrink-0">
               <button
                 onClick={() => setIsGoalFilterSheetOpen(true)}
-                className="flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-manrope text-sm"
+                className="flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-white dark:bg-surface border border-gray-200 dark:border-line rounded-lg hover:bg-gray-50 dark:hover:bg-elevated transition-colors font-manrope text-sm"
               >
-                <Filter className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                <span className="hidden sm:inline font-medium text-gray-700 dark:text-gray-300">
+                <Filter className="w-4 h-4 text-gray-500 dark:text-muted" />
+                <span className="hidden sm:inline font-medium text-gray-700 dark:text-muted">
                   {goalCategoryFilter === 'all' ? 'Filters' : goalCategoryFilter}
                 </span>
                 <ChevronDown className="w-4 h-4 text-gray-500" />
@@ -747,24 +747,24 @@ const DashboardPageNew = () => {
             <div className="relative flex-shrink-0">
               <button
                 onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
-                className="flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-manrope text-sm"
+                className="flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-white dark:bg-surface border border-gray-200 dark:border-line rounded-lg hover:bg-gray-50 dark:hover:bg-elevated transition-colors font-manrope text-sm"
               >
-                <ArrowUpDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                <ArrowUpDown className="w-4 h-4 text-gray-500 dark:text-muted" />
                 <ChevronDown className="w-4 h-4 text-gray-500" />
               </button>
 
               <AnimatePresence>
                 {isSortDropdownOpen && (
                   <>
-                    <div 
-                      className="fixed inset-0 z-40" 
+                    <div
+                      className="fixed inset-0 z-40"
                       onClick={() => setIsSortDropdownOpen(false)}
                     />
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-50"
+                      className="absolute right-0 mt-2 w-40 bg-white dark:bg-surface border border-gray-200 dark:border-line rounded-lg shadow-lg overflow-hidden z-50"
                     >
                     {['newest', 'oldest'].map((sort) => (
                       <button
@@ -773,10 +773,10 @@ const DashboardPageNew = () => {
                           setGoalSort(sort)
                           setIsSortDropdownOpen(false)
                         }}
-                        className={`w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-manrope ${
+                        className={`w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-elevated transition-colors font-manrope ${
                           goalSort === sort
-                            ? 'bg-blue-50 dark:bg-gray-700 text-[#4c99e6] font-medium'
-                            : 'text-gray-700 dark:text-gray-300'
+                            ? 'bg-blue-50 dark:bg-elevated text-[#4c99e6] font-medium'
+                            : 'text-gray-700 dark:text-muted'
                         }`}
                       >
                         {sort === 'newest' ? 'Newest' : 'Oldest'}
@@ -806,35 +806,35 @@ const DashboardPageNew = () => {
                 <div className="flex items-center justify-end gap-2">
                   <div className="relative hidden sm:block">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#526392]" />
-                    <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search goals..." className="w-40 rounded-lg border border-[#dce5f4] bg-white py-2 pl-9 pr-3 text-xs text-[#0b1746] outline-none focus:border-[#1683ed] lg:w-48 dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
+                    <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search goals..." className="w-40 rounded-lg border border-[#dce5f4] bg-white py-2 pl-9 pr-3 text-xs text-[#0b1746] outline-none focus:border-[#1683ed] lg:w-48 dark:border-line dark:bg-surface dark:text-white" />
                   </div>
                   <div className="relative hidden sm:block" data-goal-filter-dropdown>
-                    <button type="button" aria-haspopup="listbox" data-filter-active={goalCategoryFilter !== 'all'} aria-expanded={isFilterDropdownOpen === 'category'} onClick={() => { setIsFilterDropdownOpen(value => value === 'category' ? false : 'category'); setIsYearDropdownOpen(false) }} className="flex items-center gap-1.5 rounded-lg border border-[#dce5f4] bg-white px-3 py-2 text-xs font-medium text-[#253663] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">{goalCategoryFilter === 'all' ? 'Category' : goalCategoryFilter} <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isFilterDropdownOpen === 'category' ? 'rotate-180' : ''}`} /></button>
-                    {isFilterDropdownOpen === 'category' && <div role="listbox" className="absolute right-0 top-full z-30 mt-2 max-h-72 min-w-48 overflow-y-auto rounded-xl border border-[#dce5f4] bg-white p-1.5 shadow-xl dark:border-gray-700 dark:bg-gray-800">{['all', ...new Set((goals || []).map(goal => goal.category).filter(Boolean))].map(category => <button key={category} type="button" role="option" aria-selected={goalCategoryFilter === category} onClick={() => { setGoalCategoryFilter(category); setCurrentPage(1); setIsFilterDropdownOpen(false) }} className={`block w-full rounded-lg px-3 py-2 text-left text-xs transition-colors ${goalCategoryFilter === category ? 'bg-blue-50 font-semibold text-[#1683ed] dark:bg-blue-950/40' : 'text-[#253663] hover:bg-slate-50 dark:text-gray-200 dark:hover:bg-gray-700'}`}>{category === 'all' ? 'All categories' : category}</button>)}</div>}
+                    <button type="button" aria-haspopup="listbox" data-filter-active={goalCategoryFilter !== 'all'} aria-expanded={isFilterDropdownOpen === 'category'} onClick={() => { setIsFilterDropdownOpen(value => value === 'category' ? false : 'category'); setIsYearDropdownOpen(false) }} className="flex items-center gap-1.5 rounded-lg border border-[#dce5f4] bg-white px-3 py-2 text-xs font-medium text-[#253663] dark:border-line dark:bg-surface dark:text-ink">{goalCategoryFilter === 'all' ? 'Category' : goalCategoryFilter} <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isFilterDropdownOpen === 'category' ? 'rotate-180' : ''}`} /></button>
+                    {isFilterDropdownOpen === 'category' && <div role="listbox" className="absolute right-0 top-full z-30 mt-2 max-h-72 min-w-48 overflow-y-auto rounded-xl border border-[#dce5f4] bg-white p-1.5 shadow-xl dark:border-line dark:bg-surface">{['all', ...new Set((goals || []).map(goal => goal.category).filter(Boolean))].map(category => <button key={category} type="button" role="option" aria-selected={goalCategoryFilter === category} onClick={() => { setGoalCategoryFilter(category); setCurrentPage(1); setIsFilterDropdownOpen(false) }} className={`block w-full rounded-lg px-3 py-2 text-left text-xs transition-colors ${goalCategoryFilter === category ? 'bg-blue-50 font-semibold text-[#1683ed] dark:bg-blue-950/40' : 'text-[#253663] hover:bg-slate-50 dark:text-ink dark:hover:bg-elevated'}`}>{category === 'all' ? 'All categories' : category}</button>)}</div>}
                   </div>
                   <div className="relative hidden sm:block" data-goal-filter-dropdown>
-                    <button type="button" aria-haspopup="listbox" data-filter-active={goalFilter !== 'all'} aria-expanded={isFilterDropdownOpen === 'status'} onClick={() => { setIsFilterDropdownOpen(value => value === 'status' ? false : 'status'); setIsYearDropdownOpen(false) }} className="flex items-center gap-1.5 rounded-lg border border-[#dce5f4] bg-white px-3 py-2 text-xs font-medium text-[#253663] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">{goalFilter === 'all' ? 'Status' : goalFilter === 'in-progress' ? 'On Track' : goalFilter === 'needs-attention' ? 'Needs Attention' : 'Completed'} <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isFilterDropdownOpen === 'status' ? 'rotate-180' : ''}`} /></button>
-                    {isFilterDropdownOpen === 'status' && <div role="listbox" className="absolute right-0 top-full z-30 mt-2 min-w-44 rounded-xl border border-[#dce5f4] bg-white p-1.5 shadow-xl dark:border-gray-700 dark:bg-gray-800">{[['all', 'All statuses'], ['in-progress', 'On Track'], ['needs-attention', 'Needs Attention'], ['completed', 'Completed']].map(([value, label]) => <button key={value} type="button" role="option" aria-selected={goalFilter === value} onClick={() => { setGoalFilter(value); setCurrentPage(1); setIsFilterDropdownOpen(false) }} className={`block w-full rounded-lg px-3 py-2 text-left text-xs transition-colors ${goalFilter === value ? 'bg-blue-50 font-semibold text-[#1683ed] dark:bg-blue-950/40' : 'text-[#253663] hover:bg-slate-50 dark:text-gray-200 dark:hover:bg-gray-700'}`}>{label}</button>)}</div>}
+                    <button type="button" aria-haspopup="listbox" data-filter-active={goalFilter !== 'all'} aria-expanded={isFilterDropdownOpen === 'status'} onClick={() => { setIsFilterDropdownOpen(value => value === 'status' ? false : 'status'); setIsYearDropdownOpen(false) }} className="flex items-center gap-1.5 rounded-lg border border-[#dce5f4] bg-white px-3 py-2 text-xs font-medium text-[#253663] dark:border-line dark:bg-surface dark:text-ink">{goalFilter === 'all' ? 'Status' : goalFilter === 'in-progress' ? 'On Track' : goalFilter === 'needs-attention' ? 'Needs Attention' : 'Completed'} <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isFilterDropdownOpen === 'status' ? 'rotate-180' : ''}`} /></button>
+                    {isFilterDropdownOpen === 'status' && <div role="listbox" className="absolute right-0 top-full z-30 mt-2 min-w-44 rounded-xl border border-[#dce5f4] bg-white p-1.5 shadow-xl dark:border-line dark:bg-surface">{[['all', 'All statuses'], ['in-progress', 'On Track'], ['needs-attention', 'Needs Attention'], ['completed', 'Completed']].map(([value, label]) => <button key={value} type="button" role="option" aria-selected={goalFilter === value} onClick={() => { setGoalFilter(value); setCurrentPage(1); setIsFilterDropdownOpen(false) }} className={`block w-full rounded-lg px-3 py-2 text-left text-xs transition-colors ${goalFilter === value ? 'bg-blue-50 font-semibold text-[#1683ed] dark:bg-blue-950/40' : 'text-[#253663] hover:bg-slate-50 dark:text-ink dark:hover:bg-elevated'}`}>{label}</button>)}</div>}
                   </div>
                   <div className="relative hidden sm:block" data-goal-filter-dropdown>
-                    <button type="button" aria-haspopup="listbox" aria-expanded={isYearDropdownOpen} onClick={() => { setIsYearDropdownOpen(value => !value); setIsFilterDropdownOpen(false) }} className="flex items-center gap-1.5 rounded-lg border border-[#dce5f4] bg-white px-3 py-2 text-xs font-medium text-[#253663] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">{selectedYear} <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isYearDropdownOpen ? 'rotate-180' : ''}`} /></button>
-                    {isYearDropdownOpen && <div role="listbox" className="absolute right-0 top-full z-30 mt-2 w-28 overflow-hidden rounded-xl border border-[#dce5f4] bg-white p-1.5 shadow-xl dark:border-gray-700 dark:bg-gray-800">{availableYears.map(year => <button key={year} type="button" role="option" aria-selected={selectedYear === year} onClick={() => { setSelectedYear(year); setIsYearDropdownOpen(false) }} className={`block w-full rounded-lg px-3 py-2 text-left text-xs ${selectedYear === year ? 'bg-blue-50 font-semibold text-[#1683ed] dark:bg-blue-950/40' : 'text-[#253663] hover:bg-slate-50 dark:text-gray-200 dark:hover:bg-gray-700'}`}>{year}</button>)}</div>}
+                    <button type="button" aria-haspopup="listbox" aria-expanded={isYearDropdownOpen} onClick={() => { setIsYearDropdownOpen(value => !value); setIsFilterDropdownOpen(false) }} className="flex items-center gap-1.5 rounded-lg border border-[#dce5f4] bg-white px-3 py-2 text-xs font-medium text-[#253663] dark:border-line dark:bg-surface dark:text-ink">{selectedYear} <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isYearDropdownOpen ? 'rotate-180' : ''}`} /></button>
+                    {isYearDropdownOpen && <div role="listbox" className="absolute right-0 top-full z-30 mt-2 w-28 overflow-hidden rounded-xl border border-[#dce5f4] bg-white p-1.5 shadow-xl dark:border-line dark:bg-surface">{availableYears.map(year => <button key={year} type="button" role="option" aria-selected={selectedYear === year} onClick={() => { setSelectedYear(year); setIsYearDropdownOpen(false) }} className={`block w-full rounded-lg px-3 py-2 text-left text-xs ${selectedYear === year ? 'bg-blue-50 font-semibold text-[#1683ed] dark:bg-blue-950/40' : 'text-[#253663] hover:bg-slate-50 dark:text-ink dark:hover:bg-elevated'}`}>{year}</button>)}</div>}
                   </div>
-                  <button type="button" onClick={() => setIsGoalIdeasOpen(true)} className="hidden h-9 items-center justify-center gap-1.5 rounded-lg border border-[#dce5f4] bg-white px-3 text-xs font-semibold text-[#526392] transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-[#1683ed] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-blue-950/30 sm:inline-flex"><Lightbulb className="h-4 w-4" /><span>Suggestions</span></button>
+                  <button type="button" onClick={() => setIsGoalIdeasOpen(true)} className="hidden h-9 items-center justify-center gap-1.5 rounded-lg border border-[#dce5f4] bg-white px-3 text-xs font-semibold text-[#526392] transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-[#1683ed] dark:border-line dark:bg-surface dark:text-muted dark:hover:bg-blue-950/30 sm:inline-flex"><Lightbulb className="h-4 w-4" /><span>Suggestions</span></button>
                   <button type="button" onClick={() => setIsCreateModalOpen(true)} className="hidden items-center gap-1.5 rounded-lg bg-[#1683ed] px-3 py-2 text-xs font-semibold text-white shadow-sm sm:inline-flex sm:px-4"><Plus className="h-4 w-4" /><span>Create Goal</span></button>
                 </div>
               </div>
 
               <div className="relative flex items-center justify-between gap-2 sm:hidden" data-goal-filter-dropdown>
-                <button type="button" onClick={() => setIsYearDropdownOpen(value => !value)} className="flex items-center gap-2 rounded-lg border border-[#dce5f4] bg-white px-3 py-2 text-sm font-bold text-[#0b1746] dark:border-gray-700 dark:bg-gray-800 dark:text-white">{selectedYear}<ChevronDown className="h-4 w-4"/></button>
-                {isYearDropdownOpen && <div className="absolute left-0 top-full z-30 mt-1 w-28 overflow-hidden rounded-lg border border-[#dce5f4] bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">{availableYears.map(year => <button key={year} type="button" onClick={() => { setSelectedYear(year); setIsYearDropdownOpen(false) }} className="block w-full px-3 py-2 text-left text-sm">{year}</button>)}</div>}
+                <button type="button" onClick={() => setIsYearDropdownOpen(value => !value)} className="flex items-center gap-2 rounded-lg border border-[#dce5f4] bg-white px-3 py-2 text-sm font-bold text-[#0b1746] dark:border-line dark:bg-surface dark:text-white">{selectedYear}<ChevronDown className="h-4 w-4"/></button>
+                {isYearDropdownOpen && <div className="absolute left-0 top-full z-30 mt-1 w-28 overflow-hidden rounded-lg border border-[#dce5f4] bg-white py-1 shadow-lg dark:border-line dark:bg-surface">{availableYears.map(year => <button key={year} type="button" onClick={() => { setSelectedYear(year); setIsYearDropdownOpen(false) }} className="block w-full px-3 py-2 text-left text-sm">{year}</button>)}</div>}
                 <div className="flex items-center gap-2">
-                  <button type="button" onClick={() => setIsGoalIdeasOpen(true)} aria-label="View goal suggestions" title="View goal suggestions" className="grid h-9 w-9 place-items-center rounded-lg border border-[#dce5f4] bg-white text-[#526392] transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-[#1683ed] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"><Lightbulb className="h-4 w-4" /></button>
+                  <button type="button" onClick={() => setIsGoalIdeasOpen(true)} aria-label="View goal suggestions" title="View goal suggestions" className="grid h-9 w-9 place-items-center rounded-lg border border-[#dce5f4] bg-white text-[#526392] transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-[#1683ed] dark:border-line dark:bg-surface dark:text-muted"><Lightbulb className="h-4 w-4" /></button>
                   <button type="button" onClick={() => setIsCreateModalOpen(true)} aria-label="Create goal" className="grid h-9 w-9 place-items-center rounded-lg bg-[#1683ed] text-white shadow-sm"><Plus className="h-4 w-4" /></button>
                 </div>
               </div>
 
-              <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-[#e5ecf6] dark:bg-gray-800 dark:ring-gray-700 sm:hidden">
+              <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-[#e5ecf6] dark:bg-surface dark:ring-gray-700 sm:hidden">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <span className="text-sm font-bold text-[#0b1746] dark:text-white">Yearly Goal Progress</span>
@@ -843,20 +843,20 @@ const DashboardPageNew = () => {
                 </div>
 
                 <div className="mt-3 space-y-2.5">
-                  <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                  <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-elevated">
                     <div className="h-full rounded-full bg-[#1683ed]" style={{ width: `${goalSummary.percent}%` }} />
                   </div>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
-                    <span><b className="text-gray-800 dark:text-gray-200">{goalSummary.completed}</b> completed</span>
-                    <span><b className="text-gray-800 dark:text-gray-200">{goalSummary.active}</b> in progress</span>
-                    <span><b className="text-gray-800 dark:text-gray-200">{goalSummary.overdue}</b> delayed</span>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-muted">
+                    <span><b className="text-gray-800 dark:text-ink">{goalSummary.completed}</b> completed</span>
+                    <span><b className="text-gray-800 dark:text-ink">{goalSummary.active}</b> in progress</span>
+                    <span><b className="text-gray-800 dark:text-ink">{goalSummary.overdue}</b> delayed</span>
                   </div>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 sm:hidden">
-                <div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#526392]"/><input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search goals..." className="w-full rounded-lg border border-[#dce5f4] bg-white py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#1683ed] dark:border-gray-700 dark:bg-gray-800"/></div>
-                <button type="button" data-filter-active={goalFilter !== 'all' || goalCategoryFilter !== 'all'} aria-label="Filter goals" onClick={() => setIsGoalFilterSheetOpen(true)} className="rounded-lg border border-[#dce5f4] bg-white p-2.5 text-[#526392] dark:border-gray-700 dark:bg-gray-800"><SlidersHorizontal className="h-5 w-5"/></button>
+                <div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#526392]"/><input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search goals..." className="w-full rounded-lg border border-[#dce5f4] bg-white py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#1683ed] dark:border-line dark:bg-surface"/></div>
+                <button type="button" data-filter-active={goalFilter !== 'all' || goalCategoryFilter !== 'all'} aria-label="Filter goals" onClick={() => setIsGoalFilterSheetOpen(true)} className="rounded-lg border border-[#dce5f4] bg-white p-2.5 text-[#526392] dark:border-line dark:bg-surface"><SlidersHorizontal className="h-5 w-5"/></button>
               </div>
 
               <div className={goalView === 'list' ? 'space-y-3' : goalView === 'timeline' ? 'relative space-y-4 border-l-2 border-blue-100 pl-5 dark:border-blue-950' : 'grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4'}>
@@ -878,19 +878,19 @@ const DashboardPageNew = () => {
                       onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); setSelectedGoal(goal) } }}
                       role="button"
                       tabIndex={0}
-                      className={`group relative cursor-pointer overflow-hidden rounded-xl border border-gray-200 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 ${goalView === 'list' ? 'sm:flex sm:items-center' : ''} ${goalView === 'timeline' ? 'before:absolute before:-left-[27px] before:top-7 before:h-3 before:w-3 before:rounded-full before:bg-[#1683ed] before:ring-4 before:ring-blue-50' : ''}`}
+                      className={`group relative cursor-pointer overflow-hidden rounded-xl border border-gray-200 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md dark:border-line dark:bg-surface ${goalView === 'list' ? 'sm:flex sm:items-center' : ''} ${goalView === 'timeline' ? 'before:absolute before:-left-[27px] before:top-7 before:h-3 before:w-3 before:rounded-full before:bg-[#1683ed] before:ring-4 before:ring-blue-50' : ''}`}
                     >
                       <div className="min-w-0 flex-1 p-4">
-                        <div className="flex items-start gap-3"><CategoryIcon category={goal.category} size="md" /><h3 className="min-w-0 flex-1 truncate pt-1 text-sm font-bold text-[#0b1746] dark:text-white sm:text-base">{goal.title}</h3><button type="button" aria-label={`Actions for ${goal.title}`} onClick={(event) => { event.stopPropagation(); setGoalActionMenu(goal) }} className="-mr-1 rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700"><MoreVertical className="h-5 w-5" /></button></div>
+                        <div className="flex items-start gap-3"><CategoryIcon category={goal.category} size="md" /><h3 className="min-w-0 flex-1 truncate pt-1 text-sm font-bold text-[#0b1746] dark:text-white sm:text-base">{goal.title}</h3><button type="button" aria-label={`Actions for ${goal.title}`} onClick={(event) => { event.stopPropagation(); setGoalActionMenu(goal) }} className="-mr-1 rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-elevated"><MoreVertical className="h-5 w-5" /></button></div>
                         <div className="mt-2 flex items-center justify-between"><span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ${status.className}`}>{status.label}</span><span className="text-xs font-bold text-[#0b1746] dark:text-white">{goalProgress}%</span></div>
-                        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[#e9eef5] dark:bg-gray-700"><div className={`h-full rounded-full ${status.state === 'STALLED' ? 'bg-rose-500' : status.state === 'SLIPPING' ? 'bg-amber-400' : status.state === 'COMPLETED' || status.state === 'STRONG' ? 'bg-emerald-500' : 'bg-[#1683ed]'}`} style={{ width: `${goalProgress}%` }}/></div>
+                        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[#e9eef5] dark:bg-elevated"><div className={`h-full rounded-full ${status.state === 'STALLED' ? 'bg-rose-500' : status.state === 'SLIPPING' ? 'bg-amber-400' : status.state === 'COMPLETED' || status.state === 'STRONG' ? 'bg-emerald-500' : 'bg-[#1683ed]'}`} style={{ width: `${goalProgress}%` }}/></div>
                         <div className="mt-3 flex items-center justify-between gap-3 text-[11px] text-gray-500"><span className="truncate">{goal.healthReason || 'No progress yet'}</span><span className={isOverdue ? 'shrink-0 font-semibold text-rose-600 dark:text-rose-300' : 'shrink-0'}>{isOverdue ? `Overdue · ${dueLabel}` : dueLabel}</span></div>
                         {goal.completedAt && <div className="mt-4 flex gap-2"><button type="button" onClick={event => { event.stopPropagation(); setSelectedGoal({ ...goal, _openJourney: true }) }} className="min-h-[44px] flex-1 rounded-xl border border-blue-200 px-3 py-2 text-xs font-bold text-[#2369aa]">View Journey</button>{isRecentlyCompleted(goal) && <button type="button" onClick={event => { event.stopPropagation(); setGoalToShare(goal); setIsShareGoalModalOpen(true) }} className="min-h-[44px] flex-1 rounded-xl bg-[#4c99e6] px-3 py-2 text-xs font-bold text-white">Share</button>}</div>}
                       </div>
                     </motion.article>
                   )
                 })}
-                {!paginatedGoals.length && <div className="col-span-full rounded-2xl border border-dashed border-gray-300 bg-white px-5 py-12 text-center dark:border-gray-700 dark:bg-gray-800"><Target className="mx-auto h-9 w-9 text-blue-300"/><h3 className="mt-3 font-bold text-gray-900 dark:text-white">No goals found</h3><p className="mt-1 text-sm text-gray-500">Adjust your filters or create a new goal.</p><button type="button" onClick={() => setIsCreateModalOpen(true)} className="mt-4 rounded-lg bg-[#1683ed] px-4 py-2 text-sm font-semibold text-white">Create Goal</button></div>}
+                {!paginatedGoals.length && <div className="col-span-full rounded-2xl border border-dashed border-gray-300 bg-white px-5 py-12 text-center dark:border-line dark:bg-surface"><Target className="mx-auto h-9 w-9 text-blue-300"/><h3 className="mt-3 font-bold text-gray-900 dark:text-white">No goals found</h3><p className="mt-1 text-sm text-gray-500">Adjust your filters or create a new goal.</p><button type="button" onClick={() => setIsCreateModalOpen(true)} className="mt-4 rounded-lg bg-[#1683ed] px-4 py-2 text-sm font-semibold text-white">Create Goal</button></div>}
               </div>
             </div>
           ) : (
@@ -932,7 +932,7 @@ const DashboardPageNew = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: filteredHabits.length * 0.05 }}
                     onClick={() => setIsHabitModalOpen(true)}
-                    className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 shadow-sm border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-[#4c99e6] dark:hover:border-[#4c99e6] hover:shadow-md transition-all cursor-pointer group flex flex-col items-center justify-center min-h-[180px] sm:min-h-[220px]"
+                    className="bg-white dark:bg-surface rounded-xl p-4 sm:p-6 shadow-sm border-2 border-dashed border-gray-300 dark:border-line hover:border-[#4c99e6] dark:hover:border-[#4c99e6] hover:shadow-md transition-all cursor-pointer group flex flex-col items-center justify-center min-h-[180px] sm:min-h-[220px]"
                   >
                     <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-full mb-4 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition-colors">
                       <Plus className="w-8 h-8 text-[#4c99e6]" />
@@ -940,7 +940,7 @@ const DashboardPageNew = () => {
                     <h3 className="font-semibold text-gray-900 dark:text-white font-manrope text-base sm:text-lg mb-2">
                       New Habit
                     </h3>
-                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-manrope text-center">
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-muted font-manrope text-center">
                       Expand your routine. Build a new habit cycle.
                     </p>
                   </motion.div>
@@ -951,7 +951,7 @@ const DashboardPageNew = () => {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
                       onClick={() => setSelectedHabit(habit)}
-                      className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all cursor-pointer group relative min-h-[180px] sm:min-h-[220px]"
+                      className="bg-white dark:bg-surface rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-line hover:shadow-md transition-all cursor-pointer group relative min-h-[180px] sm:min-h-[220px]"
                     >
                       {/* Action Buttons */}
                       <div className="absolute top-4 right-4 flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
@@ -961,10 +961,10 @@ const DashboardPageNew = () => {
                             setSelectedHabit(habit)
                             setIsEditHabitOpen(true)
                           }}
-                          className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                          className="p-2 bg-gray-100 dark:bg-elevated hover:bg-gray-200 dark:hover:bg-elevated rounded-lg transition-colors"
                           title="Edit"
                         >
-                          <Edit className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                          <Edit className="w-4 h-4 text-gray-600 dark:text-muted" />
                         </button>
                         <button
                           onClick={(e) => {
@@ -974,10 +974,10 @@ const DashboardPageNew = () => {
                             setHabitToDelete(habit)
                             setIsHabitDeleteModalOpen(true)
                           }}
-                          className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors"
+                          className="p-2 bg-gray-100 dark:bg-elevated hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors"
                           title="Delete"
                         >
-                          <Trash2 className="w-4 h-4 text-gray-600 dark:text-gray-300 hover:text-red-500" />
+                          <Trash2 className="w-4 h-4 text-gray-600 dark:text-muted hover:text-red-500" />
                         </button>
                       </div>
 
@@ -986,7 +986,7 @@ const DashboardPageNew = () => {
                       </h3>
 
                       {habit.description && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2 font-manrope leading-relaxed">
+                        <p className="text-sm text-gray-600 dark:text-muted mb-4 line-clamp-2 font-manrope leading-relaxed">
                           {habit.description}
                         </p>
                       )}
@@ -1009,12 +1009,12 @@ const DashboardPageNew = () => {
                             {habit.todayStatus === 'partial' ? `${habit.todayCompletionCount || 0}/${habit.dailyTargetCount || 1}` : 'Pending'}
                           </span>
                         )}
-                        <span className="inline-block px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium rounded-md font-manrope uppercase tracking-wide">
+                        <span className="inline-block px-2 py-1 bg-gray-100 dark:bg-elevated text-gray-600 dark:text-muted text-xs font-medium rounded-md font-manrope uppercase tracking-wide">
                           {habit.frequency || 'Daily'}
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700 mt-auto">
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-line mt-auto">
                         <div className="flex items-center gap-3 text-xs">
                           <span className="flex items-center gap-1 text-[#4c99e6] font-manrope font-medium">
                             <CheckCircle className="w-3.5 h-3.5" />
@@ -1050,7 +1050,7 @@ const DashboardPageNew = () => {
                 className={`w-2 h-2 rounded-full transition-all ${
                   currentPage === i + 1
                     ? 'bg-[#4c99e6] w-8'
-                    : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400'
+                    : 'bg-gray-300 dark:bg-elevated hover:bg-gray-400'
                 }`}
               />
             ))}
@@ -1064,7 +1064,7 @@ const DashboardPageNew = () => {
           transition={{ delay: 0.5 }}
           className="mt-12 text-center"
         >
-          <p className="text-gray-500 dark:text-gray-400 font-manrope italic text-xs sm:text-sm px-4">
+          <p className="text-gray-500 dark:text-muted font-manrope italic text-xs sm:text-sm px-4">
             "{randomQuote}"
           </p>
         </motion.div>
@@ -1251,13 +1251,13 @@ const DashboardPageNew = () => {
         {isGoalFilterSheetOpen && activeTab === 'goals' && (
           <div className="fixed inset-0 z-[205] flex items-end justify-center sm:hidden">
             <button type="button" aria-label="Close goal filters" onClick={() => setIsGoalFilterSheetOpen(false)} className="absolute inset-0 bg-black/40" />
-            <div className="relative w-full rounded-t-3xl bg-white p-5 shadow-2xl dark:bg-gray-900 sm:max-w-md sm:rounded-2xl">
-              <div className="mb-5 flex items-center justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#1683ed]">Filter goals</p><h2 className="mt-1 text-lg font-bold text-gray-900 dark:text-white">Find where to focus</h2></div><button type="button" onClick={() => setIsGoalFilterSheetOpen(false)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">×</button></div>
+            <div className="relative w-full rounded-t-3xl bg-white p-5 shadow-2xl dark:bg-canvas sm:max-w-md sm:rounded-2xl">
+              <div className="mb-5 flex items-center justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#1683ed]">Filter goals</p><h2 className="mt-1 text-lg font-bold text-gray-900 dark:text-white">Find where to focus</h2></div><button type="button" onClick={() => setIsGoalFilterSheetOpen(false)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-surface">×</button></div>
               <p className="mb-2 text-xs font-semibold text-gray-500">Status</p>
-              <div className="mb-5 flex flex-wrap gap-2">{[['all', 'All'], ['in-progress', 'On Track'], ['needs-attention', 'Needs Attention'], ['completed', 'Completed']].map(([value, label]) => <button key={value} type="button" onClick={() => setGoalFilter(value)} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${goalFilter === value ? 'border-[#1683ed] bg-blue-50 text-[#1683ed]' : 'border-gray-200 text-gray-600 dark:border-gray-700 dark:text-gray-300'}`}>{label}</button>)}</div>
+              <div className="mb-5 flex flex-wrap gap-2">{[['all', 'All'], ['in-progress', 'On Track'], ['needs-attention', 'Needs Attention'], ['completed', 'Completed']].map(([value, label]) => <button key={value} type="button" onClick={() => setGoalFilter(value)} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${goalFilter === value ? 'border-[#1683ed] bg-blue-50 text-[#1683ed]' : 'border-gray-200 text-gray-600 dark:border-line dark:text-muted'}`}>{label}</button>)}</div>
               <p className="mb-2 text-xs font-semibold text-gray-500">Category</p>
-              <div className="flex flex-wrap gap-2">{['all', ...new Set((goals || []).map(goal => goal.category).filter(Boolean))].map(category => <button key={category} type="button" onClick={() => setGoalCategoryFilter(category)} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${goalCategoryFilter === category ? 'border-[#1683ed] bg-blue-50 text-[#1683ed]' : 'border-gray-200 text-gray-600 dark:border-gray-700 dark:text-gray-300'}`}>{category === 'all' ? 'All' : category}</button>)}</div>
-              <div className="mt-6 grid grid-cols-2 gap-3"><button type="button" onClick={() => { setGoalFilter('all'); setGoalCategoryFilter('all'); setCurrentPage(1) }} className="rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-600 dark:border-gray-700 dark:text-gray-300">Clear</button><button type="button" onClick={() => { setCurrentPage(1); setIsGoalFilterSheetOpen(false) }} className="rounded-xl bg-[#1683ed] px-4 py-3 text-sm font-semibold text-white">Apply</button></div>
+              <div className="flex flex-wrap gap-2">{['all', ...new Set((goals || []).map(goal => goal.category).filter(Boolean))].map(category => <button key={category} type="button" onClick={() => setGoalCategoryFilter(category)} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${goalCategoryFilter === category ? 'border-[#1683ed] bg-blue-50 text-[#1683ed]' : 'border-gray-200 text-gray-600 dark:border-line dark:text-muted'}`}>{category === 'all' ? 'All' : category}</button>)}</div>
+              <div className="mt-6 grid grid-cols-2 gap-3"><button type="button" onClick={() => { setGoalFilter('all'); setGoalCategoryFilter('all'); setCurrentPage(1) }} className="rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-600 dark:border-line dark:text-muted">Clear</button><button type="button" onClick={() => { setCurrentPage(1); setIsGoalFilterSheetOpen(false) }} className="rounded-xl bg-[#1683ed] px-4 py-3 text-sm font-semibold text-white">Apply</button></div>
             </div>
           </div>
         )}
@@ -1265,11 +1265,11 @@ const DashboardPageNew = () => {
         {goalActionMenu && (
           <div className="fixed inset-0 z-[206] flex items-end justify-center sm:items-center sm:p-4">
             <button type="button" aria-label="Close goal actions" onClick={() => setGoalActionMenu(null)} className="absolute inset-0 bg-black/40" />
-            <div className="relative w-full rounded-t-3xl bg-white p-5 shadow-2xl dark:bg-gray-900 sm:max-w-md sm:rounded-2xl">
+            <div className="relative w-full rounded-t-3xl bg-white p-5 shadow-2xl dark:bg-canvas sm:max-w-md sm:rounded-2xl">
               <div className="mb-4 flex items-center gap-3"><CategoryIcon category={goalActionMenu.category} size="lg" /><div className="min-w-0"><h2 className="truncate text-base font-bold text-gray-900 dark:text-white">{goalActionMenu.title}</h2><p className="text-xs text-gray-500">Quick actions for this goal</p></div></div>
               <div className="space-y-1">
-                {!goalActionMenu.completedAt && <button type="button" onClick={() => { setSelectedGoal(goalActionMenu); setGoalActionMenu(null) }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-semibold text-gray-800 hover:bg-blue-50 dark:text-gray-200 dark:hover:bg-gray-800"><Target className="h-4 w-4 text-[#1683ed]" /> Log Progress</button>}
-                <button type="button" onClick={() => { setGoalToEdit(goalActionMenu); setGoalActionMenu(null); goalActionMenu.completedAt ? setIsEditCompletionModalOpen(true) : setIsEditGoalWizardOpen(true) }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-semibold text-gray-800 hover:bg-blue-50 dark:text-gray-200 dark:hover:bg-gray-800"><Edit className="h-4 w-4 text-[#1683ed]" /> Edit Goal</button>
+                {!goalActionMenu.completedAt && <button type="button" onClick={() => { setSelectedGoal(goalActionMenu); setGoalActionMenu(null) }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-semibold text-gray-800 hover:bg-blue-50 dark:text-ink dark:hover:bg-surface"><Target className="h-4 w-4 text-[#1683ed]" /> Log Progress</button>}
+                <button type="button" onClick={() => { setGoalToEdit(goalActionMenu); setGoalActionMenu(null); goalActionMenu.completedAt ? setIsEditCompletionModalOpen(true) : setIsEditGoalWizardOpen(true) }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-semibold text-gray-800 hover:bg-blue-50 dark:text-ink dark:hover:bg-surface"><Edit className="h-4 w-4 text-[#1683ed]" /> Edit Goal</button>
                 <button type="button" onClick={() => {
                   const copiedTargetDate = goalActionMenu.targetDate || goalActionMenu.target_date || ''
                   setInitialGoalData({
@@ -1282,12 +1282,12 @@ const DashboardPageNew = () => {
                   })
                   setIsCreateModalOpen(true)
                   setGoalActionMenu(null)
-                }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-semibold text-gray-800 hover:bg-blue-50 dark:text-gray-200 dark:hover:bg-gray-800"><Copy className="h-4 w-4 text-[#1683ed]" /> Duplicate Goal</button>
-                <button type="button" onClick={() => { setSelectedGoal({ ...goalActionMenu, _openAnalytics: true }); setGoalActionMenu(null) }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-semibold text-gray-800 hover:bg-blue-50 dark:text-gray-200 dark:hover:bg-gray-800"><BarChart3 className="h-4 w-4 text-[#1683ed]" /> View Analytics</button>
-                {(!goalActionMenu.completedAt || isRecentlyCompleted(goalActionMenu)) && <button type="button" onClick={() => { setGoalToShare(goalActionMenu); setIsShareGoalModalOpen(true); setGoalActionMenu(null) }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-semibold text-gray-800 hover:bg-blue-50 dark:text-gray-200 dark:hover:bg-gray-800"><Share2 className="h-4 w-4 text-[#4c99e6]" /> Share Goal</button>}
+                }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-semibold text-gray-800 hover:bg-blue-50 dark:text-ink dark:hover:bg-surface"><Copy className="h-4 w-4 text-[#1683ed]" /> Duplicate Goal</button>
+                <button type="button" onClick={() => { setSelectedGoal({ ...goalActionMenu, _openAnalytics: true }); setGoalActionMenu(null) }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-semibold text-gray-800 hover:bg-blue-50 dark:text-ink dark:hover:bg-surface"><BarChart3 className="h-4 w-4 text-[#1683ed]" /> View Analytics</button>
+                {(!goalActionMenu.completedAt || isRecentlyCompleted(goalActionMenu)) && <button type="button" onClick={() => { setGoalToShare(goalActionMenu); setIsShareGoalModalOpen(true); setGoalActionMenu(null) }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-semibold text-gray-800 hover:bg-blue-50 dark:text-ink dark:hover:bg-surface"><Share2 className="h-4 w-4 text-[#4c99e6]" /> Share Goal</button>}
                 <button type="button" onClick={() => { setGoalToDelete(goalActionMenu); setGoalActionMenu(null); setIsGoalDeleteModalOpen(true) }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"><Trash2 className="h-4 w-4" /> Delete Goal</button>
               </div>
-              <button type="button" onClick={() => setGoalActionMenu(null)} className="mt-4 w-full rounded-xl bg-gray-100 px-4 py-3 text-sm font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">Cancel</button>
+              <button type="button" onClick={() => setGoalActionMenu(null)} className="mt-4 w-full rounded-xl bg-gray-100 px-4 py-3 text-sm font-semibold text-gray-600 dark:bg-surface dark:text-muted">Cancel</button>
             </div>
           </div>
         )}

@@ -72,11 +72,11 @@ const WhatsNewModal = ({ isOpen, onClose }) => {
             transition={{ type: 'spring', damping: 20, stiffness: 300 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0"
           >
-            <div className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="relative w-full max-w-md bg-white dark:bg-surface rounded-2xl shadow-2xl overflow-hidden">
               <button
                 onClick={handleDismiss}
                 aria-label="Close"
-                className="absolute top-4 right-4 h-10 w-10 rounded-full flex items-center justify-center text-2xl leading-none text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="absolute top-4 right-4 h-10 w-10 rounded-full flex items-center justify-center text-2xl leading-none text-gray-500 dark:text-muted hover:bg-gray-100 dark:hover:bg-elevated transition-colors"
               >
                 ×
               </button>
@@ -86,7 +86,7 @@ const WhatsNewModal = ({ isOpen, onClose }) => {
                 <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2 text-center">
                   🎉 What's New
                 </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-6 font-medium">
+                <p className="text-sm text-gray-600 dark:text-muted text-center mb-6 font-medium">
                   v{update.version}
                 </p>
 
@@ -96,7 +96,7 @@ const WhatsNewModal = ({ isOpen, onClose }) => {
 
                 {/* Description */}
                 <div className="max-h-56 overflow-y-auto mb-8 pr-1">
-                  <p className="text-gray-700 dark:text-gray-300 text-left leading-relaxed whitespace-pre-line">
+                  <p className="text-gray-700 dark:text-muted text-left leading-relaxed whitespace-pre-line">
                     {update.description}
                   </p>
                 </div>
@@ -110,7 +110,7 @@ const WhatsNewModal = ({ isOpen, onClose }) => {
                 >
                   <button
                     onClick={handleDismiss}
-                    className="flex-1 px-4 py-3 rounded-lg font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    className="flex-1 px-4 py-3 rounded-lg font-medium text-gray-700 dark:text-muted bg-gray-100 dark:bg-elevated hover:bg-gray-200 dark:hover:bg-elevated transition-colors"
                   >
                     Got it
                   </button>

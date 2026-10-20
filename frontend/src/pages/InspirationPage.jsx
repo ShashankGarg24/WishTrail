@@ -98,7 +98,7 @@ const InspirationPage = () => {
   // Public activity timing always comes from the activity record itself. A
   // goal's completion date is a separate, user-editable calendar value.
   const getActivityEffectiveDate = (activity) => activity?.createdAt;
-  
+
   const handleOpenGoal = (goalId) => {
     setSelectedGoalId(goalId);
     setIsModalOpen(true);
@@ -126,24 +126,24 @@ const InspirationPage = () => {
 
   if (isInitialLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-canvas flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4c99e6] mx-auto mb-4"></div>
-          <p className="text-gray-500 dark:text-gray-400">Loading inspiration...</p>
+          <p className="text-gray-500 dark:text-muted">Loading inspiration...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-canvas">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2" style={{ fontFamily: 'Manrope, sans-serif' }}>
             Community Inspiration
           </h1>
-          <p className="text-gray-600 dark:text-gray-400" style={{ fontFamily: 'Manrope, sans-serif' }}>
+          <p className="text-gray-600 dark:text-muted" style={{ fontFamily: 'Manrope, sans-serif' }}>
             Discover how others are turning their dreams into reality.
           </p>
         </div>
@@ -152,7 +152,7 @@ const InspirationPage = () => {
           {/* Left Column - Top Achievers & Public Activities */}
           <div className="lg:col-span-2 space-y-6">
             {/* Top Achievers Carousel */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="bg-white dark:bg-surface rounded-xl shadow-sm border border-gray-200 dark:border-line p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2" style={{ fontFamily: 'Manrope, sans-serif' }}>
                   <Trophy className="h-5 w-5 text-[#4c99e6]" />
@@ -165,7 +165,7 @@ const InspirationPage = () => {
                   {displayLeaderboard.map((achiever, idx) => (
                     <div
                       key={achiever._id}
-                      className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-5 cursor-pointer hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700 flex-shrink-0 w-80"
+                      className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-5 cursor-pointer hover:shadow-md transition-shadow border border-gray-200 dark:border-line flex-shrink-0 w-80"
                       onClick={() => {
                         if (achiever?.username) navigate(`/profile/@${achiever.username}?tab=overview`);
                       }}
@@ -175,19 +175,19 @@ const InspirationPage = () => {
                           <img
                             src={achiever.avatar || '/api/placeholder/64/64'}
                             alt={achiever.name}
-                            className="w-16 h-16 rounded-full border-2 border-white dark:border-gray-700 shadow-sm"
+                            className="w-16 h-16 rounded-full border-2 border-white dark:border-line shadow-sm"
                           />
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-bold text-gray-900 dark:text-white mb-1" style={{ fontFamily: 'Manrope, sans-serif' }}>
                             {achiever.name}
                           </h3>
-                          <p className="text-xs text-gray-500 dark:text-gray-400" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                          <p className="text-xs text-gray-500 dark:text-muted" style={{ fontFamily: 'Manrope, sans-serif' }}>
                             Champion Status
                           </p>
                         </div>
                       </div>
-                      
+
                       <div className="mb-3">
                         <span className="inline-block px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-[#4c99e6] text-xs font-semibold rounded">
                           Milestone
@@ -198,7 +198,7 @@ const InspirationPage = () => {
                         Completed {achiever.completedGoals || 0} Goals This Year
                       </h4>
 
-                      <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-muted">
                         <Trophy className="h-3.5 w-3.5" />
                         <span>Top 1% Global Contributions</span>
                       </div>
@@ -206,14 +206,14 @@ const InspirationPage = () => {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <div className="text-center py-8 text-gray-500 dark:text-muted">
                   No top achievers yet. Be the first!
                 </div>
               )}
             </div>
 
             {/* Public Activities */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="bg-white dark:bg-surface rounded-xl shadow-sm border border-gray-200 dark:border-line p-6">
               <div className="mb-6">
                 <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2" style={{ fontFamily: 'Manrope, sans-serif' }}>
                   <TrendingUp className="h-5 w-5 text-[#4c99e6]" />
@@ -226,11 +226,11 @@ const InspirationPage = () => {
                   displayActivities.map((activity, index) => {
                     // Calculate random progress for demo (in real app, would come from activity data)
                     const progress = activity.data?.progress || Math.floor(Math.random() * 40 + 60);
-                    
+
                     return (
                       <div
                         key={activity._id || index}
-                        className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
+                        className="bg-white dark:bg-surface rounded-xl border border-gray-200 dark:border-line hover:shadow-md transition-shadow"
                       >
                         <div className="p-4">
                           <div className="flex items-start gap-3">
@@ -245,8 +245,8 @@ const InspirationPage = () => {
                             />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
-                                <span 
-                                  className="font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-[#4c99e6] transition-colors" 
+                                <span
+                                  className="font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-[#4c99e6] transition-colors"
                                   style={{ fontFamily: 'Manrope, sans-serif' }}
                                   onClick={() => {
                                     const username = activity?.userId?.username || activity?.username;
@@ -261,7 +261,7 @@ const InspirationPage = () => {
                                   </span>
                                 )}
                               </div>
-                              <p className="text-sm text-gray-700 dark:text-gray-300 mb-1" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                              <p className="text-sm text-gray-700 dark:text-muted mb-1" style={{ fontFamily: 'Manrope, sans-serif' }}>
                                 {activity.type === 'goal_completed' && `Completed: ${activity.data?.goalTitle || activity.data?.goal?.title || 'a goal'}`}
                                 {activity.type === 'goal_created' && `Created a new goal: ${activity.data?.goalTitle || activity.data?.goal?.title || 'a goal'}`}
                                 {activity.type === 'goal_activity' && (() => {
@@ -281,7 +281,7 @@ const InspirationPage = () => {
                                 {activity.type === 'achievement_earned' && `Earned "${activity.data?.achievementName || 'achievement'}" badge`}
                                 {!['goal_completed', 'goal_created', 'goal_activity', 'subgoal_completed', 'subgoal_added', 'subgoal_removed', 'subgoal_uncompleted', 'habit_added', 'habit_removed', 'habit_target_achieved', 'user_followed', 'user_joined', 'streak_milestone', 'achievement_earned'].includes(activity.type) && (activity.data?.goalTitle || activity.data?.goal?.title || activity.type)}
                               </p>
-                              <span className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(getActivityEffectiveDate(activity))}</span>
+                              <span className="text-xs text-gray-500 dark:text-muted">{formatTimeAgo(getActivityEffectiveDate(activity))}</span>
                             </div>
                           </div>
                         </div>
@@ -289,7 +289,7 @@ const InspirationPage = () => {
                     );
                   })
                 ) : (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <div className="text-center py-8 text-gray-500 dark:text-muted">
                     No recent activities to display
                   </div>
                 )}
@@ -298,7 +298,7 @@ const InspirationPage = () => {
               {displayActivities.length > 0 && (
                 <button
                   onClick={() => navigate(isAuthenticated ? '/feed' : '/auth')}
-                  className="w-full mt-6 flex items-center justify-center gap-2 py-3 px-4 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-xl transition-colors"
+                  className="w-full mt-6 flex items-center justify-center gap-2 py-3 px-4 text-gray-700 dark:text-muted font-medium hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-xl transition-colors"
                   style={{ fontFamily: 'Manrope, sans-serif' }}
                 >
                   <span>Load More Activities</span>
@@ -311,7 +311,7 @@ const InspirationPage = () => {
           {/* Right Column - Your Influence & Trending Goals */}
           <div className="space-y-6">
             {/* Your Influence */}
-            <div className="bg-gray-900 dark:bg-gray-800 rounded-xl shadow-lg p-6 text-white">
+            <div className="bg-gray-900 dark:bg-surface rounded-xl shadow-lg p-6 text-white">
               <h2 className="text-lg font-bold mb-2" style={{ fontFamily: 'Manrope, sans-serif' }}>
                 Your Influence
               </h2>
@@ -362,7 +362,7 @@ const InspirationPage = () => {
 
             {/* Trending Goals - Only show for authenticated users */}
             {isAuthenticated && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <div className="bg-white dark:bg-surface rounded-xl shadow-sm border border-gray-200 dark:border-line p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-bold text-gray-900 dark:text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>
                     Trending Goals
@@ -374,7 +374,7 @@ const InspirationPage = () => {
                     trendingGoals.map((goal, index) => (
                       <div
                         key={goal.id || index}
-                        className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-[#4c99e6] dark:hover:border-[#4c99e6] transition-all cursor-pointer"
+                        className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-line hover:border-[#4c99e6] dark:hover:border-[#4c99e6] transition-all cursor-pointer"
                         onClick={() => handleOpenGoal(goal.id)}
                       >
                         <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
@@ -384,14 +384,14 @@ const InspirationPage = () => {
                           <h3 className="font-semibold text-sm text-gray-900 dark:text-white line-clamp-1 mb-1" style={{ fontFamily: 'Manrope, sans-serif' }}>
                             {goal.title}
                           </h3>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                          <p className="text-xs text-gray-500 dark:text-muted uppercase tracking-wide" style={{ fontFamily: 'Manrope, sans-serif' }}>
                             {getCategoryLabel(goal.category)}
                           </p>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div className="text-center py-6 text-sm text-gray-500 dark:text-gray-400">
+                    <div className="text-center py-6 text-sm text-gray-500 dark:text-muted">
                       No trending goals yet
                     </div>
                   )}
@@ -411,7 +411,7 @@ const InspirationPage = () => {
           </div>
         </div>
       </div>
-      
+
         {/* Goal Details Modal */}
         <GoalPostModal
           isOpen={isModalOpen}

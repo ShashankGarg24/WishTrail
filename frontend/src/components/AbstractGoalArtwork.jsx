@@ -1,8 +1,12 @@
+import useApiStore from '../store/apiStore'
+import { darkHeroPalette } from '../utils/theme'
 import { useId } from 'react'
 import { getCategoryVisual } from '../utils/categoryIcons'
 
 export default function AbstractGoalArtwork({ category, className = '' }) {
-  const visual = getCategoryVisual(category).hero
+  const darkMode = useApiStore(state => state.isDarkMode)
+  const base = getCategoryVisual(category).hero
+  const visual = darkMode ? { ...base, ...darkHeroPalette } : base
   const id = useId().replace(/:/g, '')
   const shared = { vectorEffect: 'non-scaling-stroke' }
   let forms

@@ -155,11 +155,11 @@ const VideoEmbedGrid = () => {
   }
 
   // Flatten all content for carousel
-  const allYoutubeContent = Object.entries(youtubeChannels).flatMap(([key, channel]) => 
+  const allYoutubeContent = Object.entries(youtubeChannels).flatMap(([key, channel]) =>
     channel.videos.map(video => ({ ...video, channelName: channel.name, channelHandle: channel.handle }))
   )
 
-  const allInstagramContent = Object.entries(instagramAccounts).flatMap(([key, account]) => 
+  const allInstagramContent = Object.entries(instagramAccounts).flatMap(([key, account]) =>
     account.posts.map(post => ({ ...post, accountName: account.name, accountHandle: account.handle }))
   )
 
@@ -267,7 +267,7 @@ const VideoEmbedGrid = () => {
               <h3 className="font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2">
                 {item.title}
               </h3>
-              <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-2">
+              <p className="text-gray-600 dark:text-muted text-sm line-clamp-2">
                 {item.description}
               </p>
               <div className="flex items-center justify-between mt-3">
@@ -280,7 +280,7 @@ const VideoEmbedGrid = () => {
                   <span>Watch on YouTube</span>
                   <ExternalLink className="h-3 w-3" />
                 </a>
-                <button className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                <button className="p-2 rounded-full bg-gray-100 dark:bg-surface hover:bg-gray-200 dark:hover:bg-elevated transition-colors">
                   <Maximize2 className="h-4 w-4" />
                 </button>
               </div>
@@ -316,7 +316,7 @@ const VideoEmbedGrid = () => {
               <h3 className="font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2">
                 {item.title}
               </h3>
-              <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-2">
+              <p className="text-gray-600 dark:text-muted text-sm line-clamp-2">
                 {item.description}
               </p>
               <div className="flex items-center justify-between mt-3">
@@ -344,7 +344,7 @@ const VideoEmbedGrid = () => {
 
       {/* Carousel Header */}
       <div className="text-center mb-12">
-        <motion.h2 
+        <motion.h2
           className="text-4xl font-bold text-gray-900 dark:text-white mb-4"
           key={activeTab}
           initial={{ opacity: 0, y: 20 }}
@@ -353,9 +353,9 @@ const VideoEmbedGrid = () => {
         >
           {/* {activeTab === 'youtube' ? '🎬 YouTube Content' : '📸 Instagram Reels'} */}
         </motion.h2>
-        <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-          {activeTab === 'youtube' 
-            ? 'Watch our latest videos and tutorials' 
+        <p className="text-xl text-gray-600 dark:text-muted max-w-2xl mx-auto">
+          {activeTab === 'youtube'
+            ? 'Watch our latest videos and tutorials'
             : 'Check out our recent Instagram posts and reels'
           }
         </p>
@@ -368,9 +368,9 @@ const VideoEmbedGrid = () => {
           <motion.div
             className="flex"
             animate={{ x: `${-currentIndex * (100 / itemsPerView)}%` }}
-            transition={{ 
-              type: "spring", 
-              stiffness: 500, 
+            transition={{
+              type: "spring",
+              stiffness: 500,
               damping: 35,
               mass: 0.6,
               duration: 0.5
@@ -396,19 +396,19 @@ const VideoEmbedGrid = () => {
           onClick={prevSlide}
           className="absolute left-4 top-1/2 w-12 h-12 bg-white/20 border border-white/30 rounded-full shadow-lg transition-all duration-200 hover:bg-white/30 hover:border-white/50 hover:scale-110 z-10 flex items-center justify-center"
           disabled={currentIndex === 0}
-          style={{ 
+          style={{
             transform: 'translateY(-50%)',
             transformOrigin: 'center center'
           }}
         >
           <ChevronLeft className="h-6 w-6 text-white" />
         </button>
-        
+
         <button
           onClick={nextSlide}
           className="absolute right-4 top-1/2 w-12 h-12 bg-white/20 border border-white/30 rounded-full shadow-lg transition-all duration-200 hover:bg-white/30 hover:border-white/50 hover:scale-110 z-10 flex items-center justify-center"
           disabled={currentIndex >= maxIndex}
-          style={{ 
+          style={{
             transform: 'translateY(-50%)',
             transformOrigin: 'center center'
           }}
@@ -436,7 +436,7 @@ const VideoEmbedGrid = () => {
 
       {/* Follow All Accounts Section */}
       <div className="text-center mt-20">
-        <motion.div 
+        <motion.div
           className="glass-card-hover p-8 rounded-2xl max-w-4xl mx-auto"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -462,7 +462,7 @@ const VideoEmbedGrid = () => {
                       <h4 className="font-semibold text-gray-900 dark:text-white">
                         {channel.name}
                       </h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-gray-600 dark:text-muted">
                         {channel.description}
                       </p>
                     </div>
@@ -489,7 +489,7 @@ const VideoEmbedGrid = () => {
                       <h4 className="font-semibold text-gray-900 dark:text-white">
                         {account.name}
                       </h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-gray-600 dark:text-muted">
                         {account.description}
                       </p>
                     </div>
@@ -503,7 +503,7 @@ const VideoEmbedGrid = () => {
       </div>
       {activeVideoId && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="relative bg-white dark:bg-gray-900 rounded-xl overflow-hidden w-[90%] max-w-3xl shadow-2xl">
+          <div className="relative bg-white dark:bg-canvas rounded-xl overflow-hidden w-[90%] max-w-3xl shadow-2xl">
             <button
               className="absolute top-3 right-3 text-white bg-black/50 hover:bg-black/70 rounded-full p-2 z-10"
               onClick={() => setActiveVideoId(null)}
@@ -524,7 +524,7 @@ const VideoEmbedGrid = () => {
       )}
       {activeInstagramUrl && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="relative bg-white dark:bg-gray-900 rounded-xl overflow-hidden w-[90%] max-w-2xl shadow-2xl p-6">
+          <div className="relative bg-white dark:bg-canvas rounded-xl overflow-hidden w-[90%] max-w-2xl shadow-2xl p-6">
             <button
               className="absolute top-3 right-3 text-white bg-black/50 hover:bg-black/70 rounded-full p-2 z-10"
               onClick={() => setActiveInstagramUrl(null)}
@@ -548,4 +548,4 @@ const VideoEmbedGrid = () => {
   )
 }
 
-export default VideoEmbedGrid 
+export default VideoEmbedGrid

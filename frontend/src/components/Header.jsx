@@ -74,7 +74,7 @@ const Header = () => {
 
   return (
     <header
-      className="wt-header sticky top-0 z-50 border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900"
+      className="wt-header sticky top-0 z-50 border-b border-gray-200 bg-white dark:border-line dark:bg-canvas"
     >
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6">
         <div className="flex h-14 items-center sm:h-16">
@@ -157,7 +157,7 @@ const Header = () => {
                   key={link.name}
                   to={link.href}
                   aria-current={isActive(link.href) ? 'page' : undefined}
-                  className={`relative flex items-center px-3 text-sm font-semibold transition-colors ${isActive(link.href) ? 'text-[#4c99e6] after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-[#4c99e6]' : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'}`}
+                  className={`relative flex items-center px-3 text-sm font-semibold transition-colors ${isActive(link.href) ? 'text-[#4c99e6] after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-[#4c99e6]' : 'text-gray-600 hover:text-gray-900 dark:text-muted dark:hover:text-white'}`}
                 >
                   {link.name}
                 </Link>
@@ -168,7 +168,7 @@ const Header = () => {
             <button
               type="button"
               onClick={() => navigate('/discover')}
-              className="mx-4 hidden max-w-xs flex-1 items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-left text-sm text-slate-600 transition hover:border-blue-200 md:flex dark:border-gray-700 dark:bg-gray-800 dark:text-slate-400"
+              className="mx-4 hidden max-w-xs flex-1 items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-left text-sm text-slate-600 transition hover:border-blue-200 md:flex dark:border-line dark:bg-surface dark:text-muted"
             >
               <Search className="h-4 w-4" />
               Search goals and people...
@@ -181,7 +181,7 @@ const Header = () => {
               onClick={() => navigate('/discover')}
               aria-label="Discover"
               aria-current={isDiscoverActive ? 'page' : undefined}
-              className={`ml-auto rounded-xl p-2 transition-colors md:hidden ${isDiscoverActive ? 'bg-blue-50 text-[#1683ed] dark:bg-blue-950/50 dark:text-blue-400' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-gray-800 dark:hover:text-slate-200'}`}
+              className={`ml-auto rounded-xl p-2 transition-colors md:hidden ${isDiscoverActive ? 'bg-blue-50 text-[#1683ed] dark:bg-blue-950/50 dark:text-blue-400' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700 dark:text-muted dark:hover:bg-surface dark:hover:text-ink'}`}
             >
               <Search
                 className="h-5 w-5"
@@ -195,7 +195,7 @@ const Header = () => {
               onClick={() => navigate('/notifications')}
               aria-label="Notifications"
               aria-current={isNotificationsActive ? 'page' : undefined}
-              className={`relative ml-1 shrink-0 rounded-xl p-2 transition-colors md:ml-auto ${isNotificationsActive ? 'bg-blue-50 text-[#1683ed] dark:bg-blue-950/50 dark:text-blue-400' : 'text-gray-500 hover:bg-slate-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white'}`}
+              className={`relative ml-1 shrink-0 rounded-xl p-2 transition-colors md:ml-auto ${isNotificationsActive ? 'bg-blue-50 text-[#1683ed] dark:bg-blue-950/50 dark:text-blue-400' : 'text-gray-500 hover:bg-slate-50 hover:text-gray-900 dark:text-muted dark:hover:bg-surface dark:hover:text-white'}`}
             >
               <Bell
                 className="h-5 w-5"

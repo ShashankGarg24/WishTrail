@@ -12,7 +12,7 @@ const ActivityFeed = ({ activities, title = "Recent Activities", showEmpty = tru
         </h3>
         <div className="text-center py-8">
           <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-gray-600 dark:text-muted">
             No recent activities to show.
           </p>
         </div>
@@ -58,10 +58,10 @@ const ActivityFeed = ({ activities, title = "Recent Activities", showEmpty = tru
                   {activity.category}
                 </span>
               </div>
-              <p className="text-gray-700 dark:text-gray-300 text-sm font-medium truncate">
+              <p className="text-gray-700 dark:text-muted text-sm font-medium truncate">
                 {activity.goal}
               </p>
-              <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-muted mt-1">
                 <span>{activity.completedAt}</span>
                 <span>•</span>
                 <div className="flex items-center space-x-1">
@@ -77,4 +77,4 @@ const ActivityFeed = ({ activities, title = "Recent Activities", showEmpty = tru
   )
 }
 
-export default ActivityFeed 
+export default ActivityFeed

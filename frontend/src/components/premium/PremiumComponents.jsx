@@ -1,6 +1,6 @@
 /**
  * Premium UI Components
- * 
+ *
  * Reusable components for premium feature enforcement
  */
 
@@ -13,11 +13,11 @@ import { usePremiumStatus } from '../../hooks/usePremium';
  */
 export const PremiumBadge = ({ className = '' }) => {
   const { isPremium } = usePremiumStatus();
-  
+
   if (!isPremium) return null;
-  
+
   return (
-    <span 
+    <span
       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-yellow-400 to-orange-500 text-white ${className}`}
     >
       ✨ Premium
@@ -31,9 +31,9 @@ export const PremiumBadge = ({ className = '' }) => {
  */
 export const PremiumExpiryWarning = ({ className = '' }) => {
   const { isPremium, isExpiringSoon, daysRemaining } = usePremiumStatus();
-  
+
   if (!isPremium || !isExpiringSoon) return null;
-  
+
   return (
     <div className={`bg-yellow-50 border-l-4 border-yellow-400 p-4 ${className}`}>
       <div className="flex">
@@ -44,7 +44,7 @@ export const PremiumExpiryWarning = ({ className = '' }) => {
         </div>
         <div className="ml-3">
           <p className="text-sm text-yellow-700">
-            Your premium membership expires in {daysRemaining} days. 
+            Your premium membership expires in {daysRemaining} days.
             <a href="/premium/upgrade" className="font-medium underline ml-1">
               Renew now
             </a>
@@ -59,15 +59,15 @@ export const PremiumExpiryWarning = ({ className = '' }) => {
  * Feature Lock Component
  * Shows lock icon for premium-only features
  */
-export const FeatureLock = ({ 
-  children, 
-  isLocked, 
+export const FeatureLock = ({
+  children,
+  isLocked,
   onUpgradeClick,
   message = "This feature requires premium",
-  className = '' 
+  className = ''
 }) => {
   if (!isLocked) return children;
-  
+
   return (
     <div className={`relative ${className}`}>
       <div className="absolute inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
@@ -78,7 +78,7 @@ export const FeatureLock = ({
             </svg>
           </div>
           <p className="text-white text-sm font-medium mb-2">{message}</p>
-          <button 
+          <button
             onClick={onUpgradeClick}
             className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-lg font-medium text-sm hover:shadow-lg transition-shadow"
           >
@@ -97,21 +97,21 @@ export const FeatureLock = ({
  * Limit Indicator Component
  * Shows current usage vs limit
  */
-export const LimitIndicator = ({ 
-  current, 
-  max, 
+export const LimitIndicator = ({
+  current,
+  max,
   label = "Usage",
   showPercentage = true,
-  className = '' 
+  className = ''
 }) => {
   const isInfinite = max === '∞' || max === -1;
   const percentage = isInfinite ? 0 : Math.min(100, (current / max) * 100);
   const isNearLimit = percentage >= 80 && !isInfinite;
   const isAtLimit = percentage >= 100 && !isInfinite;
-  
+
   let barColor = 'bg-blue-500';
-  let textColor = 'text-gray-700 dark:text-gray-300';
-  
+  let textColor = 'text-gray-700 dark:text-muted';
+
   if (isAtLimit) {
     barColor = 'bg-red-500';
     textColor = 'text-red-700';
@@ -119,11 +119,11 @@ export const LimitIndicator = ({
     barColor = 'bg-yellow-500';
     textColor = 'text-yellow-700';
   }
-  
+
   return (
     <div className={`${className}`}>
       <div className="flex items-center justify-between mb-1">
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</span>
+        <span className="text-sm font-medium text-gray-700 dark:text-muted">{label}</span>
         <span className={`text-sm font-medium ${textColor}`}>
           {current} / {isInfinite ? '∞' : max}
           {showPercentage && !isInfinite && ` (${Math.round(percentage)}%)`}
@@ -131,7 +131,7 @@ export const LimitIndicator = ({
       </div>
       {!isInfinite && (
         <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
+          <div
             className={`${barColor} h-2 rounded-full transition-all duration-300`}
             style={{ width: `${percentage}%` }}
           />
@@ -151,7 +151,7 @@ export const LimitIndicator = ({
  * Upgrade Prompt Component
  * Shows upgrade prompt when limit is reached
  */
-export const UpgradePrompt = ({ 
+export const UpgradePrompt = ({
   title = "Upgrade to Premium",
   message = "You've reached your limit. Upgrade to premium for unlimited access.",
   feature = "",
@@ -162,7 +162,7 @@ export const UpgradePrompt = ({
   className = ''
 }) => {
   return (
-    <div className={`bg-white rounded-lg shadow-xl p-6 dark:bg-gray-800 ${className}`}>
+    <div className={`bg-white rounded-lg shadow-xl p-6 dark:bg-surface ${className}`}>
       <div className="text-center">
         <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 mb-4">
           <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -170,8 +170,8 @@ export const UpgradePrompt = ({
           </svg>
         </div>
         <h3 className="text-lg font-medium text-gray-900 mb-2 dark:text-white">{title}</h3>
-        <p className="text-sm text-gray-500 mb-4 dark:text-gray-400">{message}</p>
-        
+        <p className="text-sm text-gray-500 mb-4 dark:text-muted">{message}</p>
+
         {feature && (
           <div className="bg-gray-50 rounded-lg p-4 mb-4 dark:bg-gray-900/60">
             <div className="flex items-center justify-between">
@@ -191,12 +191,12 @@ export const UpgradePrompt = ({
             </div>
           </div>
         )}
-        
+
         <div className="flex gap-3">
           {onCancel && (
             <button
               onClick={onCancel}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium dark:border-line dark:text-muted dark:hover:bg-elevated"
             >
               Maybe Later
             </button>
@@ -230,14 +230,14 @@ export const PremiumFeatureComparison = ({ className = '' }) => {
     { name: 'AI Suggestions', free: '❌', premium: '✅' },
     { name: 'Advanced Analytics', free: '❌', premium: '✅' }
   ];
-  
+
   return (
-    <div className={`bg-white rounded-lg shadow overflow-hidden dark:bg-gray-800 ${className}`}>
+    <div className={`bg-white rounded-lg shadow overflow-hidden dark:bg-surface ${className}`}>
       <div className="px-4 py-5 sm:px-6 bg-gradient-to-r from-yellow-400 to-orange-500">
         <h3 className="text-lg font-medium text-white">Feature Comparison</h3>
       </div>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-line">
           <thead className="bg-gray-50 dark:bg-gray-900/60">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -251,7 +251,7 @@ export const PremiumFeatureComparison = ({ className = '' }) => {
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+          <tbody className="bg-white divide-y divide-gray-200 dark:bg-surface dark:divide-line">
             {features.map((feature, idx) => (
               <tr key={idx}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">

@@ -192,10 +192,10 @@ const TermsOfService = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
+    <div className="min-h-screen bg-white dark:bg-canvas" style={{ fontFamily: 'Manrope, sans-serif' }}>
       <div className="flex">
         {/* Sidebar Navigation */}
-        <aside className="hidden lg:block w-64 fixed left-0 top-0 h-screen bg-gray-50 dark:bg-gray-800/50 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
+        <aside className="hidden lg:block w-64 fixed left-0 top-0 h-screen bg-gray-50 dark:bg-gray-800/50 border-r border-gray-200 dark:border-line overflow-y-auto">
           <div className="p-6 sticky top-0 bg-gray-50 dark:bg-gray-800/50">
             <Link to="/settings" className="text-sm text-[#4c99e6] hover:text-[#3a7bc8] transition-colors">
               ← Back to Settings
@@ -210,7 +210,7 @@ const TermsOfService = () => {
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
                       activeSection === section.id
                         ? 'bg-[#4c99e6]/10 text-[#4c99e6] font-medium'
-                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                        : 'text-gray-600 dark:text-muted hover:bg-gray-100 dark:hover:bg-gray-700/50'
                     }`}
                   >
                     {section.title}
@@ -233,7 +233,7 @@ const TermsOfService = () => {
               <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-3">
                 Terms of Service
               </h1>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-gray-600 dark:text-muted">
                 Last updated: January 2026
               </p>
             </div>
@@ -252,7 +252,7 @@ const TermsOfService = () => {
                       </h2>
                     </div>
                   </div>
-                  
+
                   <div className="ml-14 space-y-6">
                     {section.content.map((item, idx) => (
                       <div key={idx}>
@@ -261,7 +261,7 @@ const TermsOfService = () => {
                             {item.subtitle}
                           </h3>
                         )}
-                        <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                        <p className="text-gray-600 dark:text-muted leading-relaxed">
                           {item.text}
                         </p>
                       </div>
@@ -271,7 +271,7 @@ const TermsOfService = () => {
               ))}
 
               {/* Contact Section */}
-              <section className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-8 border border-gray-200 dark:border-gray-700">
+              <section className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-8 border border-gray-200 dark:border-line">
                 <div className="flex items-start gap-4 mb-6">
                   <div className="flex-shrink-0 w-12 h-12 rounded-full bg-[#4c99e6]/10 flex items-center justify-center">
                     <Mail className="w-6 h-6 text-[#4c99e6]" />
@@ -280,7 +280,7 @@ const TermsOfService = () => {
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                       Questions or Concerns?
                     </h2>
-                    <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    <p className="text-gray-600 dark:text-muted mb-4">
                       If you have any questions about these Terms of Service, please contact us:
                     </p>
                     <a

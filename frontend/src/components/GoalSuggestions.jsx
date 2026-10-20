@@ -33,7 +33,7 @@ const INTEREST_TO_GOALS = {
       { title: 'Complete a fitness bootcamp', category: 'HEALTH_FITNESS', description: 'Join an intensive 1-week or 2-week program.' },
       { title: 'Hit a personal record in weightlifting', category: 'HEALTH_FITNESS', description: 'Track and improve your strength training performance.' },
     ],
-  
+
     health: [
       { title: 'Sleep 8 hours daily for 14 days', category: 'HEALTH_FITNESS', description: 'Improve sleep quality by maintaining a consistent routine.' },
       { title: 'Drink 2L of water daily for 21 days', category: 'HEALTH_FITNESS', description: 'Stay hydrated and track your daily water intake.' },
@@ -61,7 +61,7 @@ const INTEREST_TO_GOALS = {
       { title: 'Cook healthy meals at home', category: 'HEALTH_FITNESS', description: 'Prepare home-cooked meals to control ingredients.' },
       { title: 'Get 1,000 minutes of exercise this month', category: 'HEALTH_FITNESS', description: 'Track and accumulate activity over a month.' },
     ],
-  
+
     travel: [
         { title: 'Plan a weekend getaway', category: 'TRAVEL_EXPERIENCES', description: 'Pick a nearby destination and plan a budget-friendly trip.' },
         { title: 'Create a 6-month travel savings plan', category: 'TRAVEL_EXPERIENCES', description: 'Set a monthly saving target to fund your next trip.' },
@@ -89,7 +89,7 @@ const INTEREST_TO_GOALS = {
         { title: 'Visit all states in your country', category: 'TRAVEL_EXPERIENCES', description: 'Make a checklist and track progress.' },
         { title: 'Plan a surprise trip for someone', category: 'TRAVEL_EXPERIENCES', description: 'Organize a hidden itinerary for a loved one.' },
       ],
-    
+
       education: [
         { title: 'Complete an online course', category: 'EDUCATION_LEARNING', description: 'Pick a topic of interest and finish a course in 30 days.' },
         { title: 'Read 12 books this year', category: 'EDUCATION_LEARNING', description: 'Set a monthly reading target and track progress.' },
@@ -117,7 +117,7 @@ const INTEREST_TO_GOALS = {
         { title: 'Improve academic writing skills', category: 'EDUCATION_LEARNING', description: 'Learn structure, clarity, and citations.' },
         { title: 'Memorize 100 new vocabulary words', category: 'EDUCATION_LEARNING', description: 'Enhance language skills through daily learning.' },
       ],
-    
+
       career: [
         { title: 'Update resume and LinkedIn', category: 'CAREER_WORK', description: 'Refresh your profile and showcase recent achievements.' },
         { title: 'Apply to 10 relevant roles', category: 'CAREER_WORK', description: 'Shortlist roles and submit tailored applications.' },
@@ -145,7 +145,7 @@ const INTEREST_TO_GOALS = {
         { title: 'Attend company-sponsored training', category: 'CAREER_WORK', description: 'Utilize internal opportunities for growth.' },
         { title: 'Mentor a junior colleague', category: 'CAREER_WORK', description: 'Guide and help develop others professionally.' },
       ],
-    
+
       finance: [
         { title: 'Build a 3-month emergency fund', category: 'FINANCE', description: 'Automate monthly savings to reach your safety net.' },
         { title: 'Track expenses for 30 days', category: 'FINANCE', description: 'Categorize spending and identify saving opportunities.' },
@@ -306,7 +306,7 @@ const INTEREST_TO_GOALS = {
         { title: 'Build a personal AI assistant', category: 'SIDE_PROJECTS', description: 'Use AI models to automate and assist daily tasks.' },
         { title: 'Take a UI/UX design course', category: 'SIDE_PROJECTS', description: 'Learn how to create beautiful and user-friendly interfaces.' },
       ],
-    
+
       business: [
         { title: 'Start a side hustle', category: 'CAREER_WORK', description: 'Launch a small project or service to earn extra income.' },
         { title: 'Write a business plan', category: 'CAREER_WORK', description: 'Plan and outline the strategy for a new business idea.' },
@@ -334,7 +334,7 @@ const INTEREST_TO_GOALS = {
         { title: 'Develop leadership skills', category: 'CAREER_WORK', description: 'Learn to inspire and manage a team effectively.' },
         { title: 'Write a case study', category: 'CAREER_WORK', description: 'Document and share a real-world business success story.' },
       ],
-    
+
       lifestyle: [
         { title: 'Create a morning routine', category: 'LIFESTYLE', description: 'Start your day with healthy and productive habits.' },
         { title: 'Declutter your home', category: 'LIFESTYLE', description: 'Simplify your space by removing unnecessary items.' },
@@ -362,7 +362,7 @@ const INTEREST_TO_GOALS = {
         { title: 'Adopt a pet', category: 'LIFESTYLE', description: 'Bring home a furry friend for companionship.' },
         { title: 'Make a vision board', category: 'LIFESTYLE', description: 'Visualize your dreams and aspirations.' },
       ],
-    
+
       spirituality: [
         { title: 'Practice daily meditation', category: 'MENTAL_HEALTH', description: 'Spend time in mindfulness or quiet reflection.' },
         { title: 'Read a spiritual book', category: 'MENTAL_HEALTH', description: 'Explore texts on philosophy, religion, or self-discovery.' },
@@ -390,7 +390,7 @@ const INTEREST_TO_GOALS = {
         { title: 'Spend a day in silence', category: 'MENTAL_HEALTH', description: 'Disconnect from noise to listen inwardly.' },
         { title: 'Write your spiritual journey', category: 'MENTAL_HEALTH', description: 'Document your path of growth and understanding.' },
       ],
-    
+
       sports: [
         { title: 'Run a marathon', category: 'HEALTH_FITNESS', description: 'Train to complete a full or half marathon.' },
         { title: 'Join a local sports team', category: 'HEALTH_FITNESS', description: 'Play regularly with a community group.' },
@@ -445,7 +445,7 @@ const INTEREST_TO_GOALS = {
         { title: 'Understand audio mixing and mastering', category: 'CREATIVE', description: 'Learn final polishing techniques for music.'},
         { title: 'Organize a charity concert', category: 'CREATIVE', description: 'Host an event to raise funds for a cause.'}
       ],
-    
+
       art: [
         { title: 'Complete a daily sketch challenge', category: 'CREATIVE', description: 'Draw something every day for 30 days.'},
         { title: 'Learn watercolor painting', category: 'CREATIVE', description: 'Explore brush techniques and color blending.' },
@@ -500,7 +500,7 @@ const INTEREST_TO_GOALS = {
         { title: 'Attend a literary festival', category: 'PERSONAL_GROWTH', description: 'Immerse yourself in book culture.' },
         { title: 'Write your own short story', category: 'PERSONAL_GROWTH', description: 'Experiment with storytelling.'}
       ],
-    
+
       cooking: [
         { title: 'Master 10 new recipes', category: 'LIFESTYLE', description: 'Expand your cooking skills.'},
         { title: 'Bake your own bread', category: 'LIFESTYLE', description: 'Learn bread-making from scratch.'},
@@ -528,7 +528,7 @@ const INTEREST_TO_GOALS = {
         { title: 'Cook a recipe from a famous chef', category: 'LIFESTYLE', description: 'Test your skills with expert recipes.'},
         { title: 'Document your recipes', category: 'LIFESTYLE', description: 'Create your own recipe book.'}
       ],
-    
+
       gaming: [
         { title: 'Complete a 100% run of a game', category: 'CREATIVE', description: 'Unlock all achievements or trophies.'},
         { title: 'Participate in an online gaming tournament', category: 'CREATIVE', description: 'Test your skills against others.'},
@@ -601,7 +601,7 @@ const INTEREST_TO_GOALS = {
         { title: 'Create care packages', category: 'PERSONAL_GROWTH', description: 'Prepare and distribute essential supplies to those in need.'}
       ]
   };
-  
+
 
 export const ALL_GOAL_CATEGORIES = Object.keys(INTEREST_TO_GOALS)
 
@@ -688,7 +688,7 @@ const GoalSuggestions = ({ interests = [], category = 'all', onSelect, onCreate,
   if (!forceExpanded && variant === 'inline' && !expanded) {
     return (
       <div id="suggested-goals" className={containerClassName}>
-        <div className="glass-card-hover border border-gray-200 dark:border-gray-700 rounded-2xl p-6 flex items-center justify-between">
+        <div className="glass-card-hover border border-gray-200 dark:border-line rounded-2xl p-6 flex items-center justify-between">
           <div className="flex items-start space-x-3">
             <div className="bg-primary-500/10 text-primary-600 dark:text-primary-400 rounded-full p-2 mt-1">
               <Lightbulb className="h-5 w-5" />
@@ -698,7 +698,7 @@ const GoalSuggestions = ({ interests = [], category = 'all', onSelect, onCreate,
                 <Sparkles className="h-4 w-4 text-primary-500" />
                 <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Discover goal ideas</h4>
               </div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
+              <p className="text-gray-600 dark:text-muted text-sm mt-1">
                 Get mixed suggestions {interests?.length ? 'in your favorite areas' : 'across popular categories'} to kickstart your progress.
               </p>
             </div>
@@ -721,11 +721,11 @@ const GoalSuggestions = ({ interests = [], category = 'all', onSelect, onCreate,
             </h3>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={regenerate} className="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 inline-flex items-center gap-1" style={{ fontFamily: 'Manrope' }}>
+            <button onClick={regenerate} className="text-sm text-gray-600 dark:text-muted hover:text-gray-800 dark:hover:text-ink inline-flex items-center gap-1" style={{ fontFamily: 'Manrope' }}>
               <RefreshCw className="h-4 w-4" /> Shuffle
             </button>
             {!forceExpanded && variant === 'inline' && (
-              <button onClick={() => setExpanded(false)} className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200" style={{ fontFamily: 'Manrope' }}>
+              <button onClick={() => setExpanded(false)} className="text-sm text-gray-600 dark:text-muted hover:text-gray-800 dark:hover:text-ink" style={{ fontFamily: 'Manrope' }}>
                 Hide
               </button>
             )}
@@ -747,7 +747,7 @@ const GoalSuggestions = ({ interests = [], category = 'all', onSelect, onCreate,
               tabIndex={0}
               onClick={() => onSelect?.(g)}
               onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect?.(g) } }}
-              className="p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-lg hover:border-[#4c99e6]/60 cursor-pointer transition-all duration-200"
+              className="p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-line bg-white dark:bg-surface hover:shadow-lg hover:border-[#4c99e6]/60 cursor-pointer transition-all duration-200"
             >
               <div className="flex items-start gap-2 sm:gap-3 mb-2 sm:mb-3">
                 <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${THEME_COLOR}20` }}>
@@ -756,13 +756,13 @@ const GoalSuggestions = ({ interests = [], category = 'all', onSelect, onCreate,
                   </div>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide" style={{ fontFamily: 'Manrope' }}>
+                  <div className="text-[10px] sm:text-xs text-gray-500 dark:text-muted font-medium uppercase tracking-wide" style={{ fontFamily: 'Manrope' }}>
                     {g.category}
                   </div>
                   <div className="font-bold text-gray-900 dark:text-white mt-0.5 text-sm sm:text-base" style={{ fontFamily: 'Manrope' }}>{g.title}</div>
                 </div>
               </div>
-              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 line-clamp-2" style={{ fontFamily: 'Manrope', lineHeight: '1.4' }}>{g.description}</div>
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-muted line-clamp-2" style={{ fontFamily: 'Manrope', lineHeight: '1.4' }}>{g.description}</div>
             </motion.div>
             )
           })}

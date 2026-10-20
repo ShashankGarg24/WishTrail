@@ -11,17 +11,17 @@ const CreateGoalWizard = lazy(() => import('./CreateGoalWizard'));
 const DeleteConfirmModal = lazy(() => import('./DeleteConfirmModal'));
 
 const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, onEditCompletion, isViewingOwnGoals = true, onOpenGoal, onOpenAnalytics, footer, isReadOnly = false }) => {
-  const { 
-    deleteGoal, 
+  const {
+    deleteGoal,
     likeGoal,
     user,
     isAuthenticated,
     loading
   } = useApiStore()
-  
+
   // Support both PostgreSQL (id) and MongoDB (_id) formats
   const goalId = wish.id;
-  
+
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false)
   const [isEditCompletionModalOpen, setIsEditCompletionModalOpen] = useState(false)
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
@@ -48,7 +48,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, onEditCom
     form.append('completionNote', String(formDataOrNote || ''))
     return onComplete?.(goalId, form)
   }
-  
+
   const handleEditCompletion = (formData) => {
     return onEditCompletion?.(goalId, formData)
   }
@@ -138,7 +138,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, onEditCom
             disabled={loading || isReadOnly || wish.completedAt}
             title={
               wish.completedAt
-                  ? 'Goal completed permanently' 
+                  ? 'Goal completed permanently'
                   : 'Mark as complete'
             }
           >
@@ -150,15 +150,15 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, onEditCom
           </button>
           <div className="flex-1 min-w-0">
             <h3 className={`font-semibold text-base line-clamp-2 break-anywhere ${
-              wish.completedAt 
-                ? 'text-gray-500 dark:text-gray-400 line-through' 
+              wish.completedAt
+                ? 'text-gray-500 dark:text-muted line-through'
                 : 'text-gray-900 dark:text-white'
             }`}>
               {wish.title}
             </h3>
           </div>
         </div>
-        
+
         {/* Only show edit/delete for own goals */}
         {isViewingOwnGoals && (
         <div className="flex items-center gap-1 ml-2">
@@ -166,39 +166,39 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, onEditCom
           {!wish.completedAt && !isCommunityMirror && (
             <button
               onClick={(e) => { e.stopPropagation(); handleEdit(); }}
-              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-surface transition-colors"
                 disabled={loading}
             >
-              <Edit2 className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400 hover:text-primary-500" />
+              <Edit2 className="h-3.5 w-3.5 text-gray-500 dark:text-muted hover:text-primary-500" />
             </button>
           )}
           {/* Edit completion button for completed goals */}
           {wish.completedAt && (
             <button
               onClick={(e) => { e.stopPropagation(); setIsEditCompletionModalOpen(true); }}
-              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-surface transition-colors"
               disabled={loading}
               title="Edit completion details"
             >
-              <Edit3 className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400 hover:text-primary-500" />
+              <Edit3 className="h-3.5 w-3.5 text-gray-500 dark:text-muted hover:text-primary-500" />
             </button>
           )}
           {/* Removed wrench button; flow uses edit wizard */}
           {isViewingOwnGoals && isRecentlyCompleted(wish) && (
             <button
               onClick={(e) => { e.stopPropagation(); handleShare(); }}
-              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-surface transition-colors"
                 disabled={loading}
             >
-              <Share2 className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400 hover:text-primary-500" />
+              <Share2 className="h-3.5 w-3.5 text-gray-500 dark:text-muted hover:text-primary-500" />
             </button>
           )}
           <button
             onClick={(e) => { e.stopPropagation(); handleDelete(); }}
-            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-surface transition-colors"
               disabled={loading}
           >
-            <Trash2 className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400 hover:text-red-500" />
+            <Trash2 className="h-3.5 w-3.5 text-gray-500 dark:text-muted hover:text-red-500" />
           </button>
         </div>
         )}
@@ -207,8 +207,8 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, onEditCom
       {/* Description */}
       <p className={`text-xs mb-3 line-clamp-4 break-anywhere ${
         wish.completedAt
-          ? 'text-gray-400 dark:text-gray-500' 
-          : 'text-gray-600 dark:text-gray-300'
+          ? 'text-gray-400 dark:text-muted'
+          : 'text-gray-600 dark:text-muted'
       }`}>
         {wish.description}
       </p>
@@ -231,14 +231,14 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, onEditCom
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400 mb-2">
+      <div className="flex items-center justify-between text-[10px] text-gray-500 dark:text-muted mb-2">
         <div className="flex items-center space-x-1">
           <Calendar className="h-2.5 w-2.5" />
           <span>
             Created {formatDate(wish.createdAt)}
           </span>
         </div>
-        
+
         {wish.targetDate && (
           <div className="flex items-center space-x-1">
             <Calendar className="h-2.5 w-2.5" />
@@ -262,7 +262,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, onEditCom
                 </span>
               )}
             </div>
-            
+
             {/* Like button and count - only show for other users' goals */}
             {!isViewingOwnGoals && (
               <div className="flex items-center space-x-2">
@@ -271,14 +271,14 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, onEditCom
                   className={`flex items-center space-x-1 px-2 py-1 rounded-full transition-all duration-200 transform hover:scale-110 ${
                     wish.userHasLiked
                       ? 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30'
-                      : 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-500 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-red-900/20 dark:hover:text-red-400'
+                      : 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-500 dark:bg-surface dark:text-muted dark:hover:bg-red-900/20 dark:hover:text-red-400'
                   }`}
                   disabled={!isAuthenticated || loading}
                 >
-                  <Heart 
+                  <Heart
                     className={`h-3.5 w-3.5 transition-colors ${
                       wish.userHasLiked ? 'fill-current' : ''
-                    }`} 
+                    }`}
                   />
                   <span className="text-xs font-medium">
                     {Number(wish.likeCount) || 0}
@@ -286,17 +286,17 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, onEditCom
                 </button>
               </div>
             )}
-            
+
             {/* Like count only (for own goals) */}
             {isViewingOwnGoals && Number(wish.likeCount) > 0 && (
-              <div className="flex items-center space-x-1 text-[10px] text-gray-500 dark:text-gray-400">
+              <div className="flex items-center space-x-1 text-[10px] text-gray-500 dark:text-muted">
                 <Heart className="h-2.5 w-2.5" />
                 <span>{Number(wish.likeCount) || 0}</span>
               </div>
             )}
           </div>
           {wish.completionNote && (
-            <div className="mt-1.5 p-2 bg-white/50 dark:bg-gray-800/50 rounded text-[10px] text-gray-700 dark:text-gray-300">
+            <div className="mt-1.5 p-2 bg-white/50 dark:bg-gray-800/50 rounded text-[10px] text-gray-700 dark:text-muted">
               <strong>What I did:</strong> <span className="line-clamp-3 break-anywhere inline-block align-top">{wish.completionNote}</span>
             </div>
           )}
@@ -307,7 +307,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, onEditCom
       {onOpenGoal && (
         <button
           onClick={(e) => { e.stopPropagation(); onOpenGoal?.(wish?.id); }}
-          className={`w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all border border-gray-200 dark:border-gray-700 ${
+          className={`w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-gray-100 dark:bg-surface text-gray-700 dark:text-muted hover:bg-gray-200 dark:hover:bg-elevated transition-all border border-gray-200 dark:border-line ${
             wish.completedAt ? 'mt-2' : 'mt-3'
           }`}
         >
@@ -315,7 +315,7 @@ const WishCard = ({ wish, year, index, onToggle, onDelete, onComplete, onEditCom
           View Post
         </button>
       )}
-      
+
       {/* Optional footer slot for extra actions (e.g., community link) */}
       {footer && (
         <div className="mt-4">

@@ -33,7 +33,7 @@ const JOURNEY_MOODS = {
   good: { label: 'Good', icon: Smile, className: 'bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300' },
   okay: { label: 'Okay', icon: Meh, className: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300' },
   challenging: { label: 'Tough', icon: Frown, className: 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300' },
-  neutral: { label: 'Neutral', icon: CircleSlash2, className: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300' }
+  neutral: { label: 'Neutral', icon: CircleSlash2, className: 'bg-slate-100 text-slate-600 dark:bg-elevated dark:text-muted' }
 }
 
 function GoalAnalyticsPanel({ data, fallbackGoal, loading, days, onDaysChange }) {
@@ -60,25 +60,25 @@ function GoalAnalyticsPanel({ data, fallbackGoal, loading, days, onDaysChange })
       : `Your latest check-in was ${metrics.daysSinceLastCheckIn} ${metrics.daysSinceLastCheckIn === 1 ? 'day' : 'days'} ago.`
   return <div className="space-y-5 pb-3">
     {rangePicker}
-    <section className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-4 shadow-sm dark:border-blue-900/50 dark:from-blue-950/30 dark:to-gray-800">
+    <section className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-4 shadow-sm dark:border-blue-900/50 dark:from-blue-950/30 dark:to-surface">
       <div className="flex items-end justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[.1em] text-[#1683ed]">Current progress</p><p className="mt-1 text-3xl font-extrabold text-[#0b1746] dark:text-white">{progress}%</p></div><Target className="h-7 w-7 text-blue-300 dark:text-blue-600" /></div>
-      <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-white ring-1 ring-blue-100 dark:bg-gray-700 dark:ring-blue-900"><span className="block h-full rounded-full bg-[#1683ed] transition-[width] duration-500" style={{ width: `${progress}%` }} /></div>
-      <p className="mt-2 text-[10px] leading-relaxed text-slate-500 dark:text-slate-400">Current completion from your goal components. Historical progress snapshots are not recorded, so no artificial trend line is shown.</p>
+      <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-white ring-1 ring-blue-100 dark:bg-elevated dark:ring-blue-900"><span className="block h-full rounded-full bg-[#1683ed] transition-[width] duration-500" style={{ width: `${progress}%` }} /></div>
+      <p className="mt-2 text-[10px] leading-relaxed text-slate-500 dark:text-muted">Current completion from your goal components. Historical progress snapshots are not recorded, so no artificial trend line is shown.</p>
     </section>
 
     <section><h3 className="mb-3 text-sm font-extrabold text-[#0b1746] dark:text-white">Activity at a glance</h3><div className="grid grid-cols-3 gap-2"><AnalyticsMetric icon={MessageSquare} value={metrics.goalLogs ?? updates.length} label="Goal logs"/><AnalyticsMetric icon={CalendarCheck} value={metrics.checkInDays ?? metrics.activeDays ?? 0} label="Check-in days"/><AnalyticsMetric icon={Activity} value={metrics.progressUpdates ?? updates.filter(item=>item.text?.trim()).length} label="Written updates"/></div><p className="mt-2 text-[10px] text-slate-400">Last {days} days · mood-only check-ins count as logs, not written progress.</p></section>
 
-    <section><div className="mb-3"><h3 className="text-sm font-extrabold text-[#0b1746] dark:text-white">Activity rhythm</h3><p className="mt-0.5 text-[10px] text-slate-500">Each square is one day</p></div><div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800"><div className="grid w-fit grid-cols-7 gap-1.5">{activityDays.map(item=><span key={item.date} title={`${formatDateInTimezone(`${item.date}T12:00:00`, { month: 'short', day: 'numeric' })}: ${item.logs} ${item.logs === 1 ? 'log' : 'logs'}`} className={`h-5 w-5 rounded-[5px] ring-1 sm:h-6 sm:w-6 ${item.progressUpdates > 0 ? 'bg-blue-500 ring-blue-500' : item.logs > 0 ? 'bg-violet-300 ring-violet-300 dark:bg-violet-600 dark:ring-violet-600' : 'bg-slate-50 ring-slate-100 dark:bg-gray-700 dark:ring-gray-700'}`} />)}</div><div className="mt-3 flex flex-wrap gap-3 text-[9px] text-slate-500"><span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-blue-500"/>Written update</span><span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-violet-300 dark:bg-violet-600"/>Mood check-in</span><span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-slate-100 dark:bg-gray-700"/>No log</span></div><p className="mt-3 border-t border-slate-100 pt-3 text-[10px] font-medium text-slate-500 dark:border-gray-700 dark:text-slate-400">{recencyCopy}</p></div></section>
+    <section><div className="mb-3"><h3 className="text-sm font-extrabold text-[#0b1746] dark:text-white">Activity rhythm</h3><p className="mt-0.5 text-[10px] text-slate-500">Each square is one day</p></div><div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm dark:border-line dark:bg-surface"><div className="grid w-fit grid-cols-7 gap-1.5">{activityDays.map(item=><span key={item.date} title={`${formatDateInTimezone(`${item.date}T12:00:00`, { month: 'short', day: 'numeric' })}: ${item.logs} ${item.logs === 1 ? 'log' : 'logs'}`} className={`h-5 w-5 rounded-[5px] ring-1 sm:h-6 sm:w-6 ${item.progressUpdates > 0 ? 'bg-blue-500 ring-blue-500' : item.logs > 0 ? 'bg-violet-300 ring-violet-300 dark:bg-violet-600 dark:ring-violet-600' : 'bg-slate-50 ring-slate-100 dark:bg-elevated dark:ring-gray-700'}`} />)}</div><div className="mt-3 flex flex-wrap gap-3 text-[9px] text-slate-500"><span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-blue-500"/>Written update</span><span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-violet-300 dark:bg-violet-600"/>Mood check-in</span><span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-slate-100 dark:bg-elevated"/>No log</span></div><p className="mt-3 border-t border-slate-100 pt-3 text-[10px] font-medium text-slate-500 dark:border-line dark:text-muted">{recencyCopy}</p></div></section>
 
-    <section><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-extrabold text-[#0b1746] dark:text-white">Weekly consistency</h3><span className="text-sm font-extrabold text-[#1683ed]">{metrics.consistency ?? 0}%</span></div><div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800"><div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-gray-700"><span className="block h-full rounded-full bg-[#1683ed]" style={{width:`${metrics.consistency ?? 0}%`}}/></div><p className="mt-2 text-[10px] text-slate-500">Meaningful progress in {metrics.activeWeeks ?? 0} of {metrics.eligibleWeeks ?? 0} eligible weeks.</p>{weeklyActivity.length > 0 && <div className="mt-4 flex h-24 items-end gap-2 border-t border-slate-100 pt-3 dark:border-gray-700">{weeklyActivity.map(item=><div key={item.weekStart} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1"><span className="text-[9px] font-semibold text-slate-500">{item.progressUpdates}</span><span className={`w-full max-w-12 rounded-t-md ${item.progressUpdates ? 'bg-[#62aaf2]' : 'bg-slate-100 dark:bg-gray-700'}`} style={{height:`${item.progressUpdates ? Math.max(12,(item.progressUpdates/maxWeeklyUpdates)*100) : 6}%`}}/><span className="text-[8px] text-slate-400">{formatDateInTimezone(`${item.weekStart}T12:00:00`, { month: 'short', day: 'numeric' })}</span></div>)}</div>}</div></section>
+    <section><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-extrabold text-[#0b1746] dark:text-white">Weekly consistency</h3><span className="text-sm font-extrabold text-[#1683ed]">{metrics.consistency ?? 0}%</span></div><div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm dark:border-line dark:bg-surface"><div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-elevated"><span className="block h-full rounded-full bg-[#1683ed]" style={{width:`${metrics.consistency ?? 0}%`}}/></div><p className="mt-2 text-[10px] text-slate-500">Meaningful progress in {metrics.activeWeeks ?? 0} of {metrics.eligibleWeeks ?? 0} eligible weeks.</p>{weeklyActivity.length > 0 && <div className="mt-4 flex h-24 items-end gap-2 border-t border-slate-100 pt-3 dark:border-line">{weeklyActivity.map(item=><div key={item.weekStart} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1"><span className="text-[9px] font-semibold text-slate-500">{item.progressUpdates}</span><span className={`w-full max-w-12 rounded-t-md ${item.progressUpdates ? 'bg-[#62aaf2]' : 'bg-slate-100 dark:bg-elevated'}`} style={{height:`${item.progressUpdates ? Math.max(12,(item.progressUpdates/maxWeeklyUpdates)*100) : 6}%`}}/><span className="text-[8px] text-slate-400">{formatDateInTimezone(`${item.weekStart}T12:00:00`, { month: 'short', day: 'numeric' })}</span></div>)}</div>}</div></section>
 
-    <section><h3 className="mb-3 text-sm font-extrabold text-[#0b1746] dark:text-white">How progress felt</h3>{(metrics.moodSamples ?? 0) < 2 ? <div className="rounded-2xl border border-slate-100 bg-white p-4 text-xs text-slate-500 dark:border-gray-700 dark:bg-gray-800">Add a mood to at least two goal logs to see a useful pattern.</div> : <div className="space-y-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">{metrics.moodDistribution.map(item=>{const meta=moodMeta[item.emotion]||[item.emotion,'bg-slate-400','text-slate-600',CircleSlash2];const MoodIcon=meta[3];return <div key={item.emotion} className="grid grid-cols-[88px_1fr_38px] items-center gap-2"><span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold ${meta[2]}`}><MoodIcon className="h-3.5 w-3.5"/>{meta[0]}</span><span className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-gray-700"><span className={`block h-full rounded-full ${meta[1]}`} style={{width:`${item.percent}%`}}/></span><span className="text-right text-[11px] font-bold text-slate-600 dark:text-slate-300">{item.percent}%</span></div>})}<p className="border-t border-slate-100 pt-3 text-[10px] text-slate-400 dark:border-gray-700">Based on {metrics.moodSamples} mood check-ins in this period.</p></div>}</section>
+    <section><h3 className="mb-3 text-sm font-extrabold text-[#0b1746] dark:text-white">How progress felt</h3>{(metrics.moodSamples ?? 0) < 2 ? <div className="rounded-2xl border border-slate-100 bg-white p-4 text-xs text-slate-500 dark:border-line dark:bg-surface">Add a mood to at least two goal logs to see a useful pattern.</div> : <div className="space-y-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm dark:border-line dark:bg-surface">{metrics.moodDistribution.map(item=>{const meta=moodMeta[item.emotion]||[item.emotion,'bg-slate-400','text-slate-600',CircleSlash2];const MoodIcon=meta[3];return <div key={item.emotion} className="grid grid-cols-[88px_1fr_38px] items-center gap-2"><span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold ${meta[2]}`}><MoodIcon className="h-3.5 w-3.5"/>{meta[0]}</span><span className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-elevated"><span className={`block h-full rounded-full ${meta[1]}`} style={{width:`${item.percent}%`}}/></span><span className="text-right text-[11px] font-bold text-slate-600 dark:text-muted">{item.percent}%</span></div>})}<p className="border-t border-slate-100 pt-3 text-[10px] text-slate-400 dark:border-line">Based on {metrics.moodSamples} mood check-ins in this period.</p></div>}</section>
   </div>
 }
 
-function AnalyticsMetric({ icon: Icon, value, label }) { return <div className="rounded-2xl border border-slate-100 bg-white px-2 py-3 text-center shadow-sm dark:border-gray-700 dark:bg-gray-800"><Icon className="mx-auto h-4 w-4 text-blue-400"/><p className="mt-1.5 text-lg font-extrabold text-[#0b1746] dark:text-white">{value}</p><p className="mt-0.5 text-[9px] leading-tight text-slate-500">{label}</p></div> }
+function AnalyticsMetric({ icon: Icon, value, label }) { return <div className="rounded-2xl border border-slate-100 bg-white px-2 py-3 text-center shadow-sm dark:border-line dark:bg-surface"><Icon className="mx-auto h-4 w-4 text-blue-400"/><p className="mt-1.5 text-lg font-extrabold text-[#0b1746] dark:text-white">{value}</p><p className="mt-0.5 text-[9px] leading-tight text-slate-500">{label}</p></div> }
 
-function MetricCard({ value, label }) { return <div className="rounded-2xl border border-slate-100 bg-white px-3 py-4 text-center shadow-sm dark:border-gray-700 dark:bg-gray-800"><p className="text-xl font-extrabold text-[#0b1746] dark:text-white">{value}</p><p className="mt-1 text-[10px] text-slate-500">{label}</p></div> }
+function MetricCard({ value, label }) { return <div className="rounded-2xl border border-slate-100 bg-white px-3 py-4 text-center shadow-sm dark:border-line dark:bg-surface"><p className="text-xl font-extrabold text-[#0b1746] dark:text-white">{value}</p><p className="mt-1 text-[10px] text-slate-500">{label}</p></div> }
 
 function GoalDateCard({ icon: Icon, label, date, emptyLabel, detail, tone = 'blue' }) {
   const colors = tone === 'amber'
@@ -86,12 +86,12 @@ function GoalDateCard({ icon: Icon, label, date, emptyLabel, detail, tone = 'blu
     : 'bg-blue-50 text-[#1683ed] dark:bg-blue-950/40 dark:text-blue-300'
   const formattedDate = date ? formatDateInTimezone(date, { day: 'numeric', month: 'short', year: 'numeric' }) : emptyLabel
 
-  return <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+  return <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-sm dark:border-line dark:bg-surface">
     <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${colors}`}><Icon className="h-[18px] w-[18px]" /></span>
     <div className="min-w-0">
-      <p className="text-[10px] font-bold uppercase tracking-[.08em] text-slate-400 dark:text-slate-500">{label}</p>
-      <p className="mt-0.5 truncate text-sm font-semibold text-slate-700 dark:text-slate-100">{formattedDate}</p>
-      {detail && <p className={`mt-0.5 text-[10px] ${tone === 'amber' ? 'font-semibold text-amber-600 dark:text-amber-300' : 'text-slate-400 dark:text-slate-500'}`}>{detail}</p>}
+      <p className="text-[10px] font-bold uppercase tracking-[.08em] text-slate-400 dark:text-muted">{label}</p>
+      <p className="mt-0.5 truncate text-sm font-semibold text-slate-700 dark:text-ink">{formattedDate}</p>
+      {detail && <p className={`mt-0.5 text-[10px] ${tone === 'amber' ? 'font-semibold text-amber-600 dark:text-amber-300' : 'text-slate-400 dark:text-muted'}`}>{detail}</p>}
     </div>
   </div>
 }
@@ -114,9 +114,9 @@ function JourneyEvent({ event, isLast, openMenuId, onToggleMenu, onEditLog, onDe
   return <article className="flex gap-3">
     <div className="flex flex-col items-center">
       <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ring-4 ${markerColors}`}><MarkerIcon className="h-[18px] w-[18px]" /></span>
-      {!isLast && <span className="my-1 min-h-6 w-0.5 flex-1 rounded-full bg-gradient-to-b from-blue-200 to-slate-100 dark:from-blue-800 dark:to-gray-700" />}
+      {!isLast && <span className="my-1 min-h-6 w-0.5 flex-1 rounded-full bg-gradient-to-b from-blue-200 to-slate-100 dark:from-blue-800 dark:to-elevated" />}
     </div>
-    <div className={`relative mb-4 min-w-0 flex-1 ${isLog ? 'rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-sky-900/60 dark:bg-gray-800' : 'pb-3 pt-0.5'}`}>
+    <div className={`relative mb-4 min-w-0 flex-1 ${isLog ? 'rounded-2xl border border-sky-100 bg-white p-4 shadow-sm dark:border-sky-900/60 dark:bg-surface' : 'pb-3 pt-0.5'}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[.1em] text-slate-400">{date ? formatDateInTimezone(date, { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</p>
@@ -124,14 +124,14 @@ function JourneyEvent({ event, isLast, openMenuId, onToggleMenu, onEditLog, onDe
         </div>
         <div className="flex items-center gap-1">
           {mood && <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold ${mood.className}`}><MoodIcon className="h-3 w-3" />{mood.label}</span>}
-          {isLog && event.updateId != null && <button type="button" aria-label="Goal log actions" onClick={() => onToggleMenu(openMenuId === String(event.updateId) ? null : String(event.updateId))} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-gray-700"><MoreVertical className="h-4 w-4" /></button>}
+          {isLog && event.updateId != null && <button type="button" aria-label="Goal log actions" onClick={() => onToggleMenu(openMenuId === String(event.updateId) ? null : String(event.updateId))} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-elevated"><MoreVertical className="h-4 w-4" /></button>}
         </div>
       </div>
       {event.description
-        ? <p className={`${isLog ? 'mt-3 whitespace-pre-wrap border-l-2 border-sky-200 pl-3 text-sm leading-relaxed text-slate-600 dark:border-sky-800 dark:text-slate-300' : 'mt-1.5 text-xs leading-relaxed text-slate-500'}`}>{event.description}</p>
+        ? <p className={`${isLog ? 'mt-3 whitespace-pre-wrap border-l-2 border-sky-200 pl-3 text-sm leading-relaxed text-slate-600 dark:border-sky-800 dark:text-muted' : 'mt-1.5 text-xs leading-relaxed text-slate-500'}`}>{event.description}</p>
         : isLog && <p className="mt-3 text-xs italic text-slate-400">Mood check-in</p>}
       {event.type === 'milestone' && <button type="button" onClick={() => onShareMilestone(event.id)} className="mt-2 min-h-[44px] text-xs font-semibold text-[#2369aa]">Share milestone</button>}
-      {isLog && openMenuId === String(event.updateId) && <div className="absolute right-3 top-14 z-20 w-32 rounded-xl border border-slate-200 bg-white p-1 shadow-xl dark:border-gray-700 dark:bg-gray-900"><button type="button" onClick={() => onEditLog(event)} className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-[#1683ed] dark:text-slate-200 dark:hover:bg-gray-800">Edit log</button><button type="button" onClick={() => onDeleteLog(event)} className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/30">Delete log</button></div>}
+      {isLog && openMenuId === String(event.updateId) && <div className="absolute right-3 top-14 z-20 w-32 rounded-xl border border-slate-200 bg-white p-1 shadow-xl dark:border-line dark:bg-canvas"><button type="button" onClick={() => onEditLog(event)} className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-[#1683ed] dark:text-ink dark:hover:bg-surface">Edit log</button><button type="button" onClick={() => onDeleteLog(event)} className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/30">Delete log</button></div>}
     </div>
   </article>
 }
@@ -337,7 +337,7 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
     })
     return marks
   })()
-  
+
   const handleViewPost = () => {
     if (!goalId) return
     setIsMoreMenuOpen(false)
@@ -474,13 +474,13 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
     <div className="fixed inset-0 flex items-end justify-center sm:items-center sm:p-4" style={{ zIndex: 9999 }}>
       <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]" onClick={onClose} style={{ zIndex: 9998 }} />
       <div
-        className="relative flex h-[94dvh] w-full flex-col overflow-hidden rounded-t-3xl bg-[#f8fafc] shadow-2xl dark:bg-gray-900 sm:h-[min(86dvh,780px)] sm:max-h-[calc(100dvh-2rem)] sm:max-w-[760px] sm:rounded-2xl sm:border sm:border-slate-200 dark:sm:border-gray-700"
+        className="relative flex h-[94dvh] w-full flex-col overflow-hidden rounded-t-3xl bg-[#f8fafc] shadow-2xl dark:bg-canvas sm:h-[min(86dvh,780px)] sm:max-h-[calc(100dvh-2rem)] sm:max-w-[760px] sm:rounded-2xl sm:border sm:border-slate-200 dark:sm:border-gray-700"
         style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui', zIndex: 9999 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative flex flex-shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-900 sm:px-8 sm:py-4">
+        <div className="relative flex flex-shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4 py-3 dark:border-line dark:bg-canvas sm:px-8 sm:py-4">
           <div className="flex min-w-0 flex-1 items-center gap-2 font-semibold text-gray-900 dark:text-white">
-            <button type="button" onClick={() => activeView === 'log' ? closeGoalLogView() : onClose?.()} aria-label={activeView === 'log' ? (editingGoalLog ? 'Back to goal journey' : 'Back to goal overview') : 'Close goal details'} className="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#0b1746] hover:bg-slate-100 dark:text-white dark:hover:bg-gray-800 sm:hidden"><ChevronRight className="h-5 w-5 rotate-180"/></button>
+            <button type="button" onClick={() => activeView === 'log' ? closeGoalLogView() : onClose?.()} aria-label={activeView === 'log' ? (editingGoalLog ? 'Back to goal journey' : 'Back to goal overview') : 'Close goal details'} className="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#0b1746] hover:bg-slate-100 dark:text-white dark:hover:bg-surface sm:hidden"><ChevronRight className="h-5 w-5 rotate-180"/></button>
             <Target className="hidden h-4 w-4 shrink-0 text-[#1683ed] sm:block" />
             <span className="min-w-0 truncate text-sm">{activeView === 'log' ? (editingGoalLog ? 'Update Goal Log' : 'Log Progress') : goal.title}</span>
           </div>
@@ -490,17 +490,17 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
               aria-label="Goal actions"
               aria-expanded={isMoreMenuOpen}
               onClick={() => setIsMoreMenuOpen(value => !value)}
-              className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-700 transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1683ed] dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
+              className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-700 transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1683ed] dark:bg-surface dark:text-ink dark:hover:bg-elevated"
             >
               <MoreHorizontal className="h-5 w-5" />
             </button>
             {isMoreMenuOpen && (
-              <div className="absolute right-0 top-full z-30 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-gray-700 dark:bg-gray-800">
-                <button type="button" onClick={handleShare} className="flex min-h-[44px] w-full items-center gap-2 rounded-lg px-3 text-sm text-[#2369aa] hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-gray-700">
+              <div className="absolute right-0 top-full z-30 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-line dark:bg-surface">
+                <button type="button" onClick={handleShare} className="flex min-h-[44px] w-full items-center gap-2 rounded-lg px-3 text-sm text-[#2369aa] hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-elevated">
                   <Share2 className="h-4 w-4" />
                   {isCompleted ? 'Share Achievement' : 'Share Goal'}
                 </button>
-                <button type="button" onClick={handleViewPost} className="min-h-[44px] w-full rounded-lg px-3 text-left text-sm text-slate-600 hover:bg-blue-50 dark:text-gray-200 dark:hover:bg-gray-700">
+                <button type="button" onClick={handleViewPost} className="min-h-[44px] w-full rounded-lg px-3 text-left text-sm text-slate-600 hover:bg-blue-50 dark:text-ink dark:hover:bg-elevated">
                   View Post
                 </button>
               </div>
@@ -509,20 +509,20 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
           <button
             type="button"
             onClick={onClose}
-            className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-600 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 sm:flex"
+            className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-600 transition-colors hover:bg-gray-200 dark:bg-surface dark:text-ink dark:hover:bg-elevated sm:flex"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        {activeView !== 'log' && <div className="grid grid-cols-3 border-b border-gray-100 bg-white px-4 sm:px-6 dark:border-gray-700 dark:bg-gray-800">
+        {activeView !== 'log' && <div className="grid grid-cols-3 border-b border-gray-100 bg-white px-4 sm:px-6 dark:border-line dark:bg-surface">
           {[
             ['overview', 'Overview'],
             ['journey', 'Journey'],
             ['analytics', 'Analytics']
           ].map(([view, label]) => (
-            <button key={view} type="button" onClick={() => setActiveView(view)} className={`relative px-2 py-3 text-xs font-semibold transition-colors ${activeView === view ? 'text-[#1683ed]' : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'}`}>
+            <button key={view} type="button" onClick={() => setActiveView(view)} className={`relative px-2 py-3 text-xs font-semibold transition-colors ${activeView === view ? 'text-[#1683ed]' : 'text-gray-500 hover:text-gray-800 dark:text-muted dark:hover:text-ink'}`}>
               {label}
               {activeView === view && <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-[#1683ed]" />}
             </button>
@@ -534,7 +534,7 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
             {activeView === 'overview' && (
                 <div className="space-y-4">
                 <GoalHero goal={goal} />
-                 {goal.description && <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">{goal.description}</p>}
+                 {goal.description && <p className="text-sm leading-relaxed text-gray-600 dark:text-muted">{goal.description}</p>}
                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                    <GoalDateCard icon={CalendarDays} label="Started" date={goal.createdAt} detail="Your journey began here" />
                    <GoalDateCard icon={CalendarClock} label="Target" date={goal.targetDate} emptyLabel="No target date" detail={targetDateDetail} tone={!isCompleted && goalMetrics?.overdueDays ? 'amber' : 'blue'} />
@@ -545,7 +545,7 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
             {activeView === 'journey' && (
               <>
               <div className="mb-3"><ActivityCalendar title="Calendar view" subtitle="Start, goal logs, and completion" marks={goalCalendarMarks} initialDate={goal.completedAt ? getDateKeyInTimezone(goal.completedAt) : undefined} legend={[{label:'Started',type:'start'},{label:'Goal log',type:'log'},{label:'Completed',type:'end'}]} /></div>
-              <div className="space-y-3"><div className="mb-4"><p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Your goal journey</p><p className="mt-1 text-xs text-gray-500">Latest activity first, back to where the journey began.</p></div>{isLoadingView && <p className="py-8 text-center text-sm text-gray-500">Loading journey...</p>}{!isLoadingView && displayedTimelineEvents.map((event, index, events) => <JourneyEvent key={event.id || `${event.type}-${event.timestamp || event.dateKey}-${index}`} event={event} isLast={index === events.length - 1} openMenuId={openJourneyLogMenu} onToggleMenu={setOpenJourneyLogMenu} onEditLog={beginEditGoalLog} onDeleteLog={requestDeleteGoalLog} onShareMilestone={eventId => { setShareMoment({ shareType: 'MILESTONE', eventId }); setIsShareModalOpen(true) }} />)}<div ref={journeyLoaderRef} className="flex min-h-10 items-center justify-center">{journeyLoadingMore&&<span className="h-5 w-5 animate-spin rounded-full border-2 border-blue-100 border-t-[#1683ed]"/>}{!journeyHasMore&&timelineEvents.length>0&&<span className="text-[10px] text-slate-400">You’ve reached the beginning.</span>}</div></div>
+              <div className="space-y-3"><div className="mb-4"><p className="text-sm font-semibold text-gray-700 dark:text-ink">Your goal journey</p><p className="mt-1 text-xs text-gray-500">Latest activity first, back to where the journey began.</p></div>{isLoadingView && <p className="py-8 text-center text-sm text-gray-500">Loading journey...</p>}{!isLoadingView && displayedTimelineEvents.map((event, index, events) => <JourneyEvent key={event.id || `${event.type}-${event.timestamp || event.dateKey}-${index}`} event={event} isLast={index === events.length - 1} openMenuId={openJourneyLogMenu} onToggleMenu={setOpenJourneyLogMenu} onEditLog={beginEditGoalLog} onDeleteLog={requestDeleteGoalLog} onShareMilestone={eventId => { setShareMoment({ shareType: 'MILESTONE', eventId }); setIsShareModalOpen(true) }} />)}<div ref={journeyLoaderRef} className="flex min-h-10 items-center justify-center">{journeyLoadingMore&&<span className="h-5 w-5 animate-spin rounded-full border-2 border-blue-100 border-t-[#1683ed]"/>}{!journeyHasMore&&timelineEvents.length>0&&<span className="text-[10px] text-slate-400">You’ve reached the beginning.</span>}</div></div>
               </>
             )}
             {activeView === 'analytics' && (
@@ -554,16 +554,16 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
           </div>
         )}
 
-        {activeView !== 'log' && isCompleted && <div className="absolute inset-x-0 bottom-0 z-20 flex gap-3 border-t border-slate-200 bg-white px-5 py-4 dark:border-gray-700 dark:bg-gray-900 sm:px-8"><button type="button" onClick={() => setActiveView('journey')} className="min-h-[48px] flex-1 rounded-xl border border-blue-200 px-3 py-3 text-sm font-semibold text-[#2369aa]">View Journey</button><button type="button" onClick={handleShare} className="min-h-[48px] flex-1 rounded-xl bg-[#4c99e6] px-3 py-3 text-sm font-semibold text-white">Share Achievement</button></div>}
-        {activeView !== 'log' && !isCompleted && <div className="absolute inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white px-5 py-4 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] dark:border-gray-700 dark:bg-gray-900 sm:px-8"><button type="button" onClick={() => setActiveView('log')} className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[#1683ed] px-4 py-3 text-sm font-semibold text-white shadow-sm"><Target className="h-4 w-4" /> Log Progress</button></div>}
+        {activeView !== 'log' && isCompleted && <div className="absolute inset-x-0 bottom-0 z-20 flex gap-3 border-t border-slate-200 bg-white px-5 py-4 dark:border-line dark:bg-canvas sm:px-8"><button type="button" onClick={() => setActiveView('journey')} className="min-h-[48px] flex-1 rounded-xl border border-blue-200 px-3 py-3 text-sm font-semibold text-[#2369aa]">View Journey</button><button type="button" onClick={handleShare} className="min-h-[48px] flex-1 rounded-xl bg-[#4c99e6] px-3 py-3 text-sm font-semibold text-white">Share Achievement</button></div>}
+        {activeView !== 'log' && !isCompleted && <div className="absolute inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white px-5 py-4 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] dark:border-line dark:bg-canvas sm:px-8"><button type="button" onClick={() => setActiveView('log')} className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[#1683ed] px-4 py-3 text-sm font-semibold text-white shadow-sm"><Target className="h-4 w-4" /> Log Progress</button></div>}
 
         {activeView === 'log' && <div className="px-5 py-5 sm:px-8 sm:py-6 space-y-5 overflow-y-auto scrollbar-hide flex-1 min-h-0">
-          <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"><p className="text-[11px] font-bold uppercase tracking-wide text-[#1683ed]">{editingGoalLog ? `Editing · ${formatDateInTimezone(`${editingGoalLog.dateKey}T12:00:00`, { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Today’s progress'}</p><h3 className="mt-1 text-lg font-bold text-gray-900 dark:text-white">{goal.title}</h3></div>
+          <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-line dark:bg-surface"><p className="text-[11px] font-bold uppercase tracking-wide text-[#1683ed]">{editingGoalLog ? `Editing · ${formatDateInTimezone(`${editingGoalLog.dateKey}T12:00:00`, { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Today’s progress'}</p><h3 className="mt-1 text-lg font-bold text-gray-900 dark:text-white">{goal.title}</h3></div>
 
           {isCompleted && !editingGoalLog ? (
-            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 px-4 py-4">
+            <div className="rounded-xl border border-gray-200 dark:border-line bg-gray-50 dark:bg-gray-900/40 px-4 py-4">
               <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">This goal is completed</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Daily logging is disabled for completed goals.</p>
+              <p className="text-xs text-gray-500 dark:text-muted">Daily logging is disabled for completed goals.</p>
             </div>
           ) : (
           <div className="space-y-5">
@@ -575,7 +575,7 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
                   placeholder="Share your progress, small wins, or lessons learned..."
                   disabled={(!editingGoalLog && isCompleted) || isLoadingUpdate || isSubmitting}
                   rows={4}
-                  className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-[#4c99e6]/40 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full rounded-xl border border-gray-200 dark:border-line bg-white dark:bg-canvas text-gray-900 dark:text-white text-sm px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-[#4c99e6]/40 disabled:opacity-60 disabled:cursor-not-allowed"
                 />
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-xs text-gray-400">{trimmedText.length}/300</span>
@@ -583,8 +583,8 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
 
                 {isGoalLogBusy && (
                   <div className="absolute inset-0 z-10 rounded-xl bg-white/70 dark:bg-gray-900/70 backdrop-blur-[1px] flex flex-col items-center justify-center gap-3">
-                    <div className="h-10 w-10 rounded-full border-4 border-gray-200 dark:border-gray-700 border-t-[#4c99e6] animate-spin" />
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <div className="h-10 w-10 rounded-full border-4 border-gray-200 dark:border-line border-t-[#4c99e6] animate-spin" />
+                    <p className="text-sm font-medium text-gray-700 dark:text-muted">
                       {isLoadingUpdate ? 'Loading goal update...' : 'Updating goal log...'}
                     </p>
                   </div>
@@ -608,7 +608,7 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
                         <span className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors ${
                           isSelected
                             ? 'bg-[#4c99e6] border-[#4c99e6] text-white'
-                            : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-300'
+                            : 'bg-gray-100 dark:bg-elevated border-gray-200 dark:border-line text-gray-500 dark:text-muted'
                         }`}>
                           <Icon className="h-4 w-4" />
                         </span>
@@ -621,17 +621,17 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
                 </div>
               </div>
 
-              {!editingGoalLog && <div className="rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/40 px-4 py-3 flex items-center justify-between">
+              {!editingGoalLog && <div className="rounded-xl border border-gray-200 dark:border-line bg-gray-50 dark:bg-gray-900/40 px-4 py-3 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-900 dark:text-white">Make updates public</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Share progress with the Growth Feed</p>
+                  <p className="text-xs text-gray-500 dark:text-muted">Share progress with the Growth Feed</p>
                 </div>
                 <button
                   type="button"
                   disabled={isCompleted || isSubmitting || isLoadingUpdate}
                   onClick={handleToggleUpdatesPublic}
                   aria-pressed={isUpdatesPublic}
-                  className={`relative inline-flex h-6 w-11 items-center overflow-hidden rounded-full transition-colors ${isUpdatesPublic ? 'bg-[#4c99e6]' : 'bg-gray-300 dark:bg-gray-600'} disabled:opacity-60`}
+                  className={`relative inline-flex h-6 w-11 items-center overflow-hidden rounded-full transition-colors ${isUpdatesPublic ? 'bg-[#4c99e6]' : 'bg-gray-300 dark:bg-elevated'} disabled:opacity-60`}
                 >
                   <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${isUpdatesPublic ? 'translate-x-5' : 'translate-x-0'}`} />
                 </button>
@@ -640,14 +640,14 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
           )}
         </div>}
 
-        {activeView === 'log' && <div className="px-5 sm:px-8 py-4 sm:py-5 border-t border-slate-200 bg-white dark:border-gray-700 dark:bg-gray-900 flex-shrink-0">
+        {activeView === 'log' && <div className="px-5 sm:px-8 py-4 sm:py-5 border-t border-slate-200 bg-white dark:border-line dark:bg-canvas flex-shrink-0">
           <div className="flex items-center justify-between gap-3">
             {editingGoalLog ? (
               <button
                 type="button"
                 onClick={closeGoalLogView}
                 disabled={isSubmitting}
-                className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-60"
+                className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-line bg-white dark:bg-surface text-gray-700 dark:text-muted text-sm font-medium hover:bg-gray-50 dark:hover:bg-elevated transition-colors disabled:opacity-60"
               >
                 Cancel
               </button>
@@ -656,7 +656,7 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
                 type="button"
                 onClick={handleClearToday}
                 disabled={isSubmitting}
-                className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-line bg-white dark:bg-surface text-gray-700 dark:text-muted text-sm font-medium hover:bg-gray-50 dark:hover:bg-elevated transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Clear today
               </button>
@@ -664,7 +664,7 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-line bg-white dark:bg-surface text-gray-700 dark:text-muted text-sm font-medium hover:bg-gray-50 dark:hover:bg-elevated transition-colors"
               >
                 Cancel
               </button>

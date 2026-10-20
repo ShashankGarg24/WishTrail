@@ -100,7 +100,7 @@ function QuickActions({ open, onClose, onAction }) {
       {open && (
         <div className="fixed inset-0 z-[90] flex items-end justify-center md:items-center md:p-5">
           <motion.button type="button" aria-label="Close quick actions" className="absolute inset-0 bg-slate-950/55 backdrop-blur-[1px]" onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
-          <motion.div role="dialog" aria-modal="true" aria-labelledby="quick-actions-title" initial={{ opacity: 0, y: 30, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.98 }} className="relative w-full rounded-t-[28px] bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl dark:bg-gray-900 md:max-w-[560px] md:rounded-2xl md:p-7">
+          <motion.div role="dialog" aria-modal="true" aria-labelledby="quick-actions-title" initial={{ opacity: 0, y: 30, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.98 }} className="relative w-full rounded-t-[28px] bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl dark:bg-canvas md:max-w-[560px] md:rounded-2xl md:p-7">
             <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-gray-200 md:hidden" />
             <div className="mb-5 flex items-center justify-between">
               <h2 id="quick-actions-title" className="text-xl font-bold text-slate-950 dark:text-white md:text-lg">
@@ -112,7 +112,7 @@ function QuickActions({ open, onClose, onAction }) {
             </div>
             <div className="space-y-2 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
               {ACTIONS.map((action) => (
-                <button key={action.key} type="button" onClick={() => onAction(action.key)} className="flex w-full items-center gap-3 rounded-xl border border-slate-100 bg-white p-3 text-left transition hover:border-blue-200 hover:bg-blue-50/40 dark:border-gray-700 dark:bg-gray-800 md:flex-col md:justify-center md:py-5 md:text-center">
+                <button key={action.key} type="button" onClick={() => onAction(action.key)} className="flex w-full items-center gap-3 rounded-xl border border-slate-100 bg-white p-3 text-left transition hover:border-blue-200 hover:bg-blue-50/40 dark:border-line dark:bg-surface md:flex-col md:justify-center md:py-5 md:text-center">
                   <ActionIcon action={action} />
                   <span className="min-w-0">
                     <span className="block text-sm font-bold text-slate-900 dark:text-white">{action.webLabel}</span>
@@ -121,7 +121,7 @@ function QuickActions({ open, onClose, onAction }) {
                 </button>
               ))}
             </div>
-            <button type="button" onClick={onClose} className="mt-3 w-full rounded-xl bg-gray-100 py-3 text-sm font-semibold text-slate-600 dark:bg-gray-800 dark:text-gray-300 md:hidden">
+            <button type="button" onClick={onClose} className="mt-3 w-full rounded-xl bg-gray-100 py-3 text-sm font-semibold text-slate-600 dark:bg-surface dark:text-muted md:hidden">
               Cancel
             </button>
           </motion.div>
@@ -140,10 +140,10 @@ function GoalRow({ goal, index, onClick }) {
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-bold text-slate-900 dark:text-white">{goal.title}</span>
         <span className="mt-2 flex items-center gap-3">
-          <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-gray-700">
+          <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-elevated">
             <span className={`block h-full rounded-full ${colors[index % colors.length]}`} style={{ width: `${progress}%` }} />
           </span>
-          <span className="w-8 text-right text-xs font-bold text-slate-700 dark:text-gray-300">{progress}%</span>
+          <span className="w-8 text-right text-xs font-bold text-slate-700 dark:text-muted">{progress}%</span>
         </span>
       </span>
       <ChevronRight className="h-4 w-4 text-slate-400" />
@@ -164,10 +164,10 @@ function HabitRow({ habit, onClick }) {
           {completedDays}/{expectedDays} days this week
         </span>
       </span>
-      <span className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-100 dark:bg-gray-700">
+      <span className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-100 dark:bg-elevated">
         <span className="block h-full rounded-full bg-blue-500" style={{ width: `${progress}%` }} />
       </span>
-      <span className="w-8 text-right text-xs font-bold text-slate-700 dark:text-gray-300">{progress}%</span>
+      <span className="w-8 text-right text-xs font-bold text-slate-700 dark:text-muted">{progress}%</span>
       <ChevronRight className="h-4 w-4 text-slate-400" />
     </button>
   )
@@ -180,7 +180,7 @@ function FocusItem({ type, item, onOpen }) {
   const Icon = isGoal ? Target : Zap
 
   return (
-    <div className="rounded-xl border border-slate-100 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+    <div className="rounded-xl border border-slate-100 bg-white p-3 shadow-sm dark:border-line dark:bg-surface">
       <div className="mb-2">
         <span className="text-xs font-bold uppercase tracking-wide text-slate-400">{isGoal ? 'Goal' : 'Habit'}</span>
       </div>
@@ -214,7 +214,7 @@ function FocusChoices({ type, items, selected, saving, onSelect }) {
           const itemId = item.id || item._id
           const isSelected = String(selectedId) === String(itemId)
           return (
-            <button key={itemId} type="button" disabled={saving} onClick={() => onSelect(type, item)} className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left ${isSelected ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30' : 'border-slate-200 dark:border-gray-700'}`}>
+            <button key={itemId} type="button" disabled={saving} onClick={() => onSelect(type, item)} className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left ${isSelected ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30' : 'border-slate-200 dark:border-line'}`}>
               <Icon className={`h-5 w-5 shrink-0 ${isGoal ? 'text-blue-600' : 'text-amber-500'}`} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold text-slate-900 dark:text-white">{isGoal ? item.title : item.name}</span>
@@ -402,14 +402,14 @@ export default function HomeOverview({ loading = false, user, goals = [], habits
         {loading ? (
           <div role="status" aria-label="Loading your dashboard" className="mt-5 grid animate-pulse gap-4 md:grid-cols-2">
             <span className="sr-only">Loading your dashboard</span>
-            <div className="h-80 rounded-2xl bg-slate-200 dark:bg-gray-800" />
-            <div className="h-80 rounded-2xl bg-slate-200 dark:bg-gray-800" />
+            <div className="h-80 rounded-2xl bg-slate-200 dark:bg-surface" />
+            <div className="h-80 rounded-2xl bg-slate-200 dark:bg-surface" />
           </div>
         ) : <>
         <ActivePromotion userId={user?.id} />
         <div className="md:hidden">
           <PillTabs layoutId="mobile-home-tabs" items={homeTabs} value="overview" onChange={onTab} className="mb-4" label="Home views" />
-          <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm dark:border-line dark:bg-surface">
             <div className="wt-momentum-card relative min-h-[220px] overflow-hidden px-5 py-5 text-center">
               <MomentumLandscape period={isEvening ? 'night' : isMorning ? 'morning' : 'afternoon'} />
               <div className="relative z-10">
@@ -427,14 +427,14 @@ export default function HomeOverview({ loading = false, user, goals = [], habits
               </div>
               <MomentumChart series={weeklyMomentum} momentum={momentum} />
             </div>
-            <div className="grid grid-cols-2 gap-2 bg-blue-50/40 p-2 dark:bg-gray-800">
+            <div className="grid grid-cols-2 gap-2 bg-blue-50/40 p-2 dark:bg-surface">
               {[
                 ['Goals progressed', `${goalsProgressed}/${activeGoals.length}`],
                 ['Consistency', `${stats?.weekConsistency ?? 0}%`],
                 ['Habit completions', stats?.todayHabitLogs ?? 0],
                 ['Active goals', activeGoals.length],
               ].map(([label, value]) => (
-                <div key={label} className="rounded-xl border border-slate-100 bg-white p-4 text-left dark:border-gray-700 dark:bg-gray-900">
+                <div key={label} className="rounded-xl border border-slate-100 bg-white p-4 text-left dark:border-line dark:bg-canvas">
                   <b className="text-xl text-slate-950 dark:text-white">{value}</b>
                   <p className="text-xs text-slate-500">{label}</p>
                 </div>
@@ -465,7 +465,7 @@ export default function HomeOverview({ loading = false, user, goals = [], habits
               [Flame, 'Habit Consistency', `${stats?.weekConsistency ?? 0}%`, 'bg-orange-50 text-orange-500'],
               [BarChart3, 'Goal Progress', `${stats?.goalProgress ?? 0}%`, 'bg-emerald-50 text-emerald-500'],
             ].map(([Icon, label, value, tone]) => (
-              <div key={label} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+              <div key={label} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white p-3 shadow-sm dark:border-line dark:bg-surface">
                 <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${tone}`}>
                   <Icon className="h-5 w-5" />
                 </span>
@@ -479,7 +479,7 @@ export default function HomeOverview({ loading = false, user, goals = [], habits
           <h2 className="mb-2 text-sm font-bold text-slate-950 dark:text-white">Quick Actions</h2>
           <div className="mb-4 flex gap-2">
             {ACTIONS.map((action) => (
-              <button key={action.key} type="button" onClick={() => runAction(action.key)} className="flex min-w-[108px] flex-1 flex-col items-center rounded-xl border border-slate-100 bg-white px-2 py-3 text-xs font-semibold text-slate-800 shadow-sm hover:border-blue-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white">
+              <button key={action.key} type="button" onClick={() => runAction(action.key)} className="flex min-w-[108px] flex-1 flex-col items-center rounded-xl border border-slate-100 bg-white px-2 py-3 text-xs font-semibold text-slate-800 shadow-sm hover:border-blue-200 dark:border-line dark:bg-surface dark:text-white">
                 <ActionIcon action={action} className="mb-2 h-9 w-9" />
                 {action.webLabel}
               </button>
@@ -491,7 +491,7 @@ export default function HomeOverview({ loading = false, user, goals = [], habits
                 <h2 className="text-sm font-bold text-slate-950 dark:text-white">Today’s Focus</h2>
                 <p className="text-xs text-slate-500">Your most lagging goal and habit, unless you choose others.</p>
               </div>
-              <button type="button" onClick={() => setFocusPickerType('all')} className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-bold text-blue-600 hover:bg-blue-50 dark:border-blue-900 dark:bg-gray-900">
+              <button type="button" onClick={() => setFocusPickerType('all')} className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-bold text-blue-600 hover:bg-blue-50 dark:border-blue-900 dark:bg-canvas">
                 Choose
               </button>
             </div>
@@ -535,15 +535,15 @@ export default function HomeOverview({ loading = false, user, goals = [], habits
         {focusPickerType && (
           <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
             <motion.button type="button" aria-label="Close focus picker" onClick={() => setFocusPickerType(null)} className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
-            <motion.div role="dialog" aria-modal="true" aria-labelledby="focus-picker-title" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 24 }} className="relative flex max-h-[85dvh] w-full flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl dark:bg-gray-900 sm:max-w-lg sm:rounded-2xl">
-              <header className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-gray-700">
+            <motion.div role="dialog" aria-modal="true" aria-labelledby="focus-picker-title" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 24 }} className="relative flex max-h-[85dvh] w-full flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl dark:bg-canvas sm:max-w-lg sm:rounded-2xl">
+              <header className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-line">
                 <div>
                   <h2 id="focus-picker-title" className="font-bold text-slate-950 dark:text-white">
                     Choose today’s focus
                   </h2>
                   <p className="text-xs text-slate-500">Choose one goal and one habit. You can change them anytime.</p>
                 </div>
-                <button type="button" onClick={() => setFocusPickerType(null)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-gray-800">
+                <button type="button" onClick={() => setFocusPickerType(null)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-surface">
                   <X className="h-5 w-5" />
                 </button>
               </header>
@@ -562,7 +562,7 @@ export default function HomeOverview({ loading = false, user, goals = [], habits
 
 function Panel({ title, onAll, children }) {
   return (
-    <div className="min-h-[240px] rounded-xl border border-slate-100 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+    <div className="min-h-[240px] rounded-xl border border-slate-100 bg-white p-4 shadow-sm dark:border-line dark:bg-surface">
       <div className="mb-2 flex items-center justify-between">
         <h2 className="font-bold text-slate-950 dark:text-white">{title}</h2>
         <button type="button" onClick={onAll} className="text-xs font-semibold text-blue-500">

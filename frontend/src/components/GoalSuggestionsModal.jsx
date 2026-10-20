@@ -38,7 +38,7 @@ const GoalSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, onCre
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-5xl max-h-[90vh] sm:max-h-[85vh] overflow-hidden flex flex-col border border-gray-200 dark:border-gray-800 shadow-2xl"
+          className="bg-white dark:bg-canvas rounded-2xl w-full max-w-5xl max-h-[90vh] sm:max-h-[85vh] overflow-hidden flex flex-col border border-gray-200 dark:border-line shadow-2xl"
           onClick={(e) => e.stopPropagation()}
           style={{ fontFamily: 'Manrope' }}
         >
@@ -49,12 +49,12 @@ const GoalSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, onCre
                 <button onClick={handleShuffle} aria-label="Refresh suggestions" className="p-2 sm:p-2.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors" style={{ color: THEME_COLOR }}>
                   <RefreshCw className="h-5 w-5 sm:h-6 sm:w-6" />
                 </button>
-                <button onClick={onClose} aria-label="Close" className="p-2 sm:p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <button onClick={onClose} aria-label="Close" className="p-2 sm:p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-surface transition-colors">
                   <X className="h-5 w-5 sm:h-6 sm:w-6 text-gray-500" />
                 </button>
               </div>
             </div>
-            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-3" style={{ fontFamily: 'Manrope' }}>
+            <div className="text-xs sm:text-sm text-gray-600 dark:text-muted mb-3" style={{ fontFamily: 'Manrope' }}>
               Not sure where to start? Pick any idea and customize it. You can always edit or add more goals later.
             </div>
             <div className="flex gap-2 overflow-x-auto pb-3 mb-3 scrollbar-hide" aria-label="Goal categories">
@@ -79,9 +79,9 @@ const GoalSuggestionsModal = ({ isOpen, onClose, interests = [], onSelect, onCre
           </div>
 
           {/* Footer */}
-          <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-800 flex-shrink-0 text-center">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-line flex-shrink-0 text-center">
             <div className="max-w-full mx-auto">
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400" style={{ fontFamily: 'Manrope' }}>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-muted" style={{ fontFamily: 'Manrope' }}>
                 Can't find what you're looking for?{' '}
                 <button onClick={() => onCreate?.()} className="font-semibold transition-opacity hover:opacity-80" style={{ color: THEME_COLOR, fontFamily: 'Manrope' }}>
                   Create from scratch

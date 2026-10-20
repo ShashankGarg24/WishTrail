@@ -1,7 +1,8 @@
+import useApiStore from '../store/apiStore'
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   ArrowLeft, TrendingUp, Target, Calendar, BarChart3, LayoutGrid, X, Clock, CheckCircle, XCircle, SkipForward, Smile, Meh, Frown, Heart, ChevronDown, ChevronUp, Pencil, RefreshCw, Flame, Trophy
 } from 'lucide-react';
 
@@ -41,6 +42,7 @@ ChartJS.register(
 );
 
 export default function HabitAnalyticsPage() {
+  const isDarkMode = useApiStore(state => state.isDarkMode)
   const { id } = useParams();
   const navigate = useNavigate();
   const { isPremium } = usePremiumStatus();
@@ -51,7 +53,7 @@ export default function HabitAnalyticsPage() {
   const [selectedDay, setSelectedDay] = useState(null);
   const [metricInfo, setMetricInfo] = useState(null);
   const heatmapRef = useRef(null);
-  
+
   // Paginated logs state
   const [logs, setLogs] = useState([]);
   const [logsPage, setLogsPage] = useState(1);
@@ -63,7 +65,7 @@ export default function HabitAnalyticsPage() {
     loadAnalytics();
     loadLogs(1); // Load first page of logs
   }, [id, days]);
-  
+
   const loadLogs = async (page = 1) => {
     try {
       setLogsLoading(true);
@@ -85,13 +87,13 @@ export default function HabitAnalyticsPage() {
       setLogsLoading(false);
     }
   };
-  
+
   const loadMoreLogs = () => {
     if (logsPagination && logsPagination.hasMore && !logsLoading) {
       loadLogs(logsPage + 1);
     }
   };
-  
+
   const toggleLogExpanded = (logId) => {
     setExpandedLogIds(prev => {
       const newSet = new Set(prev);
@@ -141,7 +143,7 @@ export default function HabitAnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 font-manrope" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
+      <div className="min-h-screen bg-gray-50 dark:bg-canvas p-4 font-manrope" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
         <div className="max-w-7xl mx-auto">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mt-20" style={{ borderColor: THEME_COLOR }} />
         </div>
@@ -151,10 +153,10 @@ export default function HabitAnalyticsPage() {
 
   if (!analytics) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 font-manrope" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
+      <div className="min-h-screen bg-gray-50 dark:bg-canvas p-4 font-manrope" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
         <div className="max-w-7xl mx-auto">
           <div className="text-center py-20">
-            <p className="text-gray-600 dark:text-gray-400 mb-4">Analytics not found</p>
+            <p className="text-gray-600 dark:text-muted mb-4">Analytics not found</p>
             <button
               onClick={() => navigate(-1)}
               className="px-4 py-2 text-white rounded-lg transition-colors"
@@ -198,16 +200,16 @@ export default function HabitAnalyticsPage() {
         daysInRange = Math.max(1, Math.ceil((end - start) / (24 * 60 * 60 * 1000)) + 1);
       }
     }
-    
+
     if (habit.frequency === 'daily') {
       return daysInRange;
     } else if (habit.frequency !== 'daily' && Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.length > 0) {
       const scheduledDaysPerWeek = habit.daysOfWeek.length;
       const fullWeeks = Math.floor(daysInRange / 7);
       const remainingDays = daysInRange % 7;
-      
+
       let expected = fullWeeks * scheduledDaysPerWeek;
-      
+
       const today = new Date();
       for (let i = 0; i < remainingDays; i++) {
         const date = new Date(today);
@@ -217,7 +219,7 @@ export default function HabitAnalyticsPage() {
           expected++;
         }
       }
-      
+
       return expected;
     } else {
       return Math.ceil(daysInRange / 7);
@@ -261,7 +263,7 @@ export default function HabitAnalyticsPage() {
         labels: {
           padding: 15,
           font: { size: 12 },
-          color: document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#374151'
+          color: isDarkMode ? '#f4f7fb' : '#374151'
         }
       },
       tooltip: {
@@ -287,9 +289,9 @@ export default function HabitAnalyticsPage() {
     const weeklyMissed = [];
     const weekLabels = [];
     const weekRanges = [];
-    
+
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
+
     // Use backend weeklyData if available, otherwise fallback to local calculation
     if (weeklyData && weeklyData.length > 0) {
       weeklyData.forEach(week => {
@@ -298,7 +300,7 @@ export default function HabitAnalyticsPage() {
         weeklyExpected.push(week.expectedDays || 7);
         weeklySkipped.push(week.skippedDays || 0);
         weeklyMissed.push(week.missedDays || 0);
-        
+
         // Parse dates for labels
         const startDate = new Date(week.weekStart);
         const endDate = new Date(week.weekEnd);
@@ -314,27 +316,27 @@ export default function HabitAnalyticsPage() {
     } else {
       // Fallback: calculate locally from timeline
       const weeksToShow = Math.min(12, Math.ceil((days || 90) / 7));
-      
+
       for (let weekIdx = weeksToShow - 1; weekIdx >= 0; weekIdx--) {
         const weekEnd = new Date();
         weekEnd.setDate(weekEnd.getDate() - (weekIdx * 7));
         const weekStart = new Date(weekEnd);
         weekStart.setDate(weekStart.getDate() - 6);
-        
+
         const weekStartKey = weekStart.toISOString().split('T')[0];
         const weekEndKey = weekEnd.toISOString().split('T')[0];
-        
-        const doneLogs = timeline.filter(entry => 
+
+        const doneLogs = timeline.filter(entry =>
           entry.status === 'done' && entry.date >= weekStartKey && entry.date <= weekEndKey
         );
         const weekCompletions = doneLogs.length;
         const activeDays = new Set(doneLogs.map(e => e.date)).size;
-        
-        const skippedLogs = timeline.filter(entry => 
+
+        const skippedLogs = timeline.filter(entry =>
           entry.status === 'skipped' && entry.date >= weekStartKey && entry.date <= weekEndKey
         );
         const skippedDays = new Set(skippedLogs.map(e => e.date)).size;
-        
+
         let expectedThisWeek = 0;
         if (habit.frequency === 'daily') {
           expectedThisWeek = 7;
@@ -343,15 +345,15 @@ export default function HabitAnalyticsPage() {
         } else {
           expectedThisWeek = 1;
         }
-        
+
         const missedDays = Math.max(0, expectedThisWeek - activeDays - skippedDays);
-        
+
         weeklyCompletions.push(weekCompletions);
         weeklyActiveDays.push(activeDays);
         weeklyExpected.push(expectedThisWeek);
         weeklySkipped.push(skippedDays);
         weeklyMissed.push(missedDays);
-        
+
         const startLabel = `${monthNames[weekStart.getMonth()]} ${weekStart.getDate()}`;
         const endLabel = `${monthNames[weekEnd.getMonth()]} ${weekEnd.getDate()}`;
         weekLabels.push(startLabel);
@@ -362,7 +364,7 @@ export default function HabitAnalyticsPage() {
         });
       }
     }
-    
+
     return { weeklyCompletions, weeklyActiveDays, weeklyExpected, weeklySkipped, weeklyMissed, weekLabels, weekRanges };
   };
 
@@ -442,17 +444,17 @@ export default function HabitAnalyticsPage() {
         stacked: true,
         ticks: {
           stepSize: 1,
-          color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280'
+          color: isDarkMode ? '#a7b3c5' : '#6b7280'
         },
         grid: {
-          color: document.documentElement.classList.contains('dark') ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)'
+          color: isDarkMode ? '#243247' : 'rgba(229, 231, 235, 0.8)'
         }
       },
       x: {
         stacked: true,
         offset: true,
         ticks: {
-          color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280'
+          color: isDarkMode ? '#a7b3c5' : '#6b7280'
         },
         grid: { display: false }
       }
@@ -500,7 +502,7 @@ export default function HabitAnalyticsPage() {
         beginAtZero: true,
         ticks: {
           stepSize: 1,
-          color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280',
+          color: isDarkMode ? '#a7b3c5' : '#6b7280',
           callback: function(value) {
             if (Number.isInteger(value)) {
               return value;
@@ -508,13 +510,13 @@ export default function HabitAnalyticsPage() {
           }
         },
         grid: {
-          color: document.documentElement.classList.contains('dark') ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)'
+          color: isDarkMode ? '#243247' : 'rgba(229, 231, 235, 0.8)'
         }
       },
       x: {
         offset: true,
         ticks: {
-          color: document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280'
+          color: isDarkMode ? '#a7b3c5' : '#6b7280'
         },
         grid: { display: false }
       }
@@ -524,7 +526,7 @@ export default function HabitAnalyticsPage() {
   // Create heatmap data with completion counts
   const createHeatmapData = () => {
     const map = {};
-    
+
     // Build map from timeline (timeline is an array from backend)
     const timelineArr = Array.isArray(timeline) ? timeline : Object.values(timeline || {});
     timelineArr.forEach(entry => {
@@ -570,7 +572,7 @@ export default function HabitAnalyticsPage() {
       Math.ceil((endDate - startDate) / (24 * 60 * 60 * 1000)) + 1
     );
     const daysArray = [];
-    
+
     for (let i = totalDaysToShow - 1; i >= 0; i--) {
       const date = new Date(endDate);
       if (isNaN(date.getTime())) continue;
@@ -594,17 +596,17 @@ export default function HabitAnalyticsPage() {
   };
 
   const heatmapDays = createHeatmapData();
-  
+
   // Group by months for display
   const groupByMonth = () => {
     const months = [];
     let currentMonth = null;
     let currentMonthData = { weeks: [], label: '', year: 0 };
     let currentWeek = [];
-    
+
     heatmapDays.forEach((day, idx) => {
       const monthKey = `${day.year}-${day.month}`;
-      
+
       if (currentMonth !== monthKey) {
         // Save previous month if exists
         if (currentMonth !== null) {
@@ -624,9 +626,9 @@ export default function HabitAnalyticsPage() {
         };
         currentWeek = [];
       }
-      
+
       currentWeek.push(day);
-      
+
       // Start new week on Sunday (dayOfWeek === 0) or after 7 days
       if (day.dayOfWeek === 6 || idx === heatmapDays.length - 1) {
         if (currentWeek.length > 0) {
@@ -635,7 +637,7 @@ export default function HabitAnalyticsPage() {
         }
       }
     });
-    
+
     // Don't forget the last month
     if (currentWeek.length > 0) {
       currentMonthData.weeks.push(currentWeek);
@@ -643,15 +645,15 @@ export default function HabitAnalyticsPage() {
     if (currentMonthData.weeks.length > 0) {
       months.push(currentMonthData);
     }
-    
+
     return months;
   };
-  
+
   const heatmapMonths = groupByMonth();
 
   const getHeatmapColor = (day) => {
     if (day.status === 'skipped') return 'bg-amber-400 dark:bg-amber-500';
-    if (day.status !== 'done' || day.completionCount === 0) return 'bg-gray-200 dark:bg-gray-700';
+    if (day.status !== 'done' || day.completionCount === 0) return 'bg-gray-200 dark:bg-elevated';
     return '';
   };
   const getHeatmapStyle = (day) => {
@@ -680,35 +682,35 @@ export default function HabitAnalyticsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 pb-16 font-manrope" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
+    <div className="min-h-screen bg-gray-50 dark:bg-canvas p-4 pb-16 font-manrope" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui' }}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-5">
           <button
             onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-3"
+            className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-gray-500 dark:text-muted hover:text-gray-900 dark:hover:text-white transition-colors mb-3"
           >
             <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
             Back to Habits
           </button>
-          
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 sm:p-4 md:p-5 rounded-xl shadow-sm">
+
+          <div className="bg-white dark:bg-surface border border-gray-200 dark:border-line p-3 sm:p-4 md:p-5 rounded-xl shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div>
                 <div className="mb-1 flex items-center gap-2"><HabitCategoryIcon category={habit.category} size="sm"/><div><h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{habit.name}</h1><p className="text-[10px] font-bold uppercase tracking-wide text-[#4c99e6]">{getHabitCategoryLabel(habit.category)}</p></div></div>
                 {habit.description && (
-                  <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    <ExpandableText text={habit.description} maxLength={200} className="text-sm text-gray-600 dark:text-gray-400" />
+                  <div className="text-sm text-gray-600 dark:text-muted mb-2">
+                    <ExpandableText text={habit.description} maxLength={200} className="text-sm text-gray-600 dark:text-muted" />
                   </div>
                 )}
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <div className="flex flex-col">
-                  <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Timeframe</span>
+                  <span className="text-xs text-gray-500 dark:text-muted uppercase tracking-wide">Timeframe</span>
                   <select
                     value={days}
                     onChange={(e) => setDays(Math.min(Number(e.target.value), maxDays))}
-                    className="mt-0.5 px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6]"
+                    className="mt-0.5 px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm bg-white dark:bg-surface border border-gray-300 dark:border-line rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4c99e6]"
                   >
                     <option value={7}>Last 7 days</option>
                     <option value={15}>Last 15 days</option>
@@ -717,7 +719,7 @@ export default function HabitAnalyticsPage() {
                     {isPremium && <option value={180}>Last 6 months</option>}
                     {isPremium && <option value={365}>Last year</option>}
                   </select>
-                </div>            
+                </div>
               </div>
             </div>
           </div>
@@ -733,13 +735,13 @@ export default function HabitAnalyticsPage() {
               tabIndex={0}
               onClick={() => setMetricInfo({ title: 'Daily Target', description: 'The number of completions expected on each scheduled day.' })}
               onKeyDown={(event) => event.key === 'Enter' && setMetricInfo({ title: 'Daily Target', description: 'The number of completions expected on each scheduled day.' })}
-              className="cursor-pointer bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
+              className="cursor-pointer bg-white dark:bg-surface rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-line hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
             >
               <div className="flex items-center gap-2 mb-2">
                 <div className="p-1 sm:p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
                   <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
-                <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Daily Target</span>
+                <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-muted uppercase tracking-wide">Daily Target</span>
               </div>
               <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                 {habit.dailyTargetCount} per day
@@ -755,13 +757,13 @@ export default function HabitAnalyticsPage() {
               tabIndex={0}
               onClick={() => setMetricInfo({ title: 'Target Progress', description: 'Your progress toward the number of days you want this habit to be active.' })}
               onKeyDown={(event) => event.key === 'Enter' && setMetricInfo({ title: 'Target Progress', description: 'Your progress toward the number of days you want this habit to be active.' })}
-              className="cursor-pointer bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
+              className="cursor-pointer bg-white dark:bg-surface rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-line hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
             >
               <div className="flex items-center gap-2 mb-2">
                 <div className="p-1 sm:p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
                   <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
-                <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Target Progress</span>
+                <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-muted uppercase tracking-wide">Target Progress</span>
               </div>
               <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                 {stats?.totalDays || 0}/{habit.targetDays}
@@ -777,16 +779,16 @@ export default function HabitAnalyticsPage() {
             tabIndex={0}
             onClick={() => setMetricInfo({ title: 'Active Days', description: 'The number of days in this period when you completed this habit at least once.' })}
             onKeyDown={(event) => event.key === 'Enter' && setMetricInfo({ title: 'Active Days', description: 'The number of days in this period when you completed this habit at least once.' })}
-            className="cursor-pointer bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
+            className="cursor-pointer bg-white dark:bg-surface rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-line hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
           >
             <div className="flex items-center gap-2 mb-2">
               <div className="p-1 sm:p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
                 <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <button type="button" onClick={() => setMetricInfo({ title: 'Active Days', description: 'The number of days in this period when you completed this habit at least once.' })} className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide hover:text-[#4c99e6]">Active Days</button>
+              <button type="button" onClick={() => setMetricInfo({ title: 'Active Days', description: 'The number of days in this period when you completed this habit at least once.' })} className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-muted uppercase tracking-wide hover:text-[#4c99e6]">Active Days</button>
             </div>
             <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{activeDays} / {Math.max(1, Math.ceil((new Date(`${rangeEnd}T12:00:00Z`) - new Date(`${rangeStart}T12:00:00Z`)) / 86400000) + 1)}</p>
-            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">active days in this period</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-muted mt-1">active days in this period</p>
           </motion.div>
 
           <motion.div
@@ -797,16 +799,16 @@ export default function HabitAnalyticsPage() {
             tabIndex={0}
             onClick={() => setMetricInfo({ title: 'Total Count', description: 'All-time completions recorded for this habit.' })}
             onKeyDown={(event) => event.key === 'Enter' && setMetricInfo({ title: 'Total Count', description: 'All-time completions recorded for this habit.' })}
-            className="cursor-pointer bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
+            className="cursor-pointer bg-white dark:bg-surface rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-line hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
           >
             <div className="flex items-center gap-2 mb-2">
               <div className="p-1 sm:p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
                 <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <button type="button" onClick={() => setMetricInfo({ title: 'Total Count', description: 'All-time completions recorded for this habit.' })} className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide hover:text-[#4c99e6]">Total Count</button>
+              <button type="button" onClick={() => setMetricInfo({ title: 'Total Count', description: 'All-time completions recorded for this habit.' })} className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-muted uppercase tracking-wide hover:text-[#4c99e6]">Total Count</button>
             </div>
             <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{stats?.totalCompletions || 0}</p>
-            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">all-time completions</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-muted mt-1">all-time completions</p>
           </motion.div>
 
           <motion.div
@@ -817,29 +819,29 @@ export default function HabitAnalyticsPage() {
             tabIndex={0}
             onClick={() => setMetricInfo({ title: 'Completion Rate', description: 'How often you completed this habit when it was scheduled during the selected period.', note: 'Skipped and missed scheduled occurrences are included. Unscheduled days are not.' })}
             onKeyDown={(event) => event.key === 'Enter' && setMetricInfo({ title: 'Completion Rate', description: 'How often you completed this habit when it was scheduled during the selected period.', note: 'Skipped and missed scheduled occurrences are included. Unscheduled days are not.' })}
-            className="cursor-pointer bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
+            className="cursor-pointer bg-white dark:bg-surface rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-line hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
           >
             <div className="flex items-center gap-2 mb-2">
               <div className="p-1 sm:p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}>
                 <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <button type="button" onClick={() => setMetricInfo({ title: 'Completion Rate', description: 'How often you completed this habit when it was scheduled during the selected period.', note: 'Skipped and missed scheduled occurrences are included. Unscheduled days are not.' })} className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide hover:text-[#4c99e6]">Completion Rate</button>
+              <button type="button" onClick={() => setMetricInfo({ title: 'Completion Rate', description: 'How often you completed this habit when it was scheduled during the selected period.', note: 'Skipped and missed scheduled occurrences are included. Unscheduled days are not.' })} className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-muted uppercase tracking-wide hover:text-[#4c99e6]">Completion Rate</button>
             </div>
             <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{completionRate}%</p>
             {trendPoints === null || trendPoints === undefined ? (
-              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">No previous-period comparison</p>
+              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-muted mt-1">No previous-period comparison</p>
             ) : (
-              <p className={`text-[10px] sm:text-xs mt-1 ${trendPoints > 0 ? 'text-green-600 dark:text-green-400' : trendPoints < 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400'}`}>{trendPoints > 0 ? '↑' : trendPoints < 0 ? '↓' : '→'} {Math.abs(trendPoints)} pts vs previous period</p>
+              <p className={`text-[10px] sm:text-xs mt-1 ${trendPoints > 0 ? 'text-green-600 dark:text-green-400' : trendPoints < 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500 dark:text-muted'}`}>{trendPoints > 0 ? '↑' : trendPoints < 0 ? '↓' : '→'} {Math.abs(trendPoints)} pts vs previous period</p>
             )}
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} role="button" tabIndex={0} onClick={() => setMetricInfo({ title: 'Follow-through Rate', description: 'How often you completed this habit after excluding occurrences you deliberately skipped.', note: 'This is a secondary metric. Completion Rate remains the clearest view of all scheduled occurrences.' })} onKeyDown={(event) => event.key === 'Enter' && setMetricInfo({ title: 'Follow-through Rate', description: 'How often you completed this habit after excluding occurrences you deliberately skipped.', note: 'This is a secondary metric. Completion Rate remains the clearest view of all scheduled occurrences.' })} className="cursor-pointer bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} role="button" tabIndex={0} onClick={() => setMetricInfo({ title: 'Follow-through Rate', description: 'How often you completed this habit after excluding occurrences you deliberately skipped.', note: 'This is a secondary metric. Completion Rate remains the clearest view of all scheduled occurrences.' })} onKeyDown={(event) => event.key === 'Enter' && setMetricInfo({ title: 'Follow-through Rate', description: 'How often you completed this habit after excluding occurrences you deliberately skipped.', note: 'This is a secondary metric. Completion Rate remains the clearest view of all scheduled occurrences.' })} className="cursor-pointer bg-white dark:bg-surface rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-line hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
             <div className="flex items-center gap-2 mb-2">
               <div className="p-1 sm:p-1.5 rounded-lg text-white" style={{ backgroundColor: THEME_COLOR }}><SkipForward className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></div>
-              <button type="button" onClick={() => setMetricInfo({ title: 'Follow-through Rate', description: 'How often you completed this habit after excluding occurrences you deliberately skipped.', note: 'This is a secondary metric. Completion Rate remains the clearest view of all scheduled occurrences.' })} className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide hover:text-[#4c99e6]">Follow-through Rate</button>
+              <button type="button" onClick={() => setMetricInfo({ title: 'Follow-through Rate', description: 'How often you completed this habit after excluding occurrences you deliberately skipped.', note: 'This is a secondary metric. Completion Rate remains the clearest view of all scheduled occurrences.' })} className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-muted uppercase tracking-wide hover:text-[#4c99e6]">Follow-through Rate</button>
             </div>
             <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{followThroughRate ?? 0}%</p>
-            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">excluding intentional skips</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-muted mt-1">excluding intentional skips</p>
           </motion.div>
 
           <motion.div
@@ -850,16 +852,16 @@ export default function HabitAnalyticsPage() {
             tabIndex={0}
             onClick={() => setMetricInfo({ title: 'Current Streak', description: 'A run of consecutive scheduled occurrences completed without a break.' })}
             onKeyDown={(event) => event.key === 'Enter' && setMetricInfo({ title: 'Current Streak', description: 'A run of consecutive scheduled occurrences completed without a break.' })}
-            className="cursor-pointer bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
+            className="cursor-pointer bg-white dark:bg-surface rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-line hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
           >
             <div className="flex items-center gap-2 mb-2">
               <div className="p-1 sm:p-1.5 rounded-lg text-orange-500">
                 <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <button type="button" onClick={() => setMetricInfo({ title: 'Current Streak', description: 'A run of consecutive scheduled occurrences completed without a break.' })} className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide hover:text-[#4c99e6]">Current Streak</button>
+              <button type="button" onClick={() => setMetricInfo({ title: 'Current Streak', description: 'A run of consecutive scheduled occurrences completed without a break.' })} className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-muted uppercase tracking-wide hover:text-[#4c99e6]">Current Streak</button>
             </div>
             <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{currentStreak}</p>
-            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">days in a row</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-muted mt-1">days in a row</p>
             {longestStreak > 0 && (
               <span className="inline-flex items-center gap-1 mt-2 text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200">
                 <Trophy className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Personal best: {longestStreak} days
@@ -870,13 +872,13 @@ export default function HabitAnalyticsPage() {
 
         {/* Charts Grid */}
         {/* Daily Logs moved above analytics */}
-        
+
         {/* Habit Logs List */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.5 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl p-3 sm:p-4 md:p-6 border border-gray-200 dark:border-gray-700 shadow-sm mb-5"
+          className="bg-white dark:bg-surface rounded-2xl p-3 sm:p-4 md:p-6 border border-gray-200 dark:border-line shadow-sm mb-5"
         >
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -884,7 +886,7 @@ export default function HabitAnalyticsPage() {
               Daily Logs
             </h3>
             {logsPagination && (
-              <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+              <span className="text-xs sm:text-sm text-gray-500 dark:text-muted">
                 {logsPagination.total} total logs
               </span>
             )}
@@ -898,7 +900,7 @@ export default function HabitAnalyticsPage() {
                   done: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
                   skipped: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800',
                   missed: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',
-                  none: 'bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-700'
+                  none: 'bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-line'
                 };
 
                 const statusIcons = {
@@ -912,25 +914,25 @@ export default function HabitAnalyticsPage() {
                   good: { icon: <Smile className="h-3 w-3 sm:h-3.5 sm:w-3.5" />, label: 'Good', color: 'text-green-600 dark:text-green-400' },
                   okay: { icon: <Meh className="h-3 w-3 sm:h-3.5 sm:w-3.5" />, label: 'Okay', color: 'text-blue-600 dark:text-blue-400' },
                   challenging: { icon: <Frown className="h-3 w-3 sm:h-3.5 sm:w-3.5" />, label: 'Challenging', color: 'text-yellow-600 dark:text-yellow-400' },
-                  neutral: { icon: <Meh className="h-3 w-3 sm:h-3.5 sm:w-3.5" />, label: 'Neutral', color: 'text-gray-600 dark:text-gray-400' }
+                  neutral: { icon: <Meh className="h-3 w-3 sm:h-3.5 sm:w-3.5" />, label: 'Neutral', color: 'text-gray-600 dark:text-muted' }
                 };
 
                 return (
-                  <div key={log.id || idx} className={`p-3 rounded-lg border ${statusColors[log.status || 'none']} flex items-start gap-3`}> 
+                  <div key={log.id || idx} className={`p-3 rounded-lg border ${statusColors[log.status || 'none']} flex items-start gap-3`}>
                     <div className="flex-shrink-0">{statusIcons[log.status] || <Clock className="h-3.5 w-3.5 text-gray-400" />}</div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <div className="text-sm font-semibold text-gray-900 dark:text-white">{formatDate(log.createdAt || log.date || '')}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{formatTime(log.createdAt || log.date || '')}</div>
+                        <div className="text-xs text-gray-500 dark:text-muted">{formatTime(log.createdAt || log.date || '')}</div>
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">{log.note || ''}</div>
+                      <div className="text-sm text-gray-600 dark:text-muted mt-1">{log.note || ''}</div>
                     </div>
                   </div>
                 );
                 })}
               </>
             ) : (
-              <div className="text-center py-10 text-gray-500 dark:text-gray-400">No logs found</div>
+              <div className="text-center py-10 text-gray-500 dark:text-muted">No logs found</div>
             )}
           </div>
         </motion.div>
@@ -942,13 +944,13 @@ export default function HabitAnalyticsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
+            className="bg-white dark:bg-surface p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-line shadow-sm"
           >
             <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
               <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: THEME_COLOR }} />
               Activity Trends
             </h3>
-            <div className="flex items-center gap-2 mb-2 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-2 mb-2 text-[10px] sm:text-xs text-gray-500 dark:text-muted">
               <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full" style={{ backgroundColor: THEME_COLOR }} />
               <span>Completions</span>
             </div>
@@ -957,7 +959,7 @@ export default function HabitAnalyticsPage() {
                 <Line data={weeklyTrendData} options={weeklyTrendOptions} />
               </div>
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+            <div className="text-xs text-gray-500 dark:text-muted mt-2 text-center">
               {activityRangeStartLabel} to {activityRangeEndLabel}
             </div>
           </motion.div>
@@ -967,7 +969,7 @@ export default function HabitAnalyticsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
+            className="bg-white dark:bg-surface p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-line shadow-sm"
           >
             <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
               <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: THEME_COLOR }} />
@@ -986,7 +988,7 @@ export default function HabitAnalyticsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
+            className="bg-white dark:bg-surface p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-line shadow-sm"
           >
             <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
               <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: THEME_COLOR }} />
@@ -995,11 +997,11 @@ export default function HabitAnalyticsPage() {
             <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 text-xs">
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm" style={{ backgroundColor: THEME_COLOR }} />
-                <span className="text-gray-600 dark:text-gray-400">Completions</span>
+                <span className="text-gray-600 dark:text-muted">Completions</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm bg-gray-400" />
-                <span className="text-gray-600 dark:text-gray-400">Skips</span>
+                <span className="text-gray-600 dark:text-muted">Skips</span>
               </div>
             </div>
             <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
@@ -1007,7 +1009,7 @@ export default function HabitAnalyticsPage() {
                 <Bar data={weeklyChartData} options={weeklyChartOptions} />
               </div>
             </div>
-            <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+            <div className="text-[10px] sm:text-xs text-gray-500 dark:text-muted mt-2 text-center">
               {activityRangeStartLabel} to {activityRangeEndLabel}
             </div>
           </motion.div>
@@ -1017,14 +1019,14 @@ export default function HabitAnalyticsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.65 }}
-            className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm relative"
+            className="bg-white dark:bg-surface p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-line shadow-sm relative"
             ref={heatmapRef}
           >
             <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
               <LayoutGrid className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: THEME_COLOR }} />
               Activity Heatmap
             </h3>
-            <div className="flex items-center gap-2 mb-2 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-2 mb-2 text-[10px] sm:text-xs text-gray-500 dark:text-muted">
               <span>Less</span>
               <div className="flex-1 h-2 rounded-full overflow-hidden flex">
                 <div className="flex-1" style={{ backgroundColor: 'rgba(76, 153, 230, 0.25)' }} />
@@ -1034,14 +1036,14 @@ export default function HabitAnalyticsPage() {
               </div>
               <span>More</span>
             </div>
-          
+
           {/* Heatmap grid grouped by month */}
           <div className="overflow-x-auto relative">
             <div className="inline-flex gap-3">
               {heatmapMonths.map((month, monthIdx) => (
                 <div key={monthIdx} className="flex flex-col">
                   {/* Month label */}
-                  <div className="text-[10px] font-medium text-gray-600 dark:text-gray-400 mb-1 text-center">
+                  <div className="text-[10px] font-medium text-gray-600 dark:text-muted mb-1 text-center">
                     {month.label} {month.year !== new Date().getFullYear() ? `'${String(month.year).slice(-2)}` : ''}
                   </div>
                   {/* Weeks in this month */}
@@ -1049,7 +1051,7 @@ export default function HabitAnalyticsPage() {
                     {month.weeks.map((week, weekIdx) => (
                       <div key={weekIdx} className="flex flex-col gap-0.5">
                         {/* Pad the first week with empty cells if needed */}
-                        {weekIdx === 0 && week[0]?.dayOfWeek > 0 && 
+                        {weekIdx === 0 && week[0]?.dayOfWeek > 0 &&
                           Array.from({ length: week[0].dayOfWeek }).map((_, i) => (
                             <div key={`empty-${i}`} className="w-4 h-4 sm:w-3 sm:h-3" />
                           ))
@@ -1070,7 +1072,7 @@ export default function HabitAnalyticsPage() {
               ))}
             </div>
           </div>
-          
+
           {/* Selected Day Popup Card - positioned over heatmap */}
           <AnimatePresence>
             {selectedDay && (
@@ -1081,32 +1083,32 @@ export default function HabitAnalyticsPage() {
                 className="absolute inset-0 flex items-center justify-center z-10"
                 onClick={() => setSelectedDay(null)}
               >
-                <div 
-                  className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-3"
+                <div
+                  className="relative bg-white dark:bg-surface rounded-lg shadow-xl border border-gray-200 dark:border-line p-4 sm:p-3"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <button
                     onClick={() => setSelectedDay(null)}
-                    className="absolute -top-2 -right-2 p-2 sm:p-1 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 shadow-sm"
+                    className="absolute -top-2 -right-2 p-2 sm:p-1 bg-gray-100 dark:bg-elevated rounded-full text-gray-500 hover:text-gray-700 dark:hover:text-ink shadow-sm"
                   >
                     <X className="w-3 h-3" />
                   </button>
-                  
+
                   <div className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white mb-2 pr-4">
                     {formatDate(selectedDay.date)}
                   </div>
-                  
+
                   {/* Status */}
                   <div className="flex items-center gap-2 mb-1">
                     <div className={`w-4 h-4 sm:w-3 sm:h-3 rounded-sm ${getHeatmapColor(selectedDay)}`} style={getHeatmapStyle(selectedDay)} />
-                    <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 capitalize">
+                    <span className="text-xs sm:text-sm text-gray-600 dark:text-muted capitalize">
                       {selectedDay.status === 'none' ? 'No Activity' : selectedDay.status}
                     </span>
                   </div>
-                  
+
                   {/* Completion count - only show if done */}
                   {selectedDay.status === 'done' && selectedDay.completionCount > 0 && (
-                    <div className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+                    <div className="text-xs sm:text-sm text-gray-700 dark:text-muted">
                       Completions: <span className="font-medium text-green-600 dark:text-green-400">{selectedDay.completionCount}</span>
                     </div>
                   )}
@@ -1114,11 +1116,11 @@ export default function HabitAnalyticsPage() {
               </motion.div>
             )}
           </AnimatePresence>
-          
+
           {/* Legend */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-xs text-gray-600 dark:text-gray-400">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-xs text-gray-600 dark:text-muted">
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-sm bg-gray-200 dark:bg-gray-700" />
+              <div className="w-3 h-3 rounded-sm bg-gray-200 dark:bg-elevated" />
               <span>No Activity</span>
             </div>
             <div className="flex items-center gap-1.5">

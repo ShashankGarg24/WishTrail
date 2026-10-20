@@ -39,11 +39,11 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, goalTitle, isDeleting 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col border border-gray-200 dark:border-gray-700"
+            className="relative w-full max-w-md bg-white dark:bg-surface rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col border border-gray-200 dark:border-line"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-line flex-shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
                   <span className="text-white text-lg font-bold">!</span>
@@ -55,7 +55,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, goalTitle, isDeleting 
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500 transition-colors"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-elevated rounded-lg text-gray-500 transition-colors"
                 aria-label="Close"
               >
                 <X className="h-5 w-5" />
@@ -64,7 +64,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, goalTitle, isDeleting 
 
             {/* Content */}
             <div className="p-6 overflow-y-auto flex-1 min-h-0">
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
+              <p className="text-gray-700 dark:text-muted mb-4">
                 Are you sure you want to permanently delete this {itemLabelLower}? This action cannot be undone.
               </p>
 
@@ -117,12 +117,12 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, goalTitle, isDeleting 
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-line flex-shrink-0">
               <button
                 type="button"
                 onClick={onClose}
                 disabled={isDeleting}
-                className="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-line bg-white dark:bg-surface text-gray-700 dark:text-muted hover:bg-gray-50 dark:hover:bg-elevated font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>

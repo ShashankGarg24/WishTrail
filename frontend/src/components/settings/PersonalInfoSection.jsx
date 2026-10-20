@@ -148,7 +148,7 @@ const PersonalInfoSection = () => {
   // Check for changes
   useEffect(() => {
     if (!user) return;
-    const changed = 
+    const changed =
       formData.name !== (user.name || '') ||
       formData.username !== (user.username || '') ||
       formData.bio !== (user.bio || '') ||
@@ -170,7 +170,7 @@ const PersonalInfoSection = () => {
       ...prev,
       [name]: value
     }));
-    
+
     // Clear URL errors when user types
     if (name === 'youtube' || name === 'instagram') {
       setUrlErrors(prev => ({
@@ -198,21 +198,21 @@ const PersonalInfoSection = () => {
       youtube: '',
       instagram: ''
     };
-    
+
     if (formData.youtube && formData.youtube.trim() !== '') {
       const youtubePattern = /^(https?:\/\/)?(www\.)?(youtube\.com\/(c\/|channel\/|user\/|@)?|youtu\.be\/).+/i;
       if (!youtubePattern.test(formData.youtube)) {
         errors.youtube = 'Please enter a valid YouTube URL';
       }
     }
-    
+
     if (formData.instagram && formData.instagram.trim() !== '') {
       const instagramPattern = /^(https?:\/\/)?(www\.)?instagram\.com\/[a-zA-Z0-9_.]+\/?$/i;
       if (!instagramPattern.test(formData.instagram)) {
         errors.instagram = 'Please enter a valid Instagram URL';
       }
     }
-    
+
     setUrlErrors(errors);
     return !errors.youtube && !errors.instagram;
   };
@@ -220,12 +220,12 @@ const PersonalInfoSection = () => {
   const handleInterestToggle = (interestId) => {
     setFormData(prev => {
       const isSelected = prev.interests.includes(interestId);
-      
+
       if (!isSelected && prev.interests.length >= 5) {
         toast.error('Maximum 5 interests allowed');
         return prev;
       }
-      
+
       return {
         ...prev,
         interests: isSelected
@@ -240,7 +240,7 @@ const PersonalInfoSection = () => {
     e.target.value = '';
     setAvatarError('');
     if (!file) return;
-    
+
     const allowed = ['image/png', 'image/jpeg', 'image/jpg'];
     if (!allowed.includes(file.type)) {
       setAvatarError('Only JPG/JPEG/PNG images are allowed');
@@ -250,7 +250,7 @@ const PersonalInfoSection = () => {
       setAvatarError('Max image size is 1 MB');
       return;
     }
-    
+
     setAvatarFile(file);
   };
 
@@ -319,17 +319,17 @@ const PersonalInfoSection = () => {
       setUsernameError('Username not available');
       return;
     }
-    
+
     if (!validateSocialUrls()) {
       return;
     }
-    
+
     setLoading(true);
     // Don't send email in the request - it's not changeable
     const { email, ...profileData } = formData;
     const result = await updateProfile(profileData);
     setLoading(false);
-    
+
     if (result.success) {
       toast.success('Profile updated successfully');
       setHasChanges(false);
@@ -378,7 +378,7 @@ const PersonalInfoSection = () => {
       {/* Header */}
       <div className="mb-4 sm:mb-6">
         <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Personal Information</h2>
-        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
+        <p className="text-xs sm:text-sm text-gray-600 dark:text-muted mt-1">
           Update your profile details and how others see you on WishTrail.
         </p>
       </div>
@@ -386,7 +386,7 @@ const PersonalInfoSection = () => {
       <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
         {/* Profile Picture */}
         <div>
-          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-muted mb-2 sm:mb-3">
             PROFILE PICTURE
           </label>
           <div className="flex items-center gap-4 sm:gap-6">
@@ -394,7 +394,7 @@ const PersonalInfoSection = () => {
               <img
                 src={formData.avatar || '/api/placeholder/80/80'}
                 alt="Profile"
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-gray-200 dark:border-gray-600 object-cover"
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-gray-200 dark:border-line object-cover"
               />
               {avatarUploading && (
                 <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
@@ -416,10 +416,10 @@ const PersonalInfoSection = () => {
               />
             </div>
             <div className="flex-1">
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-muted">
                 Click the camera icon to upload a new profile picture
               </p>
-              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-500 mt-1">
+              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-muted mt-1">
                 JPG, JPEG or PNG. Max size 1MB
               </p>
               {avatarError && (
@@ -433,8 +433,8 @@ const PersonalInfoSection = () => {
         </div>
 
         <div>
-          <label className="mb-2 block text-xs font-medium text-gray-700 dark:text-gray-300 sm:text-sm">COVER PHOTO</label>
-          <div className="relative aspect-[5/2] max-w-2xl overflow-hidden rounded-xl border border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800">
+          <label className="mb-2 block text-xs font-medium text-gray-700 dark:text-muted sm:text-sm">COVER PHOTO</label>
+          <div className="relative aspect-[5/2] max-w-2xl overflow-hidden rounded-xl border border-gray-200 bg-gray-100 dark:border-line dark:bg-surface">
             <img src={formData.coverImage || '/images/profile-mountain-cover.png'} alt="Profile cover" className="h-full w-full object-cover" />
             {coverUploading && <div className="absolute inset-0 grid place-items-center bg-black/50"><Loader2 className="h-6 w-6 animate-spin text-white" /></div>}
             <label htmlFor="cover-upload" className="absolute bottom-3 right-3 inline-flex cursor-pointer items-center gap-2 rounded-lg bg-black/60 px-3 py-2 text-xs font-semibold text-white backdrop-blur"><Camera className="h-4 w-4" />Change cover</label>
@@ -447,7 +447,7 @@ const PersonalInfoSection = () => {
         {/* Full Name and Username */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           <div>
-            <label htmlFor="name" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
+            <label htmlFor="name" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-muted mb-1.5 sm:mb-2">
               Full Name
             </label>
             <input
@@ -456,12 +456,12 @@ const PersonalInfoSection = () => {
               type="text"
               value={formData.name}
               onChange={handleInputChange}
-              className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 dark:border-line rounded-lg bg-white dark:bg-elevated text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Alex Rivers"
             />
           </div>
           <div>
-            <label htmlFor="username" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
+            <label htmlFor="username" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-muted mb-1.5 sm:mb-2">
               Username
             </label>
             <div className="relative">
@@ -472,8 +472,8 @@ const PersonalInfoSection = () => {
                 type="text"
                 value={formData.username}
                 onChange={handleInputChange}
-                className={`w-full pl-7 sm:pl-8 pr-3 sm:pr-4 py-2 sm:py-2.5 text-sm sm:text-base border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  usernameError ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                className={`w-full pl-7 sm:pl-8 pr-3 sm:pr-4 py-2 sm:py-2.5 text-sm sm:text-base border rounded-lg bg-white dark:bg-elevated text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  usernameError ? 'border-red-500' : 'border-gray-300 dark:border-line'
                 }`}
                 placeholder="alexrivers"
               />
@@ -489,7 +489,7 @@ const PersonalInfoSection = () => {
 
         {/* Email Address */}
         <div>
-          <label htmlFor="email" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
+          <label htmlFor="email" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-muted mb-1.5 sm:mb-2">
             Email Address
           </label>
           <div className="relative">
@@ -499,14 +499,14 @@ const PersonalInfoSection = () => {
               type="email"
               value={formData.email}
               disabled
-              className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+              className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 dark:border-line rounded-lg bg-gray-100 dark:bg-surface text-gray-500 dark:text-muted cursor-not-allowed"
             />
           </div>
         </div>
 
         {/* Bio */}
         <div>
-          <label htmlFor="bio" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
+          <label htmlFor="bio" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-muted mb-1.5 sm:mb-2">
             Bio
           </label>
           <textarea
@@ -516,17 +516,17 @@ const PersonalInfoSection = () => {
             maxLength={200}
             value={formData.bio}
             onChange={handleInputChange}
-            className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 dark:border-line rounded-lg bg-white dark:bg-elevated text-gray-900 dark:text-white placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="Architecting milestones and chasing long-term efficiency. Explorer of culinary traditions and professional competency."
           />
-          <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1 text-right">
+          <p className="text-[10px] sm:text-xs text-gray-500 dark:text-muted mt-1 text-right">
             {formData.bio.length}/200 CHARACTERS
           </p>
         </div>
 
         {/* Location */}
         <div>
-          <label htmlFor="location" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
+          <label htmlFor="location" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-muted mb-1.5 sm:mb-2">
             Location
           </label>
           <div className="relative">
@@ -541,11 +541,11 @@ const PersonalInfoSection = () => {
               autoComplete="off"
               onFocus={() => setShowSuggestions(locationQuery.trim().length > 1 && locationSuggestions.length > 0)}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-              className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 dark:border-line rounded-lg bg-white dark:bg-elevated text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Enter your city"
             />
             {showSuggestions && Array.isArray(locationSuggestions) && locationSuggestions.length > 0 && (
-              <ul className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-48 sm:max-h-60 overflow-y-auto">
+              <ul className="absolute z-10 mt-1 w-full bg-white dark:bg-elevated border border-gray-300 dark:border-line rounded-lg shadow-lg max-h-48 sm:max-h-60 overflow-y-auto">
                 {locationSuggestions.map((place) => (
                   <li
                     key={place.place_id}
@@ -559,7 +559,7 @@ const PersonalInfoSection = () => {
                       setLocationQuery(formatted);
                       setShowSuggestions(false);
                     }}
-                    className="px-3 sm:px-4 py-2 text-sm sm:text-base cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-900 dark:text-white"
+                    className="px-3 sm:px-4 py-2 text-sm sm:text-base cursor-pointer hover:bg-gray-100 dark:hover:bg-elevated text-gray-900 dark:text-white"
                   >
                     {formatLocation(place)}
                   </li>
@@ -571,24 +571,24 @@ const PersonalInfoSection = () => {
 
         {/* Current Mood */}
         <div>
-          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-muted mb-1.5 sm:mb-2">
             Current Mood
           </label>
           <div className="flex items-start gap-2 sm:gap-3">
             <button
               type="button"
               onClick={() => setShowMoodPicker(!showMoodPicker)}
-              className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 flex items-center justify-center transition-colors hover:border-blue-500"
+              className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-lg border-2 border-gray-300 dark:border-line bg-white dark:bg-elevated flex items-center justify-center transition-colors hover:border-blue-500"
               title="Click to change mood"
             >
               {formData.currentMood ? (
                 <span className="text-2xl sm:text-3xl">{formData.currentMood}</span>
               ) : (
-                <span className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500 font-medium">None</span>
+                <span className="text-[10px] sm:text-xs text-gray-400 dark:text-muted font-medium">None</span>
               )}
             </button>
             {showMoodPicker && (
-              <div className="flex-1 p-2 sm:p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800">
+              <div className="flex-1 p-2 sm:p-3 border border-gray-300 dark:border-line rounded-lg bg-gray-50 dark:bg-surface">
                 <div className="grid grid-cols-6 xs:grid-cols-8 sm:grid-cols-10 md:grid-cols-12 gap-1 sm:gap-2 max-h-40 sm:max-h-48 overflow-y-auto scrollbar-thin">
                   {/* None option */}
                   <button
@@ -597,8 +597,8 @@ const PersonalInfoSection = () => {
                       setFormData(prev => ({ ...prev, currentMood: '' }));
                       setShowMoodPicker(false);
                     }}
-                    className={`w-8 h-8 sm:w-10 sm:h-10 rounded-md flex items-center justify-center text-[10px] sm:text-xs font-medium transition-all hover:bg-white dark:hover:bg-gray-700 ${
-                      !formData.currentMood ? 'bg-white dark:bg-gray-700 ring-2 ring-blue-500' : ''
+                    className={`w-8 h-8 sm:w-10 sm:h-10 rounded-md flex items-center justify-center text-[10px] sm:text-xs font-medium transition-all hover:bg-white dark:hover:bg-elevated ${
+                      !formData.currentMood ? 'bg-white dark:bg-elevated ring-2 ring-blue-500' : ''
                     }`}
                     title="No mood"
                   >
@@ -612,8 +612,8 @@ const PersonalInfoSection = () => {
                         setFormData(prev => ({ ...prev, currentMood: emoji }));
                         setShowMoodPicker(false);
                       }}
-                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-md flex items-center justify-center text-xl sm:text-2xl transition-all hover:bg-white dark:hover:bg-gray-700 ${
-                        formData.currentMood === emoji ? 'bg-white dark:bg-gray-700 ring-2 ring-blue-500' : ''
+                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-md flex items-center justify-center text-xl sm:text-2xl transition-all hover:bg-white dark:hover:bg-elevated ${
+                        formData.currentMood === emoji ? 'bg-white dark:bg-elevated ring-2 ring-blue-500' : ''
                       }`}
                     >
                       {emoji}
@@ -627,10 +627,10 @@ const PersonalInfoSection = () => {
 
         {/* Quote */}
         <div>
-          <label htmlFor="quote" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
+          <label htmlFor="quote" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-muted mb-1.5 sm:mb-2">
             Personal Quote
           </label>
-          <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mb-2">
+          <p className="text-[10px] sm:text-xs text-gray-500 dark:text-muted mb-2">
             Share an inspiring quote or motto that represents you
           </p>
           <textarea
@@ -644,9 +644,9 @@ const PersonalInfoSection = () => {
             }}
             placeholder="Enter your favorite quote..."
             rows={3}
-            className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-line rounded-md bg-white dark:bg-elevated text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
           />
-          <p className={`text-[10px] sm:text-xs mt-1 ${ formData.quote.length >= 100 ? 'text-amber-600 dark:text-amber-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+          <p className={`text-[10px] sm:text-xs mt-1 ${ formData.quote.length >= 100 ? 'text-amber-600 dark:text-amber-400 font-medium' : 'text-gray-500 dark:text-muted'}`}>
             {formData.quote.length}/100 characters
           </p>
         </div>
@@ -654,13 +654,13 @@ const PersonalInfoSection = () => {
         {/* Interests */}
         <div id="profile-interests" className="scroll-mt-20" />
         <div>
-          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-muted mb-1.5 sm:mb-2">
             Your Interests
           </label>
-          <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mb-2 sm:mb-3">
+          <p className="text-[10px] sm:text-xs text-gray-500 dark:text-muted mb-2 sm:mb-3">
             Select up to 5 interests that best represent you
           </p>
-          <div className="max-h-[280px] sm:max-h-[320px] overflow-y-auto border border-gray-200 dark:border-gray-600 rounded-lg p-2 sm:p-3 bg-gray-50 dark:bg-gray-800/50 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+          <div className="max-h-[280px] sm:max-h-[320px] overflow-y-auto border border-gray-200 dark:border-line rounded-lg p-2 sm:p-3 bg-gray-50 dark:bg-gray-800/50 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
               {INTERESTS_OPTIONS.map(interest => {
                 const selected = formData.interests.includes(interest.id);
@@ -672,7 +672,7 @@ const PersonalInfoSection = () => {
                     className={`p-2 sm:p-3 rounded-lg border-2 transition-all text-left flex flex-col items-center justify-center min-h-[70px] sm:min-h-[90px] ${
                       selected
                         ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
+                        : 'border-gray-200 dark:border-line hover:border-gray-300 dark:hover:border-line text-gray-700 dark:text-muted'
                     }`}
                   >
                     <div className="mb-1 sm:mb-2">
@@ -684,20 +684,20 @@ const PersonalInfoSection = () => {
               })}
             </div>
           </div>
-          <p className={`text-[10px] sm:text-xs mt-2 ${formData.interests.length >= 5 ? 'text-amber-600 dark:text-amber-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+          <p className={`text-[10px] sm:text-xs mt-2 ${formData.interests.length >= 5 ? 'text-amber-600 dark:text-amber-400 font-medium' : 'text-gray-500 dark:text-muted'}`}>
             Selected: {formData.interests.length}/5 interests
           </p>
         </div>
 
         {/* Social Links */}
         <div>
-          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
-            Social Links <span className="text-[10px] sm:text-xs font-normal text-gray-500 dark:text-gray-400"></span>
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-muted mb-1.5 sm:mb-2">
+            Social Links <span className="text-[10px] sm:text-xs font-normal text-gray-500 dark:text-muted"></span>
           </label>
           <div className="space-y-2 sm:space-y-3">
             {/* Website */}
             <div>
-              <label htmlFor="website" className="block text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 mb-1 sm:mb-1.5">
+              <label htmlFor="website" className="block text-[10px] sm:text-xs text-gray-600 dark:text-muted mb-1 sm:mb-1.5">
                 Website
               </label>
               <div className="relative">
@@ -708,7 +708,7 @@ const PersonalInfoSection = () => {
                   type="url"
                   value={formData.website}
                   onChange={handleInputChange}
-                  className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 dark:border-line rounded-lg bg-white dark:bg-elevated text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="https://your-website.com"
                 />
               </div>
@@ -716,7 +716,7 @@ const PersonalInfoSection = () => {
 
             {/* YouTube */}
             <div>
-              <label htmlFor="youtube" className="block text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 mb-1 sm:mb-1.5">
+              <label htmlFor="youtube" className="block text-[10px] sm:text-xs text-gray-600 dark:text-muted mb-1 sm:mb-1.5">
                 YouTube
               </label>
               <div className="relative">
@@ -727,8 +727,8 @@ const PersonalInfoSection = () => {
                   type="url"
                   value={formData.youtube}
                   onChange={handleInputChange}
-                  className={`w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 text-sm sm:text-base border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    urlErrors.youtube ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                  className={`w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 text-sm sm:text-base border rounded-lg bg-white dark:bg-elevated text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    urlErrors.youtube ? 'border-red-500' : 'border-gray-300 dark:border-line'
                   }`}
                   placeholder="https://youtube.com/@yourusername"
                 />
@@ -743,7 +743,7 @@ const PersonalInfoSection = () => {
 
             {/* Instagram */}
             <div>
-              <label htmlFor="instagram" className="block text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 mb-1 sm:mb-1.5">
+              <label htmlFor="instagram" className="block text-[10px] sm:text-xs text-gray-600 dark:text-muted mb-1 sm:mb-1.5">
                 Instagram
               </label>
               <div className="relative">
@@ -754,8 +754,8 @@ const PersonalInfoSection = () => {
                   type="url"
                   value={formData.instagram}
                   onChange={handleInputChange}
-                  className={`w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 text-sm sm:text-base border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    urlErrors.instagram ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                  className={`w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 text-sm sm:text-base border rounded-lg bg-white dark:bg-elevated text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    urlErrors.instagram ? 'border-red-500' : 'border-gray-300 dark:border-line'
                   }`}
                   placeholder="https://instagram.com/yourusername"
                 />
@@ -771,12 +771,12 @@ const PersonalInfoSection = () => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-gray-200 dark:border-line">
           <button
             type="button"
             onClick={handleDiscard}
             disabled={!hasChanges || loading}
-            className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+            className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 dark:border-line rounded-lg text-gray-700 dark:text-muted hover:bg-gray-50 dark:hover:bg-elevated disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
           >
             Cancel
           </button>

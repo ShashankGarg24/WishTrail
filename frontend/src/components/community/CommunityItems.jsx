@@ -70,20 +70,20 @@ export function AddItemModal({ open, onClose, communityId }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div className="absolute inset-0 bg-black/60" onClick={() => onClose(false)} />
-      <div className="relative z-10 w-full max-w-lg rounded-3xl bg-white dark:bg-gray-900 p-6 sm:p-8 shadow-2xl border-2 border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto scrollbar-hide">
-        <div className="flex items-center justify-between mb-6 pb-4 border-b-2 border-gray-200 dark:border-gray-700">
+      <div className="relative z-10 w-full max-w-lg rounded-3xl bg-white dark:bg-canvas p-6 sm:p-8 shadow-2xl border-2 border-gray-200 dark:border-line max-h-[90vh] overflow-y-auto scrollbar-hide">
+        <div className="flex items-center justify-between mb-6 pb-4 border-b-2 border-gray-200 dark:border-line">
           <div className="text-2xl font-bold text-gray-900 dark:text-white">Add Goal/Habit</div>
-          <button onClick={() => onClose(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl leading-none">&times;</button>
+          <button onClick={() => onClose(false)} className="text-gray-500 hover:text-gray-700 dark:text-muted dark:hover:text-ink text-2xl leading-none">&times;</button>
         </div>
         <div className="space-y-5">
           <div>
-            <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Select Type</div>
+            <div className="text-sm font-semibold text-gray-700 dark:text-muted mb-2">Select Type</div>
             <div className="flex items-center gap-3">
-              <button type="button" onClick={() => setType('goal')} className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${type === 'goal' ? 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'}`}>
+              <button type="button" onClick={() => setType('goal')} className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${type === 'goal' ? 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg' : 'bg-gray-100 dark:bg-surface text-gray-700 dark:text-muted border-2 border-gray-200 dark:border-line hover:border-blue-300 dark:hover:border-blue-600'}`}>
                 <Target className="h-4 w-4" />
                 Goal
               </button>
-              <button type="button" onClick={() => setType('habit')} className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${type === 'habit' ? 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'}`}>
+              <button type="button" onClick={() => setType('habit')} className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${type === 'habit' ? 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg' : 'bg-gray-100 dark:bg-surface text-gray-700 dark:text-muted border-2 border-gray-200 dark:border-line hover:border-blue-300 dark:hover:border-blue-600'}`}>
                 <Zap className="h-4 w-4" />
                 Habit
               </button>
@@ -91,21 +91,21 @@ export function AddItemModal({ open, onClose, communityId }) {
           </div>
           {type === 'goal' && (
             <div>
-              <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Participation Type</div>
-              <select value={participationType} onChange={e => setParticipationType(e.target.value)} className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium focus:outline-none focus:border-blue-500 dark:focus:border-blue-500">
+              <div className="text-sm font-semibold text-gray-700 dark:text-muted mb-2">Participation Type</div>
+              <select value={participationType} onChange={e => setParticipationType(e.target.value)} className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-line bg-white dark:bg-surface text-gray-900 dark:text-white font-medium focus:outline-none focus:border-blue-500 dark:focus:border-blue-500">
                 <option value="individual">Individual</option>
                 <option value="collaborative">Collaborative</option>
               </select>
             </div>
           )}
           <div>
-            <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Choose Mode</div>
+            <div className="text-sm font-semibold text-gray-700 dark:text-muted mb-2">Choose Mode</div>
             <div className="flex items-center gap-3">
-              <button type="button" onClick={() => setMode('link')} className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${mode === 'link' ? 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700'}`}>
+              <button type="button" onClick={() => setMode('link')} className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${mode === 'link' ? 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg' : 'bg-gray-100 dark:bg-surface text-gray-700 dark:text-muted border-2 border-gray-200 dark:border-line'}`}>
                 <Link className="h-4 w-4" />
                 Link Existing
               </button>
-              <button type="button" onClick={() => { setMode('create'); if (type === 'goal') setShowCreateGoalModal(true); else setShowCreateHabitModal(true); }} className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${mode === 'create' ? 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700'}`}>
+              <button type="button" onClick={() => { setMode('create'); if (type === 'goal') setShowCreateGoalModal(true); else setShowCreateHabitModal(true); }} className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${mode === 'create' ? 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg' : 'bg-gray-100 dark:bg-surface text-gray-700 dark:text-muted border-2 border-gray-200 dark:border-line'}`}>
                 <Plus className="h-4 w-4" />
                 Create New
               </button>
@@ -114,10 +114,10 @@ export function AddItemModal({ open, onClose, communityId }) {
           {mode === 'link' && (
             <div className="space-y-3">
               <div>
-                <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Search Your {type === 'goal' ? 'Goals' : 'Habits'}</div>
-                <input placeholder={`Search...`} value={filter} onChange={e => setFilter(e.target.value)} className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 dark:focus:border-blue-500" />
+                <div className="text-sm font-semibold text-gray-700 dark:text-muted mb-2">Search Your {type === 'goal' ? 'Goals' : 'Habits'}</div>
+                <input placeholder={`Search...`} value={filter} onChange={e => setFilter(e.target.value)} className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-line bg-white dark:bg-surface text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 dark:focus:border-blue-500" />
               </div>
-              <div className="max-h-64 overflow-auto scrollbar-hide rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+              <div className="max-h-64 overflow-auto scrollbar-hide rounded-xl border-2 border-gray-200 dark:border-line bg-white dark:bg-surface">
                 {(type === 'goal' ? myGoals : myHabits)
                   .filter(item => {
                     const q = filter.trim().toLowerCase()
@@ -126,18 +126,18 @@ export function AddItemModal({ open, onClose, communityId }) {
                     return t.toLowerCase().includes(q)
                   })
                   .map(item => (
-                    <button key={item._id} onClick={() => setSourceId(item._id)} className={`w-full text-left px-4 py-3 text-sm font-medium border-b border-gray-200 dark:border-gray-700 transition-all duration-200 ${sourceId === item._id ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white'}`}>
+                    <button key={item._id} onClick={() => setSourceId(item._id)} className={`w-full text-left px-4 py-3 text-sm font-medium border-b border-gray-200 dark:border-line transition-all duration-200 ${sourceId === item._id ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'hover:bg-gray-50 dark:hover:bg-elevated text-gray-900 dark:text-white'}`}>
                       {(type === 'goal' ? item.title : item.name) || 'Untitled'}
                     </button>
                   ))}
                 {((type === 'goal' ? myGoals : myHabits).length === 0) && (
-                  <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">No {type === 'goal' ? 'goals' : 'habits'} found.</div>
+                  <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-muted">No {type === 'goal' ? 'goals' : 'habits'} found.</div>
                 )}
               </div>
             </div>
           )}
           <div className="flex items-center justify-end gap-3 pt-2">
-            <button type="button" onClick={() => onClose(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300">Cancel</button>
+            <button type="button" onClick={() => onClose(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold border-2 border-gray-200 dark:border-line text-gray-700 dark:text-muted hover:bg-gray-50 dark:hover:bg-surface transition-all duration-300">Cancel</button>
             <button type="button" onClick={submit} disabled={mode === 'link' && !sourceId} className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#4c99e6] hover:bg-[#3d88d5] text-white transition-all duration-300 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">Submit</button>
           </div>
         </div>
@@ -188,12 +188,12 @@ function ItemAnalyticsModal({ open, onClose, analytics }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-4xl max-h-[90vh] flex flex-col rounded-3xl bg-white dark:bg-gray-900 shadow-2xl border-2 border-gray-200 dark:border-gray-700">
+      <div className="relative z-10 w-full max-w-4xl max-h-[90vh] flex flex-col rounded-3xl bg-white dark:bg-canvas shadow-2xl border-2 border-gray-200 dark:border-line">
         {/* Close Button - Top Right */}
-        <button onClick={onClose} className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 h-8 w-8 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-all duration-300 text-2xl font-normal leading-none" aria-label="Close">&times;</button>
-        
+        <button onClick={onClose} className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 h-8 w-8 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 dark:bg-surface dark:hover:bg-elevated text-gray-600 dark:text-muted hover:text-gray-900 dark:hover:text-ink transition-all duration-300 text-2xl font-normal leading-none" aria-label="Close">&times;</button>
+
         {/* Header - Fixed */}
-        <div className="flex-shrink-0 p-6 sm:p-8 pb-6 pr-14 sm:pr-16 border-b-2 border-gray-200 dark:border-gray-700">
+        <div className="flex-shrink-0 p-6 sm:p-8 pb-6 pr-14 sm:pr-16 border-b-2 border-gray-200 dark:border-line">
           <div className="flex items-center gap-3">
             <div>
               <div className="text-xl font-bold text-gray-900 dark:text-white">{analytics?.item?.title || 'Analytics'}</div>
@@ -204,7 +204,7 @@ function ItemAnalyticsModal({ open, onClose, analytics }) {
                     : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                 }`}>{analytics?.item?.type}</span>
                 {analytics?.item?.participationType && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">{analytics.item.participationType}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-surface text-gray-700 dark:text-muted">{analytics.item.participationType}</span>
                 )}
               </div>
             </div>
@@ -216,76 +216,76 @@ function ItemAnalyticsModal({ open, onClose, analytics }) {
           {/* Stats Summary Cards */}
           {analytics && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-              <div className="rounded-xl border-2 border-gray-200 dark:border-gray-700 p-4 bg-blue-50 dark:bg-blue-900/20">
+              <div className="rounded-xl border-2 border-gray-200 dark:border-line p-4 bg-blue-50 dark:bg-blue-900/20">
                 <div className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide mb-1">Participants</div>
                 <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">{analytics.totals?.participants || 0}</div>
               </div>
-              <div className="rounded-xl border-2 border-gray-200 dark:border-gray-700 p-4 bg-green-50 dark:bg-green-900/20">
+              <div className="rounded-xl border-2 border-gray-200 dark:border-line p-4 bg-green-50 dark:bg-green-900/20">
                 <div className="text-xs font-semibold text-green-700 dark:text-green-300 uppercase tracking-wide mb-1">Avg Progress</div>
                 <div className="text-3xl font-bold text-green-900 dark:text-green-100">{Math.round(analytics.totals?.averagePercent || 0)}%</div>
               </div>
-              <div className="rounded-xl border-2 border-gray-200 dark:border-gray-700 p-4 bg-blue-50 dark:bg-blue-900/20">
+              <div className="rounded-xl border-2 border-gray-200 dark:border-line p-4 bg-blue-50 dark:bg-blue-900/20">
                 <div className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide mb-1">Completed</div>
                 <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">{analytics.totals?.completedCount || 0}</div>
               </div>
             </div>
           )}
           {/* Participants Table */}
-          <div className="rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+          <div className="rounded-xl border-2 border-gray-200 dark:border-line bg-white dark:bg-canvas">
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[600px]">
               <thead className="sticky top-0 z-10">
-                <tr className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold">
-                  <th className="text-left px-3 sm:px-4 py-3 border-b-2 border-gray-200 dark:border-gray-700 whitespace-nowrap">User</th>
-                  <th className="text-left px-3 sm:px-4 py-3 border-b-2 border-gray-200 dark:border-gray-700 whitespace-nowrap">Status</th>
-                  <th className="text-left px-3 sm:px-4 py-3 border-b-2 border-gray-200 dark:border-gray-700 whitespace-nowrap">Progress</th>
-                  <th className="text-left px-3 sm:px-4 py-3 border-b-2 border-gray-200 dark:border-gray-700 whitespace-nowrap">Details</th>
+                <tr className="bg-gray-100 dark:bg-surface text-gray-700 dark:text-ink font-semibold">
+                  <th className="text-left px-3 sm:px-4 py-3 border-b-2 border-gray-200 dark:border-line whitespace-nowrap">User</th>
+                  <th className="text-left px-3 sm:px-4 py-3 border-b-2 border-gray-200 dark:border-line whitespace-nowrap">Status</th>
+                  <th className="text-left px-3 sm:px-4 py-3 border-b-2 border-gray-200 dark:border-line whitespace-nowrap">Progress</th>
+                  <th className="text-left px-3 sm:px-4 py-3 border-b-2 border-gray-200 dark:border-line whitespace-nowrap">Details</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r, idx) => (
-                  <tr key={idx} className="border-t border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                  <tr key={idx} className="border-t border-gray-100 dark:border-line hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
                     <td className="px-3 sm:px-4 py-3">
                       <div className="flex items-center gap-2 sm:gap-3">
-                        <img src={r.user?.avatar || '/api/placeholder/32/32'} alt={r.user?.name || 'User'} width="32" height="32" className="h-8 w-8 sm:h-10 sm:w-10 rounded-full border-2 border-gray-200 dark:border-gray-700 flex-shrink-0" />
+                        <img src={r.user?.avatar || '/api/placeholder/32/32'} alt={r.user?.name || 'User'} width="32" height="32" className="h-8 w-8 sm:h-10 sm:w-10 rounded-full border-2 border-gray-200 dark:border-line flex-shrink-0" />
                         <div className="min-w-0">
                           <div className="font-semibold text-gray-900 dark:text-white truncate text-xs sm:text-sm">{r.user?.name || 'User'}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">@{r.user?.username || r.userId?.slice(-6)}</div>
+                          <div className="text-xs text-gray-500 dark:text-muted truncate">@{r.user?.username || r.userId?.slice(-6)}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-3 sm:px-4 py-3">
                     <span className={`text-xs px-3 py-1 rounded-full font-medium ${
-                      r.status === 'active' 
+                      r.status === 'active'
                         ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                        : 'bg-gray-100 dark:bg-surface text-gray-700 dark:text-muted'
                     }`}>{r.status}</span>
                   </td>
                   <td className="px-3 sm:px-4 py-3">
                     <div className="flex items-center gap-1 sm:gap-2">
-                      <div className="flex-1 h-2 sm:h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden min-w-[60px]">
-                        <div 
+                      <div className="flex-1 h-2 sm:h-3 bg-gray-200 dark:bg-elevated rounded-full overflow-hidden min-w-[60px]">
+                        <div
                           className={`h-full rounded-full transition-all duration-500 ${
-                            (r.progressPercent || 0) >= 100 
-                              ? 'bg-green-500' 
+                            (r.progressPercent || 0) >= 100
+                              ? 'bg-green-500'
                               : (r.progressPercent || 0) > 0
                                 ? 'bg-[#4c99e6]'
                                 : 'bg-gray-400'
                           }`}
-                          style={{ width: `${Math.min(r.progressPercent || 0, 100)}%` }} 
+                          style={{ width: `${Math.min(r.progressPercent || 0, 100)}%` }}
                         />
                       </div>
-                      <span className="text-xs font-bold text-gray-700 dark:text-gray-300 min-w-[2.5rem] text-right">{Math.round(r.progressPercent || 0)}%</span>
+                      <span className="text-xs font-bold text-gray-700 dark:text-muted min-w-[2.5rem] text-right">{Math.round(r.progressPercent || 0)}%</span>
                     </div>
                   </td>
                   <td className="px-3 sm:px-4 py-3 text-xs">
                     {analytics?.item?.type === 'habit' ? (
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-gray-500 dark:text-gray-400">🔥 Streak:</span>
+                          <span className="text-gray-500 dark:text-muted">🔥 Streak:</span>
                           <span className="px-2 py-0.5 rounded-md bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 font-bold">{r?.habit?.currentStreak || 0}</span>
                           <span className="text-gray-400">/</span>
-                          <span className="text-gray-600 dark:text-gray-300">Best: <span className="font-semibold">{r?.habit?.longestStreak || 0}</span></span>
+                          <span className="text-gray-600 dark:text-muted">Best: <span className="font-semibold">{r?.habit?.longestStreak || 0}</span></span>
                         </div>
                       </div>
                     ) : (
@@ -297,18 +297,18 @@ function ItemAnalyticsModal({ open, onClose, analytics }) {
                             <span className="px-2 py-1 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold">⚡ In Progress</span>
                           )}
                           {typeof r?.goal?.percent === 'number' && (
-                            <span className="text-gray-600 dark:text-gray-300 font-semibold">{Math.round(r.goal.percent)}%</span>
+                            <span className="text-gray-600 dark:text-muted font-semibold">{Math.round(r.goal.percent)}%</span>
                           )}
                         </div>
                         {Array.isArray(r?.goal?.breakdown?.subGoals) && r.goal.breakdown.subGoals.length > 0 && (
-                          <div className="text-gray-600 dark:text-gray-300">
-                            <span className="text-gray-500 dark:text-gray-400">Sub-goals:</span>
+                          <div className="text-gray-600 dark:text-muted">
+                            <span className="text-gray-500 dark:text-muted">Sub-goals:</span>
                             <span className="ml-2 font-semibold">{r.goal.breakdown.subGoals.filter(s => s.completed).length}/{r.goal.breakdown.subGoals.length}</span>
                           </div>
                         )}
                         {analytics?.item?.participationType === 'collaborative' && typeof r?.contributionPercent === 'number' && (
-                          <div className="text-gray-600 dark:text-gray-300">
-                            <span className="text-gray-500 dark:text-gray-400">Contribution:</span>
+                          <div className="text-gray-600 dark:text-muted">
+                            <span className="text-gray-500 dark:text-muted">Contribution:</span>
                             <span className="ml-2 px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold">{Math.round(r.contributionPercent)}%</span>
                           </div>
                         )}
@@ -364,20 +364,20 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
     return filtered.sort((a, b) => {
       const progressA = itemProgress[a._id]?.personal || 0
       const progressB = itemProgress[b._id]?.personal || 0
-      
+
       const isOngoingA = progressA > 0 && progressA < 100
       const isOngoingB = progressB > 0 && progressB < 100
       const isCompletedA = progressA >= 100
       const isCompletedB = progressB >= 100
-      
+
       // Ongoing items first
       if (isOngoingA && !isOngoingB) return -1
       if (!isOngoingA && isOngoingB) return 1
-      
+
       // Completed items last
       if (isCompletedA && !isCompletedB) return 1
       if (!isCompletedA && isCompletedB) return -1
-      
+
       // Within same category, sort by progress descending
       return progressB - progressA
     })
@@ -388,13 +388,13 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
       {onlyAdmins ? (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 sm:p-5 rounded-2xl border-2 border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/30 dark:bg-blue-900/10">
           <div className="flex items-center gap-3">
-            <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">Add goals/habits to the community</div>
+            <div className="text-sm font-semibold text-gray-800 dark:text-ink">Add goals/habits to the community</div>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             {['admin','moderator'].includes(role) ? (
               <button className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-[#4c99e6] hover:bg-[#3d88d5] text-white text-sm font-semibold transition-all duration-300 shadow-lg hover:shadow-xl whitespace-nowrap" onClick={() => setShowAddModal(true)}>Add</button>
             ) : (
-              <button className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors whitespace-nowrap" onClick={() => setShowSuggestModal(true)}>Suggest</button>
+              <button className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl border-2 border-gray-200 dark:border-line text-sm font-semibold text-gray-700 dark:text-muted hover:bg-gray-50 dark:hover:bg-surface transition-colors whitespace-nowrap" onClick={() => setShowSuggestModal(true)}>Suggest</button>
             )}
             <a href="/dashboard" title="Go to your dashboard to update progress for your goals and habits" aria-label="Go to your dashboard to update progress for your goals and habits" className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-pink-600 text-white text-sm font-semibold hover:from-orange-600 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl whitespace-nowrap">
               <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -406,7 +406,7 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
       ) : (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 sm:p-5 rounded-2xl border-2 border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/30 dark:bg-blue-900/10">
           <div className="flex items-center gap-3">
-            <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">Add goals/habits to the community</div>
+            <div className="text-sm font-semibold text-gray-800 dark:text-ink">Add goals/habits to the community</div>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <button className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-[#4c99e6] hover:bg-[#3d88d5] text-white text-sm font-semibold transition-all duration-300 shadow-lg hover:shadow-xl whitespace-nowrap" onClick={() => setShowAddModal(true)}>Add</button>
@@ -421,13 +421,13 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
 
       {/* Filter toggles for Goals/Habits */}
       {items.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 p-4 sm:p-5 rounded-2xl bg-gray-50 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 p-4 sm:p-5 rounded-2xl bg-gray-50 dark:bg-surface border-2 border-gray-200 dark:border-line">
           <button
             onClick={() => setFilterType('all')}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${
               filterType === 'all'
                 ? 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
+                : 'bg-white dark:bg-surface text-gray-700 dark:text-muted border-2 border-gray-200 dark:border-line hover:border-blue-300 dark:hover:border-blue-600'
             }`}
           >
             All ({items.length})
@@ -437,7 +437,7 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${
               filterType === 'goal'
                 ? 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
+                : 'bg-white dark:bg-surface text-gray-700 dark:text-muted border-2 border-gray-200 dark:border-line hover:border-blue-300 dark:hover:border-blue-600'
             }`}
           >
             Goals ({items.filter(i => i.type === 'goal').length})
@@ -447,7 +447,7 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${
               filterType === 'habit'
                 ? 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white shadow-lg'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
+                : 'bg-white dark:bg-surface text-gray-700 dark:text-muted border-2 border-gray-200 dark:border-line hover:border-blue-300 dark:hover:border-blue-600'
             }`}
           >
             Habits ({items.filter(i => i.type === 'habit').length})
@@ -457,7 +457,7 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
         {filteredAndSortedItems.map(it => (
-          <div key={it._id} className="rounded-2xl border-2 border-gray-200 dark:border-gray-800 p-4 sm:p-5 bg-white dark:bg-gray-900 hover:shadow-xl hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 group relative">
+          <div key={it._id} className="rounded-2xl border-2 border-gray-200 dark:border-line p-4 sm:p-5 bg-white dark:bg-canvas hover:shadow-xl hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 group relative">
             <div className="space-y-4">
               {/* Header with icon, title, and menu */}
               <div className="flex items-start gap-3">
@@ -465,11 +465,11 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
                   <div className="text-base font-bold text-gray-900 dark:text-white line-clamp-2" title={it.title}>{it.title}</div>
                   <div className="flex flex-wrap items-center gap-2 mt-1">
                     <span className={`px-2 py-0.5 rounded-full font-medium text-xs ${
-                      it.type === 'goal' 
-                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' 
+                      it.type === 'goal'
+                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                         : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                     }`}>{it.type}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{it.stats?.participantCount || 0} joined</span>
+                    <span className="text-xs text-gray-500 dark:text-muted">{it.stats?.participantCount || 0} joined</span>
                     {(() => {
                       const progress = itemProgress[it._id]?.personal || 0
                       if (progress >= 100) {
@@ -481,22 +481,22 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
                     })()}
                   </div>
                 </div>
-                
+
                 {/* Three-dot menu */}
                 <div className="relative flex-shrink-0">
                   <button
                     onClick={() => setOpenMenuId(openMenuId === it._id ? null : it._id)}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-surface transition-colors"
                     aria-label="More options"
                   >
-                    <MoreVertical className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    <MoreVertical className="h-5 w-5 text-gray-600 dark:text-muted" />
                   </button>
-                  
+
                   {/* Dropdown menu */}
                   {openMenuId === it._id && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
-                      <div className="absolute right-0 top-10 z-20 w-48 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl py-1">
+                      <div className="absolute right-0 top-10 z-20 w-48 rounded-xl border-2 border-gray-200 dark:border-line bg-white dark:bg-surface shadow-xl py-1">
                         <button
                           onClick={async () => {
                             setOpenMenuId(null);
@@ -510,13 +510,13 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
                               setLoadingAnalytics(false)
                             }
                           }}
-                          className="w-full px-4 py-2.5 text-left text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-3"
+                          className="w-full px-4 py-2.5 text-left text-sm font-medium text-gray-700 dark:text-muted hover:bg-gray-50 dark:hover:bg-elevated transition-colors flex items-center gap-3"
                           disabled={loadingAnalytics}
                         >
                           {loadingAnalytics ? <Loader2 className="h-4 w-4 animate-spin" /> : <BarChart3 className="h-4 w-4" />}
                           Analytics
                         </button>
-                        
+
                         {joinedItems.has(String(it._id)) && (
                           <button
                             onClick={() => {
@@ -524,13 +524,13 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
                               setLeaveItemData(it);
                               setLeaveModalOpen(true);
                             }}
-                            className="w-full px-4 py-2.5 text-left text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-3"
+                            className="w-full px-4 py-2.5 text-left text-sm font-medium text-gray-700 dark:text-muted hover:bg-gray-50 dark:hover:bg-elevated transition-colors flex items-center gap-3"
                           >
                             <LogOut className="h-4 w-4" />
                             Leave
                           </button>
                         )}
-                        
+
                         {(['admin'].includes(role) || String(it.createdBy?._id || it.createdBy) === String(useApiStore.getState().user?._id)) && (
                           <button
                             onClick={() => {
@@ -538,7 +538,7 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
                               setRemoveItemData(it);
                               setRemoveModalOpen(true);
                             }}
-                            className="w-full px-4 py-2.5 text-left text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-3 border-t border-gray-200 dark:border-gray-700"
+                            className="w-full px-4 py-2.5 text-left text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-3 border-t border-gray-200 dark:border-line"
                           >
                             <Trash2 className="h-4 w-4" />
                             Remove from Community
@@ -553,17 +553,17 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
               {/* Actions - Only show Join button for non-joined items */}
               {!joinedItems.has(String(it._id)) && (
                 <div className="pt-2">
-                  <button 
-                    onClick={async () => { 
+                  <button
+                    onClick={async () => {
                       try {
                         const result = await communitiesAPI.joinItem(id, it._id)
-                        
+
                         // Immediately update UI state based on result
                         if (result?.data?.success && result?.data?.joined) {
                           onToggleJoin?.(it._id, true)
                           const r = await communitiesAPI.itemProgress(id, it._id)
                           onRefreshProgress?.(it._id, r?.data?.data)
-                          
+
                           // If joined a habit, refresh habits list to show personal copy
                           if (it.type === 'habit') {
                             try {
@@ -572,8 +572,8 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
                               console.error('Error refreshing habits after join:', err)
                             }
                           }
-                          
-                          // If joined a goal, refresh goals list to show personal copy  
+
+                          // If joined a goal, refresh goals list to show personal copy
                           if (it.type === 'goal') {
                             try {
                               await useApiStore.getState().getGoals({ force: true })
@@ -591,7 +591,7 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
                           onToggleJoin?.(it._id, set.has(String(it._id)))
                         } catch {}
                       }
-                    }} 
+                    }}
                     className="w-full px-4 py-2.5 rounded-xl bg-[#4c99e6] hover:bg-[#3d88d5] text-white text-sm font-semibold transition-all duration-300 shadow-lg"
                   >
                     Join
@@ -602,7 +602,7 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
           </div>
         ))}
       </div>
-      
+
       {/* Loading overlay */}
       {loadingAnalytics && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -615,30 +615,30 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
       <ItemAnalyticsModal open={analyticsOpen} onClose={() => setAnalyticsOpen(false)} analytics={analyticsData} />
       {filteredAndSortedItems.length === 0 && items.length > 0 && (
         <div className="glass-card-hover rounded-2xl p-10 text-center">
-          <div className="text-gray-500 dark:text-gray-400 text-sm">No {filterType === 'all' ? 'items' : filterType + 's'} found in this category.</div>
+          <div className="text-gray-500 dark:text-muted text-sm">No {filterType === 'all' ? 'items' : filterType + 's'} found in this category.</div>
         </div>
       )}
-      {items.length === 0 && <div className="glass-card-hover rounded-2xl p-10 text-center"><div className="text-gray-500 dark:text-gray-400 text-sm">No shared goals or habits yet. Add some to get started!</div></div>}
+      {items.length === 0 && <div className="glass-card-hover rounded-2xl p-10 text-center"><div className="text-gray-500 dark:text-muted text-sm">No shared goals or habits yet. Add some to get started!</div></div>}
       <AddItemModal open={showAddModal} onClose={(refresh) => { setShowAddModal(false); if (refresh) window.location.reload(); }} communityId={id} />
-      
+
       {/* Leave Item Confirmation Modal */}
       {leaveModalOpen && leaveItemData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="absolute inset-0 bg-black/60" onClick={() => setLeaveModalOpen(false)} />
-          <div className="relative z-10 w-full max-w-md rounded-3xl bg-white dark:bg-gray-900 p-6 sm:p-8 shadow-2xl border-2 border-gray-200 dark:border-gray-700">
-            <button onClick={() => setLeaveModalOpen(false)} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl leading-none">&times;</button>
-            
+          <div className="relative z-10 w-full max-w-md rounded-3xl bg-white dark:bg-canvas p-6 sm:p-8 shadow-2xl border-2 border-gray-200 dark:border-line">
+            <button onClick={() => setLeaveModalOpen(false)} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-muted dark:hover:text-ink text-2xl leading-none">&times;</button>
+
             <div className="mb-6">
               <div className="flex items-center gap-3 mb-4">
                 <div>
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white">Leave Community {leaveItemData.type === 'goal' ? 'Goal' : 'Habit'}</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">What happens to your personal copy?</p>
+                  <p className="text-sm text-gray-500 dark:text-muted">What happens to your personal copy?</p>
                 </div>
               </div>
-              
+
               <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-6">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">"{leaveItemData.title}"</p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">You're about to leave this community {leaveItemData.type}. Choose what to do with your personal progress and data.</p>
+                <p className="text-xs text-gray-600 dark:text-muted">You're about to leave this community {leaveItemData.type}. Choose what to do with your personal progress and data.</p>
               </div>
             </div>
 
@@ -669,7 +669,7 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
               >
                 <span>Keep as Personal {leaveItemData.type === 'goal' ? 'Goal' : 'Habit'}</span>
               </button>
-              
+
               <button
                 onClick={async () => {
                   try {
@@ -696,10 +696,10 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
               >
                 <span>Delete Everything</span>
               </button>
-              
+
               <button
                 onClick={() => setLeaveModalOpen(false)}
-                className="w-full px-5 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                className="w-full px-5 py-3 rounded-xl border-2 border-gray-200 dark:border-line text-gray-700 dark:text-muted text-sm font-semibold hover:bg-gray-50 dark:hover:bg-surface transition-all duration-300"
               >
                 Cancel
               </button>
@@ -712,9 +712,9 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
       {removeModalOpen && removeItemData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="absolute inset-0 bg-black/60" onClick={() => setRemoveModalOpen(false)} />
-          <div className="relative z-10 w-full max-w-md rounded-3xl bg-white dark:bg-gray-900 p-6 sm:p-8 shadow-2xl border-2 border-gray-200 dark:border-gray-700">
-            <button onClick={() => setRemoveModalOpen(false)} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl leading-none">&times;</button>
-            
+          <div className="relative z-10 w-full max-w-md rounded-3xl bg-white dark:bg-canvas p-6 sm:p-8 shadow-2xl border-2 border-gray-200 dark:border-line">
+            <button onClick={() => setRemoveModalOpen(false)} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-muted dark:hover:text-ink text-2xl leading-none">&times;</button>
+
             <div className="mb-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="h-12 w-12 rounded-xl bg-red-500 flex items-center justify-center text-2xl">
@@ -722,13 +722,13 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white">Remove {removeItemData.type === 'goal' ? 'Goal' : 'Habit'} from Community?</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">⚠️ This action cannot be undone</p>
+                  <p className="text-sm text-gray-500 dark:text-muted">⚠️ This action cannot be undone</p>
                 </div>
               </div>
-              
+
               <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 rounded-xl p-4 mb-6">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white mb-3">"{removeItemData.title}"</p>
-                <div className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
+                <div className="space-y-2 text-xs text-gray-600 dark:text-muted">
                   <p className="flex items-start gap-2">
                     <span className="text-red-600 dark:text-red-400 font-bold">•</span>
                     <span>This {removeItemData.type} will be removed from the community for <strong>all members</strong></span>
@@ -764,10 +764,10 @@ export default function CommunityItems({ id, role, settings, items, itemProgress
                 <Trash2 className="h-4 w-4" />
                 <span>Yes, Remove {removeItemData.type === 'goal' ? 'Goal' : 'Habit'} from Community</span>
               </button>
-              
+
               <button
                 onClick={() => setRemoveModalOpen(false)}
-                className="w-full px-5 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                className="w-full px-5 py-3 rounded-xl border-2 border-gray-200 dark:border-line text-gray-700 dark:text-muted text-sm font-semibold hover:bg-gray-50 dark:hover:bg-surface transition-all duration-300"
               >
                 Cancel
               </button>

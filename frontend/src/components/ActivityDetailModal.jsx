@@ -62,11 +62,11 @@ const ActivityDetailModal = ({ isOpen, onClose, activity, onOpenComments, onRepo
           initial={{ scale: 0.98, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.98, opacity: 0 }}
-          className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-5xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl"
+          className="bg-white dark:bg-canvas rounded-2xl w-full max-w-5xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-line">
             <div className="flex items-center gap-2 min-w-0">
               <div className="font-semibold text-gray-900 dark:text-white truncate">{activity?.name || 'User'}</div>
               {activityTime && (
@@ -79,23 +79,23 @@ const ActivityDetailModal = ({ isOpen, onClose, activity, onOpenComments, onRepo
                 <MessageCircle className="h-4 w-4" /> {totalComments}
               </button>
               <div className="relative">
-                <button onClick={() => setMenuOpen((v) => !v)} className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">⋯</button>
+                <button onClick={() => setMenuOpen((v) => !v)} className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-surface">⋯</button>
                 {menuOpen && (
-                  <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
+                  <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-surface border border-gray-200 dark:border-line rounded-lg shadow-lg z-10">
                     <button
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-elevated"
                       onClick={() => { setMenuOpen(false); onReportActivity && onReportActivity(activity); }}
                     >Report</button>
                     {activity?.user?._id && (
                       <button
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-elevated"
                         onClick={() => { setMenuOpen(false); onUnfollowUser && onUnfollowUser(activity.user._id); }}
                       >Unfollow user</button>
                     )}
                   </div>
                 )}
               </div>
-              <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"><X className="h-5 w-5" /></button>
+              <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-surface"><X className="h-5 w-5" /></button>
             </div>
           </div>
 
@@ -107,15 +107,15 @@ const ActivityDetailModal = ({ isOpen, onClose, activity, onOpenComments, onRepo
               </div>
             )}
             {hasNote && (
-              <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-800">
-                <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-line">{sharedNote}</div>
+              <div className="px-4 py-3 border-t border-gray-200 dark:border-line">
+                <div className="text-sm text-gray-800 dark:text-ink whitespace-pre-line">{sharedNote}</div>
                 {activity?.type === 'goal_completed' && activityTime && (
                   <div className="mt-2 text-xs text-gray-500">Completed {formatTimeAgo(activityTime)}</div>
                 )}
               </div>
             )}
             {!hasNote && activity?.type === 'goal_completed' && activityTime && (
-              <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-800 text-xs text-gray-500">
+              <div className="px-4 py-3 border-t border-gray-200 dark:border-line text-xs text-gray-500">
                 Completed {formatTimeAgo(activityTime)}
               </div>
             )}

@@ -39,7 +39,7 @@ export default function WebPushSettings() {
     try {
       const result = await requestNotificationPermission();
       setPermissionStatus(result || 'denied');
-      
+
       if (result === 'granted') {
         // Notification permission granted, the app will automatically register the token
       }
@@ -93,14 +93,14 @@ export default function WebPushSettings() {
       `Chrome/Edge: Settings → Privacy and security → Site Settings → Notifications → ${window.location.origin}\n\n` +
       `Firefox: Settings → Privacy & Security → Permissions → Notifications → Settings → ${window.location.origin}\n\n` +
       `Safari: Preferences → Websites → Notifications → ${window.location.origin}`;
-    
+
     alert(message);
   };
 
   if (isChecking) {
     return (
       <div className="animate-pulse">
-        <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+        <div className="h-20 bg-gray-200 dark:bg-elevated rounded-lg"></div>
       </div>
     );
   }
@@ -111,20 +111,20 @@ export default function WebPushSettings() {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+    <div className="bg-white dark:bg-surface rounded-lg p-4 shadow-sm border border-gray-200 dark:border-line">
       <div className="flex items-start gap-3">
         <div className="flex-shrink-0 mt-1">
           {getStatusIcon()}
         </div>
-        
+
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-medium text-gray-900 dark:text-white">
             {getStatusText()}
           </h3>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+          <p className="mt-1 text-sm text-gray-600 dark:text-muted">
             {getStatusDescription()}
           </p>
-          
+
           <div className="mt-3 flex gap-2">
             {permissionStatus === 'default' && (
               <button
@@ -145,16 +145,16 @@ export default function WebPushSettings() {
                 )}
               </button>
             )}
-            
+
             {permissionStatus === 'denied' && (
               <button
                 onClick={openBrowserSettings}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-muted bg-gray-100 dark:bg-elevated hover:bg-gray-200 dark:hover:bg-elevated rounded-lg transition-colors"
               >
                 Open Browser Settings
               </button>
             )}
-            
+
             {permissionStatus === 'granted' && (
               <div className="inline-flex items-center gap-2 px-4 py-2 text-sm text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 rounded-lg">
                 <CheckCircle className="w-4 h-4" />
@@ -164,7 +164,7 @@ export default function WebPushSettings() {
           </div>
         </div>
       </div>
-      
+
       {permissionStatus === 'granted' && (
         <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
           <p className="text-xs text-blue-800 dark:text-blue-300">

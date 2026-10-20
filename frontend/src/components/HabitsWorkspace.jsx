@@ -60,26 +60,26 @@ export default function HabitsWorkspace({ habits = [], stats = {}, selectedYear,
           <p className="mt-1 text-sm text-[#526392]">Small daily actions create big changes. Track your consistency and build lasting routines.</p>
         </div>
         <div className="flex items-center justify-end gap-2">
-          <label className="relative block"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#526392]"/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search habits..." className="w-40 rounded-lg border border-[#dce5f4] bg-white py-2 pl-9 pr-3 text-xs text-[#0b1746] outline-none focus:border-[#1683ed] lg:w-48 dark:border-gray-700 dark:bg-gray-800 dark:text-white"/></label>
+          <label className="relative block"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#526392]"/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search habits..." className="w-40 rounded-lg border border-[#dce5f4] bg-white py-2 pl-9 pr-3 text-xs text-[#0b1746] outline-none focus:border-[#1683ed] lg:w-48 dark:border-line dark:bg-surface dark:text-white"/></label>
           {[
             { key: 'category', label: category === 'all' ? 'Category' : getHabitCategory(category).label, value: category, setValue: setCategory, options: [['all', 'All categories'], ...HABIT_CATEGORIES.map(key => [key, getHabitCategory(key).label])] },
             { key: 'status', label: tab === 'all' ? 'Status' : tab.charAt(0).toUpperCase() + tab.slice(1), value: tab, setValue: setTab, options: [['all', `All habits (${counts.all})`], ['active', `Active (${counts.active})`], ['paused', `Paused (${counts.paused})`], ['completed', `Completed (${counts.completed})`]] },
             { key: 'frequency', label: frequency === 'all' ? 'Frequency' : frequency.charAt(0).toUpperCase() + frequency.slice(1), value: frequency, setValue: setFrequency, options: [['all', 'All frequencies'], ['daily', 'Daily'], ['custom', 'Custom']] },
           ].map(filter => <div key={filter.key} className="relative" data-habit-filter-dropdown>
-            <button type="button" aria-haspopup="listbox" data-filter-active={filter.value !== 'all'} aria-expanded={desktopFilterOpen === filter.key} onClick={() => setDesktopFilterOpen(open => open === filter.key ? null : filter.key)} className="flex items-center gap-1.5 rounded-lg border border-[#dce5f4] bg-white px-3 py-2 text-xs font-medium text-[#253663] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">{filter.label}<ChevronDown className={`h-3.5 w-3.5 transition-transform ${desktopFilterOpen === filter.key ? 'rotate-180' : ''}`}/></button>
-            {desktopFilterOpen === filter.key && <div role="listbox" className="absolute right-0 top-full z-30 mt-2 max-h-72 min-w-44 overflow-y-auto rounded-xl border border-[#dce5f4] bg-white p-1.5 shadow-xl dark:border-gray-700 dark:bg-gray-800">{filter.options.map(([value, label]) => <button key={value} type="button" role="option" aria-selected={filter.value === value} onClick={() => { filter.setValue(value); setDesktopFilterOpen(null) }} className={`block w-full whitespace-nowrap rounded-lg px-3 py-2 text-left text-xs transition-colors ${filter.value === value ? 'bg-blue-50 font-semibold text-[#1683ed] dark:bg-blue-950/40' : 'text-[#253663] hover:bg-slate-50 dark:text-gray-200 dark:hover:bg-gray-700'}`}>{label}</button>)}</div>}
+            <button type="button" aria-haspopup="listbox" data-filter-active={filter.value !== 'all'} aria-expanded={desktopFilterOpen === filter.key} onClick={() => setDesktopFilterOpen(open => open === filter.key ? null : filter.key)} className="flex items-center gap-1.5 rounded-lg border border-[#dce5f4] bg-white px-3 py-2 text-xs font-medium text-[#253663] dark:border-line dark:bg-surface dark:text-ink">{filter.label}<ChevronDown className={`h-3.5 w-3.5 transition-transform ${desktopFilterOpen === filter.key ? 'rotate-180' : ''}`}/></button>
+            {desktopFilterOpen === filter.key && <div role="listbox" className="absolute right-0 top-full z-30 mt-2 max-h-72 min-w-44 overflow-y-auto rounded-xl border border-[#dce5f4] bg-white p-1.5 shadow-xl dark:border-line dark:bg-surface">{filter.options.map(([value, label]) => <button key={value} type="button" role="option" aria-selected={filter.value === value} onClick={() => { filter.setValue(value); setDesktopFilterOpen(null) }} className={`block w-full whitespace-nowrap rounded-lg px-3 py-2 text-left text-xs transition-colors ${filter.value === value ? 'bg-blue-50 font-semibold text-[#1683ed] dark:bg-blue-950/40' : 'text-[#253663] hover:bg-slate-50 dark:text-ink dark:hover:bg-elevated'}`}>{label}</button>)}</div>}
           </div>)}
           <label className="sr-only" htmlFor="habit-year-filter">Habit year</label>
-          <select id="habit-year-filter" value={selectedYear} onChange={event => onYearChange?.(Number(event.target.value))} className="h-9 rounded-lg border border-[#dce5f4] bg-white px-3 text-xs font-semibold text-[#253663] outline-none focus:border-[#1683ed] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+          <select id="habit-year-filter" value={selectedYear} onChange={event => onYearChange?.(Number(event.target.value))} className="h-9 rounded-lg border border-[#dce5f4] bg-white px-3 text-xs font-semibold text-[#253663] outline-none focus:border-[#1683ed] dark:border-line dark:bg-surface dark:text-ink">
             {availableYears.map(year => <option key={year} value={year}>{year}</option>)}
           </select>
-          <button type="button" onClick={onDiscover} className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-[#dce5f4] bg-white px-3 text-xs font-semibold text-[#526392] transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-[#1683ed] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-blue-950/30"><Lightbulb className="h-4 w-4"/><span>Suggestions</span></button>
+          <button type="button" onClick={onDiscover} className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-[#dce5f4] bg-white px-3 text-xs font-semibold text-[#526392] transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-[#1683ed] dark:border-line dark:bg-surface dark:text-muted dark:hover:bg-blue-950/30"><Lightbulb className="h-4 w-4"/><span>Suggestions</span></button>
           <button type="button" className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#1683ed] px-4 py-2 text-xs font-semibold text-white shadow-sm" onClick={onCreate}><Plus className="h-4 w-4"/> Create Habit</button>
         </div>
       </header>
 
       <div className="mb-3 flex items-center justify-between sm:hidden">
-        <select aria-label="Habit year" value={selectedYear} onChange={event => onYearChange?.(Number(event.target.value))} className="h-9 rounded-lg border border-[#dce5f4] bg-white px-3 text-sm font-bold text-[#0b1746] outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white">
+        <select aria-label="Habit year" value={selectedYear} onChange={event => onYearChange?.(Number(event.target.value))} className="h-9 rounded-lg border border-[#dce5f4] bg-white px-3 text-sm font-bold text-[#0b1746] outline-none dark:border-line dark:bg-surface dark:text-white">
           {availableYears.map(year => <option key={year} value={year}>{year}</option>)}
         </select>
         <div className="flex items-center gap-2">
@@ -128,18 +128,18 @@ export default function HabitsWorkspace({ habits = [], stats = {}, selectedYear,
           const statusClass = habit.completedAt || progress >= 60
             ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300'
             : isPaused
-              ? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+              ? 'bg-gray-100 text-gray-600 dark:bg-elevated dark:text-muted'
               : 'bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300'
-          return <article key={id} role="button" tabIndex={0} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') onOpen?.(habit) }} className={`group relative cursor-pointer overflow-hidden rounded-xl border border-gray-200 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 ${isPaused ? 'opacity-70' : ''}`} onClick={() => onOpen?.(habit)}>
+          return <article key={id} role="button" tabIndex={0} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') onOpen?.(habit) }} className={`group relative cursor-pointer overflow-hidden rounded-xl border border-gray-200 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md dark:border-line dark:bg-surface ${isPaused ? 'opacity-70' : ''}`} onClick={() => onOpen?.(habit)}>
             <div className="min-w-0 flex-1 p-4">
               <div className="flex items-start gap-3">
                 <HabitCategoryIcon category={habit.category} size="lg"/>
                 <span className="min-w-0 flex-1"><h3 className="truncate text-sm font-bold text-[#0b1746] dark:text-white sm:text-base">{habit.name}</h3><span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: visual.accent }}>{visual.label} · {habit.year || new Date(habit.createdAt || Date.now()).getFullYear()}</span></span>
-                <button type="button" className="-mr-1 rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700" aria-label={`Actions for ${habit.name}`} onClick={e => { e.stopPropagation(); setMenuHabit(habit) }}><MoreVertical className="h-5 w-5"/></button>
+                <button type="button" className="-mr-1 rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-elevated" aria-label={`Actions for ${habit.name}`} onClick={e => { e.stopPropagation(); setMenuHabit(habit) }}><MoreVertical className="h-5 w-5"/></button>
               </div>
               <p className="mt-2 line-clamp-1 text-xs text-gray-500">{habit.description || 'Build consistency one day at a time'}</p>
               <div className="mt-2 flex items-center justify-between"><span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ${statusClass}`}>{status}</span><span className="text-xs font-bold text-[#0b1746] dark:text-white">{progress}% completion</span></div>
-              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[#e9eef5] dark:bg-gray-700"><div className="h-full rounded-full" style={{ width: `${progress}%`, background: visual.accent }}/></div>
+              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[#e9eef5] dark:bg-elevated"><div className="h-full rounded-full" style={{ width: `${progress}%`, background: visual.accent }}/></div>
               <div className="mt-3 flex items-center justify-between text-[11px] text-gray-500">
                 <span>Last 7 days</span>
               </div>
@@ -147,10 +147,10 @@ export default function HabitsWorkspace({ habits = [], stats = {}, selectedYear,
           </article>
         })}
       </div>
-      {!visible.length && <div className="col-span-full rounded-2xl border border-dashed border-gray-300 bg-white px-5 py-12 text-center dark:border-gray-700 dark:bg-gray-800"><Sparkles className="mx-auto h-9 w-9 text-blue-300"/><h3 className="mt-3 font-bold text-gray-900 dark:text-white">No habits found</h3><p className="mt-1 text-sm text-gray-500">Adjust your filters or create a new habit.</p><button type="button" onClick={onCreate} className="mt-4 rounded-lg bg-[#1683ed] px-4 py-2 text-sm font-semibold text-white">Create Habit</button></div>}
+      {!visible.length && <div className="col-span-full rounded-2xl border border-dashed border-gray-300 bg-white px-5 py-12 text-center dark:border-line dark:bg-surface"><Sparkles className="mx-auto h-9 w-9 text-blue-300"/><h3 className="mt-3 font-bold text-gray-900 dark:text-white">No habits found</h3><p className="mt-1 text-sm text-gray-500">Adjust your filters or create a new habit.</p><button type="button" onClick={onCreate} className="mt-4 rounded-lg bg-[#1683ed] px-4 py-2 text-sm font-semibold text-white">Create Habit</button></div>}
       {menuHabit && (() => { return <div className="habit-actions-sheet fixed inset-0 z-[206] flex items-end justify-center sm:items-center sm:p-4">
         <button type="button" aria-label="Close habit actions" onClick={() => setMenuHabit(null)} className="absolute inset-0 bg-black/40" />
-        <div className="relative w-full rounded-t-3xl bg-white p-5 shadow-2xl dark:bg-gray-900 sm:max-w-md sm:rounded-2xl">
+        <div className="relative w-full rounded-t-3xl bg-white p-5 shadow-2xl dark:bg-canvas sm:max-w-md sm:rounded-2xl">
           <div className="mb-4 flex items-center gap-3"><HabitCategoryIcon category={menuHabit.category} size="lg"/><div className="min-w-0"><h2 className="truncate text-base font-bold text-gray-900 dark:text-white">{menuHabit.name}</h2><p className="text-xs text-gray-500">{getHabitCategory(menuHabit.category).label} · Quick actions</p></div></div>
           <div className="space-y-1">
             <button type="button" onClick={() => { onLog?.({ ...menuHabit, _openLog: true }); setMenuHabit(null) }} className="habit-sheet-action"><CheckCircle2/> Log Habit</button>
@@ -160,7 +160,7 @@ export default function HabitsWorkspace({ habits = [], stats = {}, selectedYear,
             <button type="button" onClick={() => { onCreate?.(menuHabit); setMenuHabit(null) }} className="habit-sheet-action"><Copy/> Duplicate Habit</button>
             <button type="button" onClick={() => { onDelete?.(menuHabit); setMenuHabit(null) }} className="habit-sheet-action danger"><Trash2/> Delete Habit</button>
           </div>
-          <button type="button" onClick={() => setMenuHabit(null)} className="mt-4 w-full rounded-xl bg-gray-100 px-4 py-3 text-sm font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">Cancel</button>
+          <button type="button" onClick={() => setMenuHabit(null)} className="mt-4 w-full rounded-xl bg-gray-100 px-4 py-3 text-sm font-semibold text-gray-600 dark:bg-surface dark:text-muted">Cancel</button>
         </div>
       </div> })()}
     </section>

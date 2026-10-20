@@ -22,10 +22,10 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
   const [completionDate, setCompletionDate] = useState('')
   const { loading } = useApiStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
+
   // Allow user to change isPublic flag during completion
   const [isPublic, setIsPublic] = useState(goal?.isPublic ?? true)
-  
+
   // Update state when existingData changes
   useEffect(() => {
     if (isEditMode && existingData) {
@@ -113,7 +113,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
       form.append('isPublic', String(isPublic))
       form.append('completionFeeling', completionFeeling)
       if (completionDate) form.append('completionDate', completionDate)
-      
+
       // Handle image update logic
       if (attachmentFile) {
         // New file uploaded
@@ -139,7 +139,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
         setAttachmentPreview('')
         setExistingAttachmentUrl('')
         setRemoveExistingImage(false)
-        
+
         if (!isEditMode) {
           setSavedGoal(result.goal || goal)
           setShowCelebration(true)
@@ -218,7 +218,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-white dark:bg-gray-900 p-6 rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto scrollbar-hide relative shadow-2xl border border-gray-200 dark:border-gray-800"
+        className="bg-white dark:bg-canvas p-6 rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto scrollbar-hide relative shadow-2xl border border-gray-200 dark:border-line"
         onClick={(e) => e.stopPropagation()}
         style={{ zIndex: 10000, fontFamily: 'Manrope' }}
       >
@@ -234,7 +234,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
           </div>
           <button
             onClick={handleClose}
-            className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-400"
+            className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-elevated transition-colors text-gray-600 dark:text-muted"
           >
             <X className="h-5 w-5" />
           </button>
@@ -242,7 +242,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
 
         {/* Goal Title - Current Goal Section */}
         <div className="mb-6 p-4 rounded-xl" style={{ backgroundColor: `${THEME_COLOR}10`, border: `1px solid ${THEME_COLOR}30` }}>
-          <div className="text-xs text-gray-600 dark:text-gray-400 mb-2 font-semibold" style={{ fontFamily: 'Manrope' }}>CURRENT GOAL</div>
+          <div className="text-xs text-gray-600 dark:text-muted mb-2 font-semibold" style={{ fontFamily: 'Manrope' }}>CURRENT GOAL</div>
           <h3 className="text-base font-bold text-gray-900 dark:text-white break-anywhere line-clamp-2" style={{ fontFamily: 'Manrope' }}>
             "{goalTitle}"
           </h3>
@@ -252,7 +252,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* What did you achieve */}
           <div>
-            <label htmlFor="completionNote" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" style={{ fontFamily: 'Manrope' }}>
+            <label htmlFor="completionNote" className="block text-sm font-medium text-gray-700 dark:text-muted mb-2" style={{ fontFamily: 'Manrope' }}>
               What did you achieve?
             </label>
             <textarea
@@ -260,20 +260,20 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
               value={completionNote}
               onChange={(e) => setCompletionNote(e.target.value)}
               placeholder="Describe your progress..."
-              className="w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 bg-white dark:bg-gray-800 dark:text-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400 resize-none transition-colors border-gray-300 dark:border-gray-700"
+              className="w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 bg-white dark:bg-surface dark:text-white text-gray-900 placeholder-gray-500 dark:placeholder-gray-400 resize-none transition-colors border-gray-300 dark:border-line"
               style={{ fontFamily: 'Manrope', borderColor: THEME_COLOR + '4d' }}
               rows={4}
               maxLength={MAX_NOTE_CHARS}
             />
             <div className="flex items-center justify-end mt-2 text-xs" style={{ fontFamily: 'Manrope' }}>
-              <span className="text-gray-500 dark:text-gray-400">
+              <span className="text-gray-500 dark:text-muted">
                 {charCount}/{MAX_NOTE_CHARS} chars
               </span>
             </div>
           </div>
 
           <div>
-            <label htmlFor="completionDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" style={{ fontFamily: 'Manrope' }}>
+            <label htmlFor="completionDate" className="block text-sm font-medium text-gray-700 dark:text-muted mb-2" style={{ fontFamily: 'Manrope' }}>
               Completion date <span className="text-gray-500 text-xs">(optional)</span>
             </label>
             <input
@@ -282,17 +282,17 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
               value={completionDate}
               max={getCurrentDateKey()}
               onChange={(e) => setCompletionDate(e.target.value)}
-              className="w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 bg-white dark:bg-gray-800 dark:text-white text-gray-900 transition-colors border-gray-300 dark:border-gray-700"
+              className="w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-primary-500/20 bg-white dark:bg-surface dark:text-white text-gray-900 transition-colors border-gray-300 dark:border-line"
               style={{ fontFamily: 'Manrope', borderColor: THEME_COLOR + '4d' }}
             />
-            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            <p className="mt-2 text-xs text-gray-500 dark:text-muted">
               {isEditMode ? 'Change this to correct when you completed the goal.' : 'Leave blank to use today in your timezone.'}
             </p>
           </div>
 
           {/* How did it feel */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3" style={{ fontFamily: 'Manrope' }}>
+            <label className="block text-sm font-medium text-gray-700 dark:text-muted mb-3" style={{ fontFamily: 'Manrope' }}>
               How did it feel?
             </label>
             <div className="space-y-3">
@@ -332,10 +332,10 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
                   style={{ accentColor: THEME_COLOR }}
                 />
               </div>
-              
+
               <div className="text-center">
                 <div className="flex items-center justify-center gap-2 mb-1">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize" style={{ fontFamily: 'Manrope' }}>
+                  <span className="text-sm font-medium text-gray-700 dark:text-muted capitalize" style={{ fontFamily: 'Manrope' }}>
                     {completionFeeling}
                   </span>
                 </div>
@@ -345,18 +345,18 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
 
           {/* Visual progress */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" style={{ fontFamily: 'Manrope' }}>
+            <label className="block text-sm font-medium text-gray-700 dark:text-muted mb-2" style={{ fontFamily: 'Manrope' }}>
               Visual progress <span className="text-gray-500 text-xs">(optional)</span>
             </label>
-            <label className="flex items-center gap-3 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-gray-300 dark:border-gray-700" style={{ fontFamily: 'Manrope' }}>
+            <label className="flex items-center gap-3 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-gray-300 dark:border-line" style={{ fontFamily: 'Manrope' }}>
               <ImageIcon className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-700 dark:text-gray-300">{attachmentFile ? attachmentFile.name : 'Choose JPG/PNG (max 1 MB)'}</span>
+              <span className="text-sm text-gray-700 dark:text-muted">{attachmentFile ? attachmentFile.name : 'Choose JPG/PNG (max 1 MB)'}</span>
               <input type="file" accept="image/png, image/jpeg, image/jpg, image/webp" onChange={handleFileChange} className="hidden" />
             </label>
             {attachmentPreview && (
               <div className="relative inline-block mt-3">
-                <img src={attachmentPreview} alt="Attachment preview" width="96" height="96" className="w-24 h-24 object-cover rounded-lg border border-gray-200 dark:border-gray-700" />
-                <button type="button" onClick={removeAttachment} className="absolute -top-2 -right-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full p-1 shadow hover:bg-gray-50">
+                <img src={attachmentPreview} alt="Attachment preview" width="96" height="96" className="w-24 h-24 object-cover rounded-lg border border-gray-200 dark:border-line" />
+                <button type="button" onClick={removeAttachment} className="absolute -top-2 -right-2 bg-white dark:bg-surface border border-gray-200 dark:border-line rounded-full p-1 shadow hover:bg-gray-50">
                   <X className="h-3 w-3 text-gray-600" />
                 </button>
               </div>
@@ -408,7 +408,7 @@ const CompletionModal = ({ isOpen, onClose, onComplete, goalTitle, goal, isEditM
             <button
               type="button"
               onClick={handleClose}
-              className="flex-1 py-3 px-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium"
+              className="flex-1 py-3 px-4 border-2 border-gray-300 dark:border-line text-gray-700 dark:text-muted rounded-xl hover:bg-gray-100 dark:hover:bg-elevated transition-colors font-medium"
               style={{ fontFamily: 'Manrope' }}
               disabled={isSubmitting || loading}
             >

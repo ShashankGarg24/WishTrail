@@ -1,5 +1,5 @@
 import PillTabs from '../components/PillTabs'
-﻿import { GOAL_CATEGORIES } from '../constants/goalCategories'
+import { GOAL_CATEGORIES } from '../constants/goalCategories'
 import { useState, useEffect, useRef, useMemo, lazy, Suspense } from "react";
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Target, TrendingUp, Star, Edit2, ExternalLink, Youtube, Instagram, MapPin, Globe, Trophy, BookOpen, Clock, CheckCircle, Circle, User, UserPlus, UserCheck, Lock, Download, Flame, Award, BarChart2, Activity, MoreVertical, Plus, Camera, CalendarDays, BadgeCheck, Search, SlidersHorizontal, ChevronRight, ChevronLeft, Home, Compass, Users, Newspaper, Settings } from "lucide-react";
@@ -28,7 +28,7 @@ const GoalPostModal = lazy(() => import('../components/GoalPostModal'));
 const DAILY_LOG_MOOD_META = {
   happy: { label: 'Happy', score: 5, chip: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
   motivated: { label: 'Motivated', score: 4, chip: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
-  okay: { label: 'Okay', score: 3, chip: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300' },
+  okay: { label: 'Okay', score: 3, chip: 'bg-gray-100 text-gray-700 dark:bg-elevated dark:text-muted' },
   stressed: { label: 'Stressed', score: 2, chip: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' },
   angry: { label: 'Angry', score: 1.5, chip: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' },
   sad: { label: 'Sad', score: 1, chip: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300' }
@@ -43,7 +43,7 @@ const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [userGoals, setUserGoals] = useState([]);
   const [profileUser, setProfileUser] = useState(null);
-  
+
   // Pagination for goals
   const GOALS_PER_PAGE = 10;
   const PROGRESS_GOALS_PER_PAGE = 6;
@@ -69,7 +69,7 @@ const ProfilePage = () => {
   const [loadingMoreFollows, setLoadingMoreFollows] = useState(false);
   const [quoteModalOpen, setQuoteModalOpen] = useState(false);
   const [metricInfo, setMetricInfo] = useState(null);
-  
+
   const FOLLOW_LIMIT = 20;
 
   const {
@@ -253,7 +253,7 @@ const ProfilePage = () => {
     const loadTabContent = async () => {
       try {
         const targetUsername = isOwnProfile ? currentUser?.username : profileUser?.username;
-        
+
         if (!targetUsername) {
           return;
         }
@@ -289,10 +289,10 @@ const ProfilePage = () => {
           if (isOwnProfile || (canViewContent && profileUser?.showGoals !== false)) {
             try {
               const targetUsername = isOwnProfile ? currentUser?.username : profileUser?.username;
-              const goalsResult = isOwnProfile 
+              const goalsResult = isOwnProfile
                 ? await getGoals({ page: 1, limit: GOALS_PER_PAGE })
                 : await getUserGoals(targetUsername, { page: 1, limit: GOALS_PER_PAGE });
-              
+
               if (goalsResult.success) {
                 setUserGoals(goalsResult.goals || []);
                 const totalPages = goalsResult.pagination?.pages || 1;
@@ -328,18 +328,18 @@ const ProfilePage = () => {
   }, [activeTab, isOwnProfile, profileUser?.username, profileUser?.isPrivate, profileUser?.showGoals, profileUser?.showHabits, isFollowing, currentUser?.id, currentUser?.username]);
 
   useEffect(() => {
-    
+
     // Load DailyLogs when tab opens
     const fetchDailyLogs = async () => {
       try {
-        
+
         if ((activeTab === 'daily-logs' || activeTab === 'overview') && isOwnProfile && currentUser?.username) {
           // Reset feed and load first page (own profile only)
           setDailyLogsFeed([]);
           setDailyLogsSkip(0);
           setDailyLogsHasMore(true);
           setDailyLogsLoading(true);
-          
+
           try {
             const params = { limit: DAILY_LOGS_LIMIT, skip: 0 };
             const res = await dailyLogssAPI.getMyEntries(params);
@@ -528,7 +528,7 @@ const ProfilePage = () => {
     try {
       // Only load goals initially, analytics will be loaded when tabs are viewed
       const goalsResult = await getGoals({ page: 1, limit: GOALS_PER_PAGE });
-      
+
       if (goalsResult.success) {
         setUserGoals(goalsResult.goals || []);
         const totalPages = goalsResult.pagination?.pages || 1;
@@ -544,13 +544,13 @@ const ProfilePage = () => {
   const fetchUserHabits = async () => {
     const targetUserName = isOwnProfile ? currentUser?.username : profileUser?.username;
     if (!targetUserName) return;
-    
+
     try {
       const today = getDateKeyInTimezone(new Date());
-      const params = isOwnProfile 
+      const params = isOwnProfile
         ? { page: 1, limit: HABITS_PER_PAGE, today }
         : { username: targetUserName, page: 1, limit: HABITS_PER_PAGE, today };
-        
+
       const [result, historyResult] = await Promise.all([
         habitsAPI.list(params),
         habitsAPI.list({ ...params, limit: 5, sort: 'recent_logged' })
@@ -604,7 +604,7 @@ const ProfilePage = () => {
         setUserStats(userResult.stats);
         setIsFollowing(userResult.isFollowing);
         setIsRequested(!!userResult.isRequested);
-        
+
         // Load goals initially if profile is public or following
         const canViewContent = !userResult.user.isPrivate || userResult.isFollowing;
         if (canViewContent && userResult.user.showGoals !== false) {
@@ -635,7 +635,7 @@ const ProfilePage = () => {
     const wasRequested = isRequested;
     const wasFollowing = isFollowing;
     const isPrivate = profileUser?.isPrivate;
-    
+
     // Update UI immediately (optimistic)
     if (isPrivate) {
       setIsRequested(true);
@@ -690,7 +690,7 @@ const ProfilePage = () => {
   const handleUnfollow = async () => {
     // Store previous state for rollback
     const wasFollowing = isFollowing;
-    
+
     // Update UI immediately (optimistic)
     setIsFollowing(false);
     setUserStats(prev => ({
@@ -753,10 +753,10 @@ const ProfilePage = () => {
     setLoadingMoreGoals(true);
     try {
       const nextPage = goalsPage + 1;
-      const result = isOwnProfile 
+      const result = isOwnProfile
         ? await getGoals({ page: nextPage, limit: GOALS_PER_PAGE })
         : await getUserGoals(profileUser.username, { page: nextPage, limit: GOALS_PER_PAGE });
-      
+
       if (result.success) {
         setUserGoals(prev => [...prev, ...(result.goals || [])]);
         setGoalsPage(nextPage);
@@ -839,10 +839,10 @@ const ProfilePage = () => {
 
   if (loading || isTabLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center" style={{ fontFamily: 'Manrope, sans-serif' }}>
+      <div className="min-h-screen bg-gray-50 dark:bg-canvas flex items-center justify-center" style={{ fontFamily: 'Manrope, sans-serif' }}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4c99e6] mx-auto mb-4"></div>
-          <p className="text-gray-500 dark:text-gray-400">Loading profile...</p>
+          <p className="text-gray-500 dark:text-muted">Loading profile...</p>
         </div>
       </div>
     );
@@ -850,10 +850,10 @@ const ProfilePage = () => {
 
   if (!isOwnProfile && !profileUser) {
     return (
-      <div className="min-h-screen bg-[#f5f5f5] dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-[#f5f5f5] dark:bg-canvas flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">User Not Found</h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-8">The user you are looking for does not exist.</p>
+          <p className="text-gray-600 dark:text-muted mb-8">The user you are looking for does not exist.</p>
           <button
             onClick={() => navigate('/discover')}
             className="px-6 py-3 bg-[#4c99e6] hover:bg-[#3d88d5] text-white rounded-xl transition-all duration-200 font-medium shadow-lg hover:shadow-xl hover:scale-105"
@@ -869,13 +869,13 @@ const ProfilePage = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600 dark:text-gray-400">Please sign in to view your profile</p>
+          <p className="text-gray-600 dark:text-muted">Please sign in to view your profile</p>
         </div>
       </div>
     );
   }
 
-  const backgroundClass = "min-h-screen bg-[#f6f9fd] dark:bg-gray-900";
+  const backgroundClass = "min-h-screen bg-[#f6f9fd] dark:bg-canvas";
   const containerClass = "max-w-[1320px]";
 
   const canShowProfileGoals = isOwnProfile || profileUser?.showGoals !== false;
@@ -942,7 +942,7 @@ const ProfilePage = () => {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="wt-profile-hero relative mb-3 overflow-hidden bg-white shadow-sm sm:rounded-2xl sm:border sm:border-slate-200 dark:bg-gray-800 dark:sm:border-gray-700"
+          className="wt-profile-hero relative mb-3 overflow-hidden bg-white shadow-sm sm:rounded-2xl sm:border sm:border-slate-200 dark:bg-surface dark:sm:border-gray-700"
         >
           <div className="wt-profile-cover relative h-28 overflow-hidden bg-slate-800 sm:h-44">
             <img src={displayUser.coverImage || displayUser.coverPhoto || '/images/profile-mountain-cover.png'} alt="Mountain sunrise profile cover" className="absolute inset-0 h-full w-full object-cover" />
@@ -960,7 +960,7 @@ const ProfilePage = () => {
             <button
               data-profile-menu-btn="true"
               onClick={() => setProfileMenuOpen((v) => !v)}
-              className="absolute right-3 top-8 z-10 rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 md:hidden"
+              className="absolute right-3 top-8 z-10 rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-elevated md:hidden"
               aria-label="More options"
             >
               <MoreVertical className="h-4 w-4" />
@@ -972,19 +972,19 @@ const ProfilePage = () => {
                 alt={displayUser.name}
                 width="96"
                 height="96"
-                className="h-24 w-24 rounded-full border-4 border-white bg-slate-100 object-cover shadow-md dark:border-gray-800 sm:h-32 sm:w-32"
+                className="h-24 w-24 rounded-full border-4 border-white bg-slate-100 object-cover shadow-md dark:border-line sm:h-32 sm:w-32"
               />
               {displayUser.currentMood && (
                 <button
                   onClick={() => setQuoteModalOpen(true)}
-                  className="absolute bottom-1 right-1 grid h-9 w-9 translate-x-1/4 translate-y-1/4 place-items-center rounded-full border-[3px] border-white bg-blue-50 text-blue-600 shadow-md transition hover:scale-110 dark:border-gray-800 dark:bg-gray-700 sm:h-10 sm:w-10"
+                  className="absolute bottom-1 right-1 grid h-9 w-9 translate-x-1/4 translate-y-1/4 place-items-center rounded-full border-[3px] border-white bg-blue-50 text-blue-600 shadow-md transition hover:scale-110 dark:border-line dark:bg-elevated sm:h-10 sm:w-10"
                   title={displayUser.quote ? "View mood & quote" : "Current mood"}
                 >
                   <span className="text-sm leading-none sm:text-base">{displayUser.currentMood}</span>
                 </button>
               )}
               {isOwnProfile && !displayUser.currentMood && (
-                <button type="button" onClick={() => navigate('/settings?section=personal-info')} className="absolute bottom-1 right-1 rounded-full border-2 border-white bg-blue-50 p-1.5 text-blue-600 shadow-md dark:border-gray-800 dark:bg-gray-700" aria-label="Change profile photo"><Camera className="h-4 w-4" /></button>
+                <button type="button" onClick={() => navigate('/settings?section=personal-info')} className="absolute bottom-1 right-1 rounded-full border-2 border-white bg-blue-50 p-1.5 text-blue-600 shadow-md dark:border-line dark:bg-elevated" aria-label="Change profile photo"><Camera className="h-4 w-4" /></button>
               )}
             </div>
 
@@ -993,16 +993,16 @@ const ProfilePage = () => {
                 <h1 className="truncate text-2xl font-extrabold tracking-tight text-slate-950 dark:text-white sm:text-3xl">{displayUser.name}</h1>
                 {displayUser.username === "wishtrail" && <BadgeCheck className="h-5 w-5 shrink-0 fill-blue-500 text-white" />}
               </div>
-              <p className="text-sm font-medium text-slate-500 dark:text-gray-400">@{displayUser.username}</p>
-              {displayUser.bio && <p className="wt-profile-inline-detail mt-2 max-w-xl text-sm font-medium leading-relaxed text-slate-700 dark:text-gray-300">{displayUser.bio}</p>}
-              <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-slate-500 dark:text-gray-400">
+              <p className="text-sm font-medium text-slate-500 dark:text-muted">@{displayUser.username}</p>
+              {displayUser.bio && <p className="wt-profile-inline-detail mt-2 max-w-xl text-sm font-medium leading-relaxed text-slate-700 dark:text-muted">{displayUser.bio}</p>}
+              <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-slate-500 dark:text-muted">
                 {displayUser.location && <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{displayUser.location}</span>}
                 {displayUser.createdAt && <span className="inline-flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" />Joined {new Date(displayUser.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>}
               </div>
-              {(displayUser.interests || []).length > 0 && <div className="wt-profile-inline-detail mt-3 flex flex-wrap gap-2">{displayUser.interests.slice(0, 6).map((interest) => <span key={interest} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-gray-700 dark:text-gray-200">{interest}</span>)}</div>}
+              {(displayUser.interests || []).length > 0 && <div className="wt-profile-inline-detail mt-3 flex flex-wrap gap-2">{displayUser.interests.slice(0, 6).map((interest) => <span key={interest} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-elevated dark:text-ink">{interest}</span>)}</div>}
             </div>
 
-            <div className="wt-profile-stats mt-4 grid grid-cols-3 gap-2 border-y border-slate-100 py-3 dark:border-gray-700 sm:static sm:w-full sm:py-3">
+            <div className="wt-profile-stats mt-4 grid grid-cols-3 gap-2 border-y border-slate-100 py-3 dark:border-line sm:static sm:w-full sm:py-3">
                 <button
                   className="text-center"
                   onClick={() => {
@@ -1015,7 +1015,7 @@ const ProfilePage = () => {
                   <div className="text-lg font-extrabold text-gray-900 dark:text-white">
                     {canShowProfileGoals ? (isOwnProfile ? (displayUser.totalGoals ?? 0) : (userStats?.totalGoals ?? 0)) : '—'}
                   </div>
-                  <div className="text-[11px] text-gray-500 dark:text-gray-400">Goals</div>
+                  <div className="text-[11px] text-gray-500 dark:text-muted">Goals</div>
                 </button>
                 <button
                   className="text-center"
@@ -1038,7 +1038,7 @@ const ProfilePage = () => {
                   <div className="text-lg font-extrabold text-gray-900 dark:text-white">
                     {formatStatNumber(isOwnProfile ? (displayUser.followerCount ?? 0) : (userStats?.followers ?? 0))}
                   </div>
-                  <div className="text-[11px] text-gray-500 dark:text-gray-400">Followers</div>
+                  <div className="text-[11px] text-gray-500 dark:text-muted">Followers</div>
                 </button>
                 <button
                   className="text-center"
@@ -1061,12 +1061,12 @@ const ProfilePage = () => {
                   <div className="text-lg font-extrabold text-gray-900 dark:text-white">
                     {isOwnProfile ? (displayUser.followingCount ?? 0) : (userStats?.followings ?? 0)}
                   </div>
-                  <div className="text-[11px] text-gray-500 dark:text-gray-400">Following</div>
+                  <div className="text-[11px] text-gray-500 dark:text-muted">Following</div>
                 </button>
             </div>
             <div className="wt-profile-actions mt-3 flex items-center gap-3 sm:ml-0 sm:mt-4">
               {(displayUser.website || displayUser.youtube || displayUser.instagram) && (
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-sm text-gray-500 dark:text-gray-400">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-sm text-gray-500 dark:text-muted">
                   {displayUser.website && (
                     <a href={formatUrl(displayUser.website)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:opacity-80"><Globe className="h-4 w-4 sm:h-5 sm:w-5" /></a>
                   )}
@@ -1079,16 +1079,16 @@ const ProfilePage = () => {
                 </div>
               )}
 
-              {isOwnProfile && <button type="button" onClick={() => navigate('/settings?section=personal-info')} className="wt-edit-profile ml-auto flex-1 rounded-lg bg-slate-100 px-4 py-2 text-sm font-bold text-blue-600 hover:bg-blue-50 dark:bg-gray-700 dark:text-blue-300 sm:max-w-[130px]">Edit Profile</button>}
+              {isOwnProfile && <button type="button" onClick={() => navigate('/settings?section=personal-info')} className="wt-edit-profile ml-auto flex-1 rounded-lg bg-slate-100 px-4 py-2 text-sm font-bold text-blue-600 hover:bg-blue-50 dark:bg-elevated dark:text-blue-300 sm:max-w-[130px]">Edit Profile</button>}
               {!isOwnProfile && isAuthenticated && (
                 <div className="ml-auto hidden flex-1 md:flex md:max-w-[130px]">
                   {isFollowing ? (
-                    <button type="button" onClick={handleUnfollow} className="w-full whitespace-nowrap rounded-lg bg-gray-100 px-4 py-2 text-sm font-bold text-gray-800 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                    <button type="button" onClick={handleUnfollow} className="w-full whitespace-nowrap rounded-lg bg-gray-100 px-4 py-2 text-sm font-bold text-gray-800 transition-colors hover:bg-gray-200 dark:bg-elevated dark:text-ink dark:hover:bg-elevated">
                       <UserCheck className="mr-1.5 inline h-4 w-4" />
                       Following
                     </button>
                   ) : isRequested ? (
-                    <button type="button" onClick={handleCancelRequest} className="w-full whitespace-nowrap rounded-lg bg-gray-100 px-4 py-2 text-sm font-bold text-gray-800 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                    <button type="button" onClick={handleCancelRequest} className="w-full whitespace-nowrap rounded-lg bg-gray-100 px-4 py-2 text-sm font-bold text-gray-800 transition-colors hover:bg-gray-200 dark:bg-elevated dark:text-ink dark:hover:bg-elevated">
                       <UserCheck className="mr-1.5 inline h-4 w-4" />
                       Requested
                     </button>
@@ -1105,7 +1105,7 @@ const ProfilePage = () => {
                   {isFollowing ? (
                     <button
                       onClick={handleUnfollow}
-                      className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium text-xs sm:text-sm transition-colors"
+                      className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-gray-100 dark:bg-elevated hover:bg-gray-200 dark:hover:bg-elevated text-gray-800 dark:text-ink font-medium text-xs sm:text-sm transition-colors"
                     >
                       <UserCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 inline mr-1 sm:mr-1.5" />
                       Following
@@ -1113,7 +1113,7 @@ const ProfilePage = () => {
                   ) : isRequested ? (
                     <button
                       onClick={handleCancelRequest}
-                      className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium text-xs sm:text-sm transition-colors"
+                      className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-gray-100 dark:bg-elevated hover:bg-gray-200 dark:hover:bg-elevated text-gray-800 dark:text-ink font-medium text-xs sm:text-sm transition-colors"
                     >
                       <UserCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 inline mr-1 sm:mr-1.5" />
                       Requested
@@ -1219,12 +1219,12 @@ const ProfilePage = () => {
           >
             <div className="max-w-md mx-auto">
               <div className="bg-gray-100 dark:bg-gray-700/50 rounded-full p-6 w-24 h-24 mx-auto mb-6 flex items-center justify-center">
-                <Lock className="h-12 w-12 text-gray-600 dark:text-gray-400" />
+                <Lock className="h-12 w-12 text-gray-600 dark:text-muted" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
                 This Profile is Private
               </h2>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
+              <p className="text-gray-600 dark:text-muted mb-6">
                 {displayUser.name} has chosen to keep their profile private.
                 {isAuthenticated
                   ? " Follow them to see their activities and goals."
@@ -1268,11 +1268,11 @@ const ProfilePage = () => {
                         : `${completedGoals} of ${totalGoals} goals completed.`;
                       return <>
                         <div className="flex items-center gap-4">
-                          <div className="relative grid h-20 w-20 shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(#1683ed ${goalProgress}%, #dcecff 0)` }}><div className="grid h-16 w-16 place-items-center rounded-full bg-white text-xl font-extrabold text-slate-950 dark:bg-gray-800 dark:text-white">{goalProgress}%</div></div>
+                          <div className="relative grid h-20 w-20 shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(#1683ed ${goalProgress}%, #dcecff 0)` }}><div className="grid h-16 w-16 place-items-center rounded-full bg-white text-xl font-extrabold text-slate-950 dark:bg-surface dark:text-white">{goalProgress}%</div></div>
                           <div><h2 className="text-base font-extrabold text-slate-950 dark:text-white">Your Progress</h2><span className="mt-1 inline-flex rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold text-emerald-700">{progressLabel}</span><p className="mt-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">{progressMessage}</p></div>
                         </div>
                         <div className="mt-4 grid grid-cols-4 gap-2">
-                          {[[activeGoals, 'Active Goals'], [completedGoals, 'Completed'], [habitCompletions, 'Habit Completions'], [activeDays, 'Active Days']].map(([value, label]) => <button type="button" key={label} onClick={() => label.includes('Goal') || label === 'Completed' ? handleTabChange('goals') : handleTabChange('habits')} className="rounded-lg border border-white/80 bg-white/80 px-2 py-3 text-center dark:border-gray-700 dark:bg-gray-800/80"><strong className="block text-base font-extrabold text-slate-950 dark:text-white">{value}</strong><span className="mt-1 block text-[9px] font-medium leading-tight text-slate-500">{label}</span></button>)}
+                          {[[activeGoals, 'Active Goals'], [completedGoals, 'Completed'], [habitCompletions, 'Habit Completions'], [activeDays, 'Active Days']].map(([value, label]) => <button type="button" key={label} onClick={() => label.includes('Goal') || label === 'Completed' ? handleTabChange('goals') : handleTabChange('habits')} className="rounded-lg border border-white/80 bg-white/80 px-2 py-3 text-center dark:border-line dark:bg-gray-800/80"><strong className="block text-base font-extrabold text-slate-950 dark:text-white">{value}</strong><span className="mt-1 block text-[9px] font-medium leading-tight text-slate-500">{label}</span></button>)}
                         </div>
                       </>;
                     })()}
@@ -1285,10 +1285,10 @@ const ProfilePage = () => {
                     const pct = total ? Math.round((completed / total) * 100) : 0;
                     const completedPct = total ? (completed / total) * 100 : 0;
                     const progressPct = total ? (inProgress / total) * 100 : 0;
-                    return <section className="rounded-xl border border-[#dce5f4] bg-white p-4 shadow-[0_1px_4px_rgba(30,58,100,.035)] dark:border-gray-700 dark:bg-gray-800">
+                    return <section className="rounded-xl border border-[#dce5f4] bg-white p-4 shadow-[0_1px_4px_rgba(30,58,100,.035)] dark:border-line dark:bg-surface">
                       <div className="flex items-center justify-between"><h3 className="flex items-center gap-2 text-sm font-extrabold text-[#0b1746] dark:text-white"><span className="grid h-5 w-5 place-items-center rounded-md bg-rose-50 text-rose-500"><Target className="h-3.5 w-3.5" /></span>Goals Progress</h3><button type="button" onClick={() => handleTabChange('goals')} className="text-[11px] font-bold text-[#087cec]">See all</button></div>
                       <div className="mt-3 flex items-center justify-center gap-4">
-                        <div className="grid h-[78px] w-[78px] shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(#0bb978 0 ${completedPct}%, #1683ed ${completedPct}% ${completedPct + progressPct}%, #dce5ef ${completedPct + progressPct}% 100%)` }}><div className="grid h-[60px] w-[60px] place-items-center rounded-full bg-white text-lg font-extrabold text-[#0b1746] dark:bg-gray-800 dark:text-white">{pct}%</div></div>
+                        <div className="grid h-[78px] w-[78px] shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(#0bb978 0 ${completedPct}%, #1683ed ${completedPct}% ${completedPct + progressPct}%, #dce5ef ${completedPct + progressPct}% 100%)` }}><div className="grid h-[60px] w-[60px] place-items-center rounded-full bg-white text-lg font-extrabold text-[#0b1746] dark:bg-surface dark:text-white">{pct}%</div></div>
                         <div><p className="text-lg font-extrabold text-[#0b1746] dark:text-white">{completed} / {total} goals</p><p className="mt-1 text-xs text-[#63739c]">{total ? `${inProgress} currently in progress` : 'No goals added yet'}</p></div>
                       </div>
                       <div className="mt-3 flex items-center justify-between gap-2 text-[9px] font-medium text-[#526392]">
@@ -1303,16 +1303,16 @@ const ProfilePage = () => {
                     const monday = new Date(today);
                     monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
                     const week = Array.from({ length: 7 }, (_, index) => { const date = new Date(monday); date.setDate(monday.getDate() + index); const key = getDateKeyInTimezone(date); return { key, label: date.toLocaleDateString('en-US', { weekday: 'short' }), done: completedKeys.has(key) }; });
-                    return <section className="rounded-xl border border-[#dce5f4] bg-white p-4 shadow-[0_1px_4px_rgba(30,58,100,.035)] dark:border-gray-700 dark:bg-gray-800">
+                    return <section className="rounded-xl border border-[#dce5f4] bg-white p-4 shadow-[0_1px_4px_rgba(30,58,100,.035)] dark:border-line dark:bg-surface">
                       <div className="flex items-center justify-between"><h3 className="flex items-center gap-2 text-sm font-extrabold text-[#0b1746] dark:text-white"><span className="grid h-5 w-5 place-items-center rounded-md bg-amber-50 text-amber-500"><Flame className="h-3.5 w-3.5" /></span>Habits Streak</h3><button type="button" onClick={() => handleTabChange('habits')} className="text-[11px] font-bold text-[#087cec]">See all</button></div>
                       <div className="mt-4 flex items-center gap-3"><span className="text-4xl">🔥</span><div><p className="text-xl font-extrabold text-[#0b1746] dark:text-white">{streak} {streak === 1 ? 'day' : 'days'}</p><p className="text-xs text-[#63739c]">Current streak</p></div></div>
                       <div className="mt-4 grid grid-cols-7 gap-2">{week.map(day => <div key={day.key} className="text-center"><span className={`mx-auto grid h-5 w-5 place-items-center rounded-full border text-[10px] font-black ${day.done ? 'border-[#0bb978] bg-[#0bb978] text-white' : 'border-[#cad6e8] text-transparent'}`}>{day.done ? '✓' : '·'}</span><small className="mt-1.5 block text-[9px] text-[#63739c]">{day.label}</small></div>)}</div>
                     </section>;
                   })()}
-                  {isOwnProfile && <section className="rounded-xl border border-[#dce5f4] bg-white p-4 shadow-[0_1px_4px_rgba(30,58,100,.035)] dark:border-gray-700 dark:bg-gray-800">
+                  {isOwnProfile && <section className="rounded-xl border border-[#dce5f4] bg-white p-4 shadow-[0_1px_4px_rgba(30,58,100,.035)] dark:border-line dark:bg-surface">
                     <div className="flex items-center justify-between"><h3 className="flex items-center gap-2 text-sm font-extrabold text-[#0b1746] dark:text-white"><span className="grid h-5 w-5 place-items-center rounded-md bg-violet-50 text-violet-600"><BookOpen className="h-3.5 w-3.5" /></span>Journal Entries</h3><button type="button" onClick={() => handleTabChange('daily-logs')} className="text-[11px] font-bold text-[#087cec]">See all</button></div>
                     <div className="mt-3 flex items-end gap-3"><span className="text-2xl font-extrabold text-[#0b1746] dark:text-white">{analytics?.dailyLogs?.entries ?? 0}</span><span className="pb-0.5 text-[10px] text-[#63739c]">Entries this month</span></div>
-                    <div className="mt-2 flex h-[54px] items-end gap-1.5 border-b border-dashed border-[#dce5ef] pb-0.5">{journalChartDays.map(day => <span key={day.key} title={`${day.key}: ${day.logged ? 'Journal entry' : 'No entry'}`} className={`flex-1 rounded-t-sm ${day.logged ? 'bg-gradient-to-t from-[#1683ed] to-[#62b8ff]' : 'bg-[#edf2f8] dark:bg-gray-700'}`} style={{ height: day.logged ? '82%' : '18%' }} />)}</div>
+                    <div className="mt-2 flex h-[54px] items-end gap-1.5 border-b border-dashed border-[#dce5ef] pb-0.5">{journalChartDays.map(day => <span key={day.key} title={`${day.key}: ${day.logged ? 'Journal entry' : 'No entry'}`} className={`flex-1 rounded-t-sm ${day.logged ? 'bg-gradient-to-t from-[#1683ed] to-[#62b8ff]' : 'bg-[#edf2f8] dark:bg-elevated'}`} style={{ height: day.logged ? '82%' : '18%' }} />)}</div>
                     <div className="mt-1.5 flex justify-between text-[8px] text-[#63739c]"><span>{journalChartDays[0]?.key.slice(5)}</span><span>Last 10 days</span><span>{journalChartDays[9]?.key.slice(5)}</span></div>
                   </section>}
                   {/* Goal Statistics - circular progress */}
@@ -1345,7 +1345,7 @@ const ProfilePage = () => {
                               <span className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                                 {Math.round(((analytics?.goals?.completedGoals || 0) / Math.max(1, analytics?.goals?.totalGoals || 0)) * 100)}%
                               </span>
-                              <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase">Completion</span>
+                              <span className="text-[10px] sm:text-xs text-gray-500 dark:text-muted uppercase">Completion</span>
                             </div>
                           </div>
                           <div className="flex gap-2 sm:gap-3 w-full mt-3 sm:mt-4">
@@ -1353,7 +1353,7 @@ const ProfilePage = () => {
                               <div className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">
                                 {analytics?.goals?.totalGoals || 0}
                               </div>
-                              <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase">Total Goals</div>
+                              <div className="text-[10px] sm:text-xs text-gray-500 dark:text-muted uppercase">Total Goals</div>
                             </div>
                             <div className="flex-1 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-green-50 dark:bg-green-900/20 text-center border border-green-200/50 dark:border-green-800/30">
                               <div className="text-xs sm:text-sm font-semibold text-green-800 dark:text-green-200">
@@ -1367,7 +1367,7 @@ const ProfilePage = () => {
                     ) : (
                       <div className="text-center py-12">
                         <Lock className="h-8 w-8 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">Statistics are private</p>
+                        <p className="text-gray-500 dark:text-muted text-sm">Statistics are private</p>
                       </div>
                     )}
                   </button>
@@ -1377,7 +1377,7 @@ const ProfilePage = () => {
                       <Activity className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: THEME_COLOR }} />
                       Habit Consistency
                     </h3>
-                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-3 sm:mb-4">Last 7 days</p>
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-muted mb-3 sm:mb-4">Last 7 days</p>
                     {isProfileAccessible() ? (() => {
                       const l7 = analytics?.habits ?? { done: 0, skipped: 0, missed: 0, expected: 0, consistency: 0 };
                       const pct = Math.max(0, Math.min(100, l7.consistency ?? 0));
@@ -1403,13 +1403,13 @@ const ProfilePage = () => {
                               </svg>
                               <div className="absolute inset-0 flex flex-col items-center justify-center">
                                 <span className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{pct}%</span>
-                                <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase">Consistency</span>
+                                <span className="text-[10px] sm:text-xs text-gray-500 dark:text-muted uppercase">Consistency</span>
                               </div>
                             </div>
                             {l7.trendPoints === null || l7.trendPoints === undefined ? (
-                              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-2">No previous-period comparison</p>
+                              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-muted mt-2">No previous-period comparison</p>
                             ) : (
-                              <button type="button" onClick={() => setMetricInfo({ title: 'Consistency Trend', description: 'How your habit completion rate changed compared with the previous seven days.', note: 'The change is shown in percentage points.' })} className={`text-[10px] sm:text-xs mt-2 ${l7.trendPoints > 0 ? 'text-green-600 dark:text-green-400' : l7.trendPoints < 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                              <button type="button" onClick={() => setMetricInfo({ title: 'Consistency Trend', description: 'How your habit completion rate changed compared with the previous seven days.', note: 'The change is shown in percentage points.' })} className={`text-[10px] sm:text-xs mt-2 ${l7.trendPoints > 0 ? 'text-green-600 dark:text-green-400' : l7.trendPoints < 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500 dark:text-muted'}`}>
                                 {l7.trendPoints > 0 ? '↑' : l7.trendPoints < 0 ? '↓' : '→'} {Math.abs(l7.trendPoints)} pts vs previous 7 days
                               </button>
                             )}
@@ -1424,13 +1424,13 @@ const ProfilePage = () => {
                               <div className="text-[10px] sm:text-xs text-yellow-600 dark:text-yellow-400 uppercase">Expected</div>
                             </div>
                           </div>
-                          <p className="text-xs sm:text-sm text-center text-gray-500 dark:text-gray-400 mt-3">{l7.activeDays || 0} / {l7.periodDays || 7} Active Days</p>
+                          <p className="text-xs sm:text-sm text-center text-gray-500 dark:text-muted mt-3">{l7.activeDays || 0} / {l7.periodDays || 7} Active Days</p>
                         </>
                       );
                     })() : (
                       <div className="text-center py-12">
                         <Lock className="h-8 w-8 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">Analytics are private</p>
+                        <p className="text-gray-500 dark:text-muted text-sm">Analytics are private</p>
                       </div>
                     )}
                   </button>
@@ -1444,15 +1444,15 @@ const ProfilePage = () => {
                       <div className="text-4xl font-extrabold text-slate-950 dark:text-white">{analytics?.dailyLogs?.entries ?? 0}</div>
                       <div className="pb-1 text-xs text-slate-500">total entries</div>
                     </div>
-                    <div className="mt-5 flex h-16 items-end gap-2 border-b border-dashed border-slate-200 pb-1 dark:border-gray-700" aria-label="Journal entries over the last 10 days">
-                      {journalChartDays.map((day) => <span key={day.key} title={`${day.key}: ${day.logged ? 'Journal entry' : 'No entry'}`} className={`flex-1 rounded-t ${day.logged ? 'bg-gradient-to-t from-blue-600 to-sky-300' : 'bg-slate-100 dark:bg-gray-700'}`} style={{ height: day.logged ? '100%' : '10%' }} />)}
+                    <div className="mt-5 flex h-16 items-end gap-2 border-b border-dashed border-slate-200 pb-1 dark:border-line" aria-label="Journal entries over the last 10 days">
+                      {journalChartDays.map((day) => <span key={day.key} title={`${day.key}: ${day.logged ? 'Journal entry' : 'No entry'}`} className={`flex-1 rounded-t ${day.logged ? 'bg-gradient-to-t from-blue-600 to-sky-300' : 'bg-slate-100 dark:bg-elevated'}`} style={{ height: day.logged ? '100%' : '10%' }} />)}
                     </div>
                     <div className="mt-2 flex justify-between text-[9px] text-slate-400"><span>{journalChartDays[0]?.label}</span><span>Last 10 days</span><span>{journalChartDays[9]?.label}</span></div>
                     <p className="mt-3 text-xs text-slate-500">{journalChartDays.filter(day => day.logged).length} of the last 10 days have a journal entry.</p>
                   </button>}
                   {/* Current Goals */}
                   {canShowProfileGoals && <div className="lg:col-span-3">
-                    <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                    <div className="bg-white dark:bg-surface rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-gray-100 dark:border-line">
                       <div className="flex items-center justify-between mb-4 sm:mb-5">
                         <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">{isOwnProfile ? 'Current Goals' : `${displayUser.name}'s Current Goals`}</h3>
                         {userGoals.filter(g => !g.completedAt).length > 0 && (
@@ -1474,7 +1474,7 @@ const ProfilePage = () => {
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.05 }}
-                                className="p-3 sm:p-4 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md cursor-pointer group"
+                                className="p-3 sm:p-4 rounded-lg sm:rounded-xl border border-gray-200 dark:border-line hover:shadow-md cursor-pointer group"
                                 onClick={() => setOpenGoalId(goal.id)}
                               >
                                 <div className="flex items-start gap-2 sm:gap-3 mb-2">
@@ -1488,12 +1488,12 @@ const ProfilePage = () => {
                             ))}
                           </div>
                         ) : (
-                          <div className="border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-xl sm:rounded-2xl p-8 sm:p-10 md:p-12 text-center">
-                            <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gray-100 dark:bg-gray-700 mx-auto mb-3 sm:mb-4 flex items-center justify-center">
+                          <div className="border-2 border-dashed border-gray-200 dark:border-line rounded-xl sm:rounded-2xl p-8 sm:p-10 md:p-12 text-center">
+                            <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gray-100 dark:bg-elevated mx-auto mb-3 sm:mb-4 flex items-center justify-center">
                               <Target className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-gray-400" />
                             </div>
                             <h4 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1.5 sm:mb-2">{isOwnProfile ? 'Ready for a new adventure?' : 'No active goals yet'}</h4>
-                            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-4 sm:mb-5 md:mb-6 max-w-sm mx-auto">
+                            <p className="text-xs sm:text-sm text-gray-500 dark:text-muted mb-4 sm:mb-5 md:mb-6 max-w-sm mx-auto">
                               {isOwnProfile ? 'You don\'t have any active goals right now. Start your next journey and track your progress here.' : `${displayUser.name} doesn't have any active goals right now.`}
                             </p>
                             {isOwnProfile && (
@@ -1510,12 +1510,12 @@ const ProfilePage = () => {
                       ) : (
                         <div className="text-center py-12">
                           <Lock className="h-8 w-8 text-gray-400 mx-auto mb-4" />
-                          <p className="text-gray-500 dark:text-gray-400 text-sm">Goals are private</p>
+                          <p className="text-gray-500 dark:text-muted text-sm">Goals are private</p>
                         </div>
                       )}
                     </div>
                   </div>}
-                  {canShowProfileHabits && <section className="lg:col-span-3 rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:p-5">
+                  {canShowProfileHabits && <section className="lg:col-span-3 rounded-xl border border-gray-100 bg-white p-4 dark:border-line dark:bg-surface sm:p-5">
                     <div className="mb-4 flex items-center justify-between"><h3 className="text-lg font-semibold text-gray-900 dark:text-white">{isOwnProfile ? 'Recent Habits' : `${displayUser.name}'s Recent Habits`}</h3><button type="button" onClick={() => handleTabChange('habits')} className="text-xs font-bold text-blue-500">See all</button></div>
                     {userHabits.length > 0 ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{userHabits.slice(0, 3).map((habit) => {
                       const completed = Number(habit.weeklyCompletedDays || 0);
@@ -1524,25 +1524,25 @@ const ProfilePage = () => {
                         : habit.frequency === 'weekly' ? 1 : 7;
                       const percent = Math.min(100, Math.round(Number(habit.last7CompletionRate ?? ((completed / Math.max(1, target)) * 100))));
                       const trend = habit.last7TrendPoints;
-                      return <button type="button" key={habit.id || habit._id} onClick={() => { setOpenHabitId(habit.id || habit._id); setHabitModalOpen(true); }} className="rounded-xl border border-slate-100 p-3 text-left hover:border-blue-200 dark:border-gray-700"><div className="flex items-center gap-2"><HabitCategoryIcon category={habit.category} size="sm"/><span className="min-w-0 flex-1"><strong className="block truncate text-sm text-slate-950 dark:text-white">{habit.name}</strong><small className="text-[9px] font-semibold uppercase text-slate-400">{getHabitCategoryLabel(habit.category)}</small></span><span className="text-xs font-bold text-[#1683ed]">{percent}%</span></div><p className="mt-1 text-[10px] text-slate-500">{trend == null ? 'Last 7 days' : `${trend > 0 ? '↑ ' : trend < 0 ? '↓ ' : '→ '}${Math.abs(trend)} pts vs previous 7 days`}</p><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-gray-700"><span className="block h-full rounded-full bg-emerald-500" style={{ width: `${percent}%` }} /></div></button>;
+                      return <button type="button" key={habit.id || habit._id} onClick={() => { setOpenHabitId(habit.id || habit._id); setHabitModalOpen(true); }} className="rounded-xl border border-slate-100 p-3 text-left hover:border-blue-200 dark:border-line"><div className="flex items-center gap-2"><HabitCategoryIcon category={habit.category} size="sm"/><span className="min-w-0 flex-1"><strong className="block truncate text-sm text-slate-950 dark:text-white">{habit.name}</strong><small className="text-[9px] font-semibold uppercase text-slate-400">{getHabitCategoryLabel(habit.category)}</small></span><span className="text-xs font-bold text-[#1683ed]">{percent}%</span></div><p className="mt-1 text-[10px] text-slate-500">{trend == null ? 'Last 7 days' : `${trend > 0 ? '↑ ' : trend < 0 ? '↓ ' : '→ '}${Math.abs(trend)} pts vs previous 7 days`}</p><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-elevated"><span className="block h-full rounded-full bg-emerald-500" style={{ width: `${percent}%` }} /></div></button>;
                     })}</div> : <p className="py-5 text-center text-sm text-slate-500">{isOwnProfile ? 'Your recent habits will appear here.' : `${displayUser.name} has no recent habits to show.`}</p>}
                   </section>}
                 </div>
               )}
               {activeTab === 'trail' && (
-                <div className="wt-trail-view rounded-xl border border-gray-100 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-5 md:p-6">
+                <div className="wt-trail-view rounded-xl border border-gray-100 bg-white p-4 shadow-sm dark:border-line dark:bg-surface sm:p-5 md:p-6">
                   <div className="mb-4 flex items-center justify-between">
                     <div className="flex max-w-[calc(100%-80px)] overflow-x-auto rounded-xl bg-slate-100 p-1 dark:bg-gray-700/70">
-                      {[['all', 'All'], ['goals', 'Goals'], ['habits', 'Habits'], ['journals', 'Journals']].map(([value, label]) => <button key={value} type="button" onClick={() => setTrailFilter(value)} className={`shrink-0 rounded-lg px-3 py-2 text-xs font-bold transition sm:px-4 ${trailFilter === value ? 'bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-300' : 'text-slate-500 hover:text-slate-800 dark:text-gray-400 dark:hover:text-white'}`}>{label}</button>)}
+                      {[['all', 'All'], ['goals', 'Goals'], ['habits', 'Habits'], ['journals', 'Journals']].map(([value, label]) => <button key={value} type="button" onClick={() => setTrailFilter(value)} className={`shrink-0 rounded-lg px-3 py-2 text-xs font-bold transition sm:px-4 ${trailFilter === value ? 'bg-white text-blue-600 shadow-sm dark:bg-surface dark:text-blue-300' : 'text-slate-500 hover:text-slate-800 dark:text-muted dark:hover:text-white'}`}>{label}</button>)}
                     </div>
-                    <label className="relative"><span className="sr-only">Trail year</span><select value={trailYear} onChange={(event) => setTrailYear(Number(event.target.value))} className="appearance-none rounded-lg border border-slate-200 bg-white py-2 pl-3 pr-8 text-xs font-extrabold text-slate-800 outline-none transition focus:border-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-white">{trailYears.map((year) => <option key={year} value={year}>{year}</option>)}</select><ChevronRight className="pointer-events-none absolute right-2.5 top-2.5 h-3.5 w-3.5 rotate-90 text-slate-400" /></label>
+                    <label className="relative"><span className="sr-only">Trail year</span><select value={trailYear} onChange={(event) => setTrailYear(Number(event.target.value))} className="appearance-none rounded-lg border border-slate-200 bg-white py-2 pl-3 pr-8 text-xs font-extrabold text-slate-800 outline-none transition focus:border-blue-400 dark:border-line dark:bg-surface dark:text-white">{trailYears.map((year) => <option key={year} value={year}>{year}</option>)}</select><ChevronRight className="pointer-events-none absolute right-2.5 top-2.5 h-3.5 w-3.5 rotate-90 text-slate-400" /></label>
                   </div>
-                  <div className="mb-5 flex items-center justify-between border-b border-slate-100 pb-3 dark:border-gray-700"><p className="text-xs font-semibold text-slate-500 dark:text-gray-400">Your creations, progress, and daily check-ins</p><span className="rounded-full bg-blue-50 px-3 py-1.5 text-[10px] font-bold text-blue-600 dark:bg-blue-950/30 dark:text-blue-300">{Object.values(trailMonthGroups).reduce((count, items) => count + items.length, 0)} activities</span></div>
+                  <div className="mb-5 flex items-center justify-between border-b border-slate-100 pb-3 dark:border-line"><p className="text-xs font-semibold text-slate-500 dark:text-muted">Your creations, progress, and daily check-ins</p><span className="rounded-full bg-blue-50 px-3 py-1.5 text-[10px] font-bold text-blue-600 dark:bg-blue-950/30 dark:text-blue-300">{Object.values(trailMonthGroups).reduce((count, items) => count + items.length, 0)} activities</span></div>
                   {isProfileAccessible() ? (
                     trailLoading && trailActivities.length === 0 ? <div className="grid min-h-48 place-items-center"><span className="h-6 w-6 animate-spin rounded-full border-2 border-blue-100 border-t-blue-500" /></div> : Object.keys(trailMonthGroups).length > 0 ? (
                       <><div className="space-y-7">
                         {Object.entries(trailMonthGroups).map(([month, items]) => <section key={month}>
-                          <div className="mb-3 flex items-center gap-3"><span className="text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-500 dark:text-gray-400">{month} {trailYear}</span><span className="h-px flex-1 bg-slate-100 dark:bg-gray-700" /></div>
+                          <div className="mb-3 flex items-center gap-3"><span className="text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-500 dark:text-muted">{month} {trailYear}</span><span className="h-px flex-1 bg-slate-100 dark:bg-elevated" /></div>
                           <div className="relative space-y-3 pl-7"><span className="absolute bottom-4 left-[7px] top-4 w-px bg-blue-200 dark:bg-blue-900" />
                             {items.map((item) => {
                               const isGoal = item.type.startsWith('goal_');
@@ -1557,20 +1557,20 @@ const ProfilePage = () => {
                                   ? (item.data?.detail || `${Math.max(1, item.data?.count || 1)} ${Math.max(1, item.data?.count || 1) === 1 ? 'completion' : 'completions'}`)
                                   : item.type === 'journal_logged' && item.data?.mood ? `Mood: ${item.data.mood}` : null;
                               const openItem = () => { if (isGoal) setOpenGoalId(item.data?.itemId); else if (isHabit) { setOpenHabitId(item.data?.itemId); setHabitModalOpen(true); } else handleTabChange('daily-logs'); };
-                              return <button key={item._id} type="button" onClick={openItem} className={`group relative block w-full rounded-xl border p-3.5 text-left shadow-[0_1px_3px_rgba(15,23,42,.04)] transition hover:shadow-md ${isMilestone ? 'border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 hover:border-amber-300 dark:border-amber-800/60 dark:from-amber-950/30 dark:to-gray-800' : 'border-slate-100 bg-white hover:border-blue-200 dark:border-gray-700 dark:bg-gray-800/70'}`}><span className={`absolute -left-[27px] top-5 grid h-4 w-4 place-items-center rounded-full border-[3px] border-white shadow-sm dark:border-gray-900 ${isMilestone ? 'bg-amber-400' : isGoal ? 'bg-blue-500' : isHabit ? 'bg-orange-400' : 'bg-violet-500'}`} />
-                                <div className="flex items-start gap-3"><span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${isMilestone ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/40' : isGoal ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/30' : isHabit ? 'bg-orange-50 text-orange-500 dark:bg-orange-950/30' : 'bg-violet-50 text-violet-600 dark:bg-violet-950/30'}`}><Icon className="h-5 w-5" /></span><span className="min-w-0 flex-1"><strong className={`block text-sm font-extrabold ${isMilestone ? 'text-amber-800 dark:text-amber-200' : 'text-slate-900 dark:text-white'}`}>{labels[item.type] || 'Trail activity'}</strong><small className="mt-1 block truncate font-semibold text-slate-500 dark:text-gray-400">{itemName}</small>{logDetail && <small className="mt-1 block truncate text-[10px] text-slate-400">{logDetail}</small>}<small className="mt-1.5 block text-[10px] text-slate-400">{item.date.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}</small></span>{isMilestone && <span className="rounded-full bg-amber-200/70 px-2 py-1 text-[9px] font-extrabold uppercase tracking-wide text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">Milestone</span>}<ChevronRight className="mt-3 h-4 w-4 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-blue-500" /></div>
+                              return <button key={item._id} type="button" onClick={openItem} className={`group relative block w-full rounded-xl border p-3.5 text-left shadow-[0_1px_3px_rgba(15,23,42,.04)] transition hover:shadow-md ${isMilestone ? 'border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 hover:border-amber-300 dark:border-amber-800/60 dark:from-amber-950/30 dark:to-surface' : 'border-slate-100 bg-white hover:border-blue-200 dark:border-line dark:bg-gray-800/70'}`}><span className={`absolute -left-[27px] top-5 grid h-4 w-4 place-items-center rounded-full border-[3px] border-white shadow-sm dark:border-line ${isMilestone ? 'bg-amber-400' : isGoal ? 'bg-blue-500' : isHabit ? 'bg-orange-400' : 'bg-violet-500'}`} />
+                                <div className="flex items-start gap-3"><span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${isMilestone ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/40' : isGoal ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/30' : isHabit ? 'bg-orange-50 text-orange-500 dark:bg-orange-950/30' : 'bg-violet-50 text-violet-600 dark:bg-violet-950/30'}`}><Icon className="h-5 w-5" /></span><span className="min-w-0 flex-1"><strong className={`block text-sm font-extrabold ${isMilestone ? 'text-amber-800 dark:text-amber-200' : 'text-slate-900 dark:text-white'}`}>{labels[item.type] || 'Trail activity'}</strong><small className="mt-1 block truncate font-semibold text-slate-500 dark:text-muted">{itemName}</small>{logDetail && <small className="mt-1 block truncate text-[10px] text-slate-400">{logDetail}</small>}<small className="mt-1.5 block text-[10px] text-slate-400">{item.date.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}</small></span>{isMilestone && <span className="rounded-full bg-amber-200/70 px-2 py-1 text-[9px] font-extrabold uppercase tracking-wide text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">Milestone</span>}<ChevronRight className="mt-3 h-4 w-4 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-blue-500" /></div>
                               </button>;
                             })}
                           </div>
                         </section>)}
                       </div></>
-                    ) : <div className="py-12 text-center"><span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-blue-50 text-blue-400 dark:bg-blue-950/30"><TrendingUp className="h-6 w-6" /></span><p className="mt-3 text-sm font-semibold text-slate-600 dark:text-gray-300">No {trailFilter === 'all' ? '' : `${trailFilter} `}activity in {trailYear}</p><p className="mt-1 text-xs text-slate-400">Choose another filter or year.</p></div>
-                  ) : <p className="py-10 text-center text-sm text-gray-500 dark:text-gray-400">This trail is private.</p>}
+                    ) : <div className="py-12 text-center"><span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-blue-50 text-blue-400 dark:bg-blue-950/30"><TrendingUp className="h-6 w-6" /></span><p className="mt-3 text-sm font-semibold text-slate-600 dark:text-muted">No {trailFilter === 'all' ? '' : `${trailFilter} `}activity in {trailYear}</p><p className="mt-1 text-xs text-slate-400">Choose another filter or year.</p></div>
+                  ) : <p className="py-10 text-center text-sm text-gray-500 dark:text-muted">This trail is private.</p>}
                   {isProfileAccessible() && <div ref={trailLoaderRef} className="flex min-h-12 items-center justify-center">{trailLoading && trailActivities.length > 0 ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-blue-100 border-t-blue-500" /> : !trailHasMore && trailActivities.length > 0 ? <span className="text-[10px] text-slate-400">You’ve reached the start of your trail.</span> : null}</div>}
                 </div>
               )}
               {activeTab === 'goals' && (
-                <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                <div className="bg-white dark:bg-surface rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-gray-100 dark:border-line">
                   {isProfileAccessible() ? (
                     <>
                       <div className="hidden">
@@ -1580,22 +1580,22 @@ const ProfilePage = () => {
                             onClick={() => setGoalFilter(filter)}
                             className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold transition-colors sm:text-sm ${
                               goalFilter === filter
-                                ? 'bg-white text-blue-600 shadow-sm dark:bg-gray-700 dark:text-blue-300'
-                                : 'text-gray-500 dark:text-gray-400'
+                                ? 'bg-white text-blue-600 shadow-sm dark:bg-elevated dark:text-blue-300'
+                                : 'text-gray-500 dark:text-muted'
                             }`}
                           >
                             {filter === 'all' ? `All (${userGoals.length})` : filter === 'on_track' ? 'On Track' : 'Needs Attention'}
                           </button>
                         ))}
                       </div>
-                      <div className="mb-4 flex gap-2"><label className="flex flex-1 items-center gap-2 rounded-xl bg-slate-100 px-3 py-2.5 dark:bg-gray-700"><Search className="h-4 w-4 text-slate-400" /><input value={goalSearch} onChange={(event) => setGoalSearch(event.target.value)} placeholder="Search goals..." className="w-full bg-transparent text-sm outline-none dark:text-white" /></label><button type="button" onClick={() => setProfileFilterSheet('goals')} className={`rounded-xl p-3 ${goalFilter !== 'all' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'} dark:bg-gray-700 dark:text-gray-300`} data-filter-active={goalFilter !== 'all'} aria-label="Filter goals"><SlidersHorizontal className="h-4 w-4" /></button></div>
+                      <div className="mb-4 flex gap-2"><label className="flex flex-1 items-center gap-2 rounded-xl bg-slate-100 px-3 py-2.5 dark:bg-elevated"><Search className="h-4 w-4 text-slate-400" /><input value={goalSearch} onChange={(event) => setGoalSearch(event.target.value)} placeholder="Search goals..." className="w-full bg-transparent text-sm outline-none dark:text-white" /></label><button type="button" onClick={() => setProfileFilterSheet('goals')} className={`rounded-xl p-3 ${goalFilter !== 'all' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'} dark:bg-elevated dark:text-muted`} data-filter-active={goalFilter !== 'all'} aria-label="Filter goals"><SlidersHorizontal className="h-4 w-4" /></button></div>
                       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                       {isOwnProfile && (
                           <button
                             onClick={() => navigate('/dashboard?tab=goals')}
-                            className="rounded-lg sm:rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 p-4 sm:p-5 md:p-6 flex flex-col items-center justify-center min-h-[120px] sm:min-h-[140px] hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                            className="rounded-lg sm:rounded-xl border-2 border-dashed border-gray-300 dark:border-line p-4 sm:p-5 md:p-6 flex flex-col items-center justify-center min-h-[120px] sm:min-h-[140px] hover:border-gray-400 dark:hover:border-line hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                             <Plus className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 text-gray-400 mb-1.5 sm:mb-2" />
-                            <span className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Create New Goal</span>
+                            <span className="text-xs sm:text-sm font-medium text-gray-600 dark:text-muted">Create New Goal</span>
                           </button>
                         )}
                         {userGoals
@@ -1614,7 +1614,7 @@ const ProfilePage = () => {
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: Math.min(index * 0.03, 0.3) }}
                               onClick={() => setOpenGoalId(goal.id)}
-                              className="group cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
+                              className="group cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md dark:border-line dark:bg-surface"
                             >
                               <div className="flex items-start gap-2 sm:gap-3 mb-2 sm:mb-3">
                                 <CategoryIcon category={goal.category} size="md" />
@@ -1624,13 +1624,13 @@ const ProfilePage = () => {
                                 </div>
                                 <ChevronRight className="h-5 w-5 flex-shrink-0 text-slate-400" />
                               </div>
-                              <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-100 pt-3 text-xs dark:border-gray-700"><span className={`rounded-full px-2.5 py-1 font-bold ${goal.completedAt ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300' : ['SLIPPING', 'STALLED'].includes(String(goal.goalHealth || '').toUpperCase()) ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300' : 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300'}`}>{goal.completedAt ? 'Completed' : (goal.healthLabel || 'Active')}</span><span className="truncate text-right text-slate-500 dark:text-gray-400">{goal.completedAt ? (goal.completedAt && new Date(goal.completedAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })) : (goal.healthReason || 'No progress logged yet')}</span></div>
+                              <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-100 pt-3 text-xs dark:border-line"><span className={`rounded-full px-2.5 py-1 font-bold ${goal.completedAt ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300' : ['SLIPPING', 'STALLED'].includes(String(goal.goalHealth || '').toUpperCase()) ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300' : 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300'}`}>{goal.completedAt ? 'Completed' : (goal.healthLabel || 'Active')}</span><span className="truncate text-right text-slate-500 dark:text-muted">{goal.completedAt ? (goal.completedAt && new Date(goal.completedAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })) : (goal.healthReason || 'No progress logged yet')}</span></div>
                             </motion.div>
                           ))}
                       </div>
                       {userGoals.length === 0 && (
                         <div className="text-center py-8 sm:py-10 md:py-12 mt-3 sm:mt-4">
-                          <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mb-3 sm:mb-4">No goals yet</p>
+                          <p className="text-sm sm:text-base text-gray-500 dark:text-muted mb-3 sm:mb-4">No goals yet</p>
                           {isOwnProfile && (
                             <button
                               onClick={() => navigate('/dashboard')}
@@ -1647,7 +1647,7 @@ const ProfilePage = () => {
                           <button
                             onClick={loadMoreGoals}
                             disabled={loadingMoreGoals}
-                            className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs sm:text-sm font-medium disabled:opacity-50 flex items-center gap-2"
+                            className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-gray-100 dark:bg-elevated text-gray-800 dark:text-ink text-xs sm:text-sm font-medium disabled:opacity-50 flex items-center gap-2"
                           >
                             {loadingMoreGoals ? 'Loading...' : 'Load More'}
                           </button>
@@ -1657,14 +1657,14 @@ const ProfilePage = () => {
                   ) : (
                     <div className="text-center py-16">
                       <Lock className="h-8 w-8 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500 dark:text-gray-400">Goals are private</p>
+                      <p className="text-gray-500 dark:text-muted">Goals are private</p>
                     </div>
                   )}
                 </div>
               )}
               {activeTab === 'habits' && (
                 <div className="wt-profile-list-screen space-y-4 sm:space-y-5 md:space-y-6">
-                  <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                  <div className="bg-white dark:bg-surface rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-gray-100 dark:border-line">
                     <div className="hidden">
                       <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-1.5 sm:gap-2">
                         <Flame className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: THEME_COLOR }} />
@@ -1682,12 +1682,12 @@ const ProfilePage = () => {
                     </div>
                     <div className="hidden">
                       {['all', 'active', 'archived'].map((filter) => (
-                        <button key={filter} type="button" onClick={() => setHabitFilter(filter)} className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold capitalize transition-colors sm:text-sm ${habitFilter === filter ? 'bg-white text-blue-600 shadow-sm dark:bg-gray-700 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}>
+                        <button key={filter} type="button" onClick={() => setHabitFilter(filter)} className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold capitalize transition-colors sm:text-sm ${habitFilter === filter ? 'bg-white text-blue-600 shadow-sm dark:bg-elevated dark:text-blue-300' : 'text-gray-500 dark:text-muted'}`}>
                           {filter === 'all' ? `All (${userHabits.length})` : filter}
                         </button>
                       ))}
                     </div>
-                    <div className="mb-4 flex gap-2"><label className="flex flex-1 items-center gap-2 rounded-xl bg-slate-100 px-3 py-2.5 dark:bg-gray-700"><Search className="h-4 w-4 text-slate-400" /><input value={habitSearch} onChange={(event) => setHabitSearch(event.target.value)} placeholder="Search habits..." className="w-full bg-transparent text-sm outline-none dark:text-white" /></label><button type="button" onClick={() => setProfileFilterSheet('habits')} className={`rounded-xl p-3 ${habitFilter !== 'all' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'} dark:bg-gray-700 dark:text-gray-300`} data-filter-active={habitFilter !== 'all'} aria-label="Filter habits"><SlidersHorizontal className="h-4 w-4" /></button></div>
+                    <div className="mb-4 flex gap-2"><label className="flex flex-1 items-center gap-2 rounded-xl bg-slate-100 px-3 py-2.5 dark:bg-elevated"><Search className="h-4 w-4 text-slate-400" /><input value={habitSearch} onChange={(event) => setHabitSearch(event.target.value)} placeholder="Search habits..." className="w-full bg-transparent text-sm outline-none dark:text-white" /></label><button type="button" onClick={() => setProfileFilterSheet('habits')} className={`rounded-xl p-3 ${habitFilter !== 'all' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'} dark:bg-elevated dark:text-muted`} data-filter-active={habitFilter !== 'all'} aria-label="Filter habits"><SlidersHorizontal className="h-4 w-4" /></button></div>
                     {userHabits.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                         {userHabits.filter((habit) => {
@@ -1714,14 +1714,14 @@ const ProfilePage = () => {
                                 setOpenHabitId(habit.id);
                                 setHabitModalOpen(true);
                               }}
-                              className={`rounded-lg border border-gray-200 p-3 sm:rounded-xl sm:p-4 dark:border-gray-700 ${isOwnProfile ? 'cursor-pointer hover:shadow-md' : ''}`}
+                              className={`rounded-lg border border-gray-200 p-3 sm:rounded-xl sm:p-4 dark:border-line ${isOwnProfile ? 'cursor-pointer hover:shadow-md' : ''}`}
                             >
                               <div className="flex items-start justify-between gap-2 sm:gap-3 mb-2 sm:mb-3">
                                 <div className="flex items-start gap-2 sm:gap-3 min-w-0 flex-1">
                                   <HabitCategoryIcon category={habit.category} size="lg" />
                                   <div className="min-w-0 flex-1">
                                     <h4 className="font-semibold text-gray-900 dark:text-white text-base sm:text-lg">{habit.name}</h4>
-                                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{getHabitCategoryLabel(habit.category)} · {scheduleLabel}</p>
+                                    <p className="text-xs sm:text-sm text-gray-500 dark:text-muted">{getHabitCategoryLabel(habit.category)} · {scheduleLabel}</p>
                                   </div>
                                 </div>
                                 <div className="flex-shrink-0 text-right">
@@ -1729,15 +1729,15 @@ const ProfilePage = () => {
                                   <span className="text-xs sm:text-sm" style={{ color: THEME_COLOR }}>COMPLETION</span>
                                 </div>
                               </div>
-                              <div className="mt-3"><div className="mb-1.5 flex items-center justify-between text-xs text-slate-500 dark:text-gray-400"><span>{habit.last7CompletedDays ?? weeklyCompleted}/{habit.last7ExpectedDays ?? weeklyTarget} scheduled days · last 7 days</span><span className="font-bold">{trend == null ? 'No prior comparison' : `${trend > 0 ? '+' : ''}${trend} pts`}</span></div><div className="flex items-center gap-3"><div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-gray-700"><div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-400" style={{ width: `${weeklyPercent}%` }} /></div><ChevronRight className="h-4 w-4 text-slate-400" /></div></div>
+                              <div className="mt-3"><div className="mb-1.5 flex items-center justify-between text-xs text-slate-500 dark:text-muted"><span>{habit.last7CompletedDays ?? weeklyCompleted}/{habit.last7ExpectedDays ?? weeklyTarget} scheduled days · last 7 days</span><span className="font-bold">{trend == null ? 'No prior comparison' : `${trend > 0 ? '+' : ''}${trend} pts`}</span></div><div className="flex items-center gap-3"><div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-elevated"><div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-400" style={{ width: `${weeklyPercent}%` }} /></div><ChevronRight className="h-4 w-4 text-slate-400" /></div></div>
                             </motion.div>
                           );
                         })}
                       </div>
                     ) : (
                       <div className="text-center py-8 sm:py-10 md:py-12">
-                        <Flame className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 text-gray-300 dark:text-gray-600 mx-auto mb-3 sm:mb-4" />
-                        <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mb-3 sm:mb-4">No active habits yet</p>
+                        <Flame className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 text-gray-300 dark:text-muted mx-auto mb-3 sm:mb-4" />
+                        <p className="text-sm sm:text-base text-gray-500 dark:text-muted mb-3 sm:mb-4">No active habits yet</p>
                         {isOwnProfile && (
                           <button
                             onClick={() => navigate('/dashboard')}
@@ -1749,18 +1749,18 @@ const ProfilePage = () => {
                         )}
                       </div>
                     )}
-                    {hasMoreHabits && userHabits.length > 0 && <div className="mt-5 flex justify-center"><button type="button" onClick={loadMoreHabits} disabled={loadingMoreHabits} className="rounded-xl bg-slate-100 px-5 py-2.5 text-sm font-bold text-slate-700 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200">{loadingMoreHabits ? 'Loading…' : 'Load More'}</button></div>}
+                    {hasMoreHabits && userHabits.length > 0 && <div className="mt-5 flex justify-center"><button type="button" onClick={loadMoreHabits} disabled={loadingMoreHabits} className="rounded-xl bg-slate-100 px-5 py-2.5 text-sm font-bold text-slate-700 disabled:opacity-50 dark:bg-elevated dark:text-ink">{loadingMoreHabits ? 'Loading…' : 'Load More'}</button></div>}
                   </div>
                   <div className="hidden">
                     <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4 flex items-center gap-1.5 sm:gap-2">
                       <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500" />
                       Habit History
                     </h3>
-                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-4">The five most recently logged habits.</p>
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-muted mb-4">The five most recently logged habits.</p>
                     <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
                       <table className="w-full text-xs sm:text-sm min-w-[500px]">
                         <thead>
-                          <tr className="text-left text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase border-b border-gray-200 dark:border-gray-700">
+                          <tr className="text-left text-[10px] sm:text-xs text-gray-500 dark:text-muted uppercase border-b border-gray-200 dark:border-line">
                             <th className="pb-3 font-medium">Habit Name</th>
                             <th className="pb-3 font-medium">Best Streak</th>
                             <th className="pb-3 font-medium">Progress</th>
@@ -1774,7 +1774,7 @@ const ProfilePage = () => {
                                   <span className="text-gray-400">•</span>
                                   {h.name}
                                 </td>
-                                <td className="py-3 text-gray-600 dark:text-gray-400">{h.longestStreak ?? 0} Days</td>
+                                <td className="py-3 text-gray-600 dark:text-muted">{h.longestStreak ?? 0} Days</td>
                                 <td className="py-3">
                                   <span className="px-2 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(76, 153, 230, 0.2)', color: THEME_COLOR }}>
                                     {h.archived ? 'ARCHIVED' : 'ACTIVE'}
@@ -1784,7 +1784,7 @@ const ProfilePage = () => {
                             ))
                           ) : (
                             <tr>
-                              <td colSpan={3} className="py-8 text-center text-gray-500 dark:text-gray-400 text-sm">
+                              <td colSpan={3} className="py-8 text-center text-gray-500 dark:text-muted text-sm">
                                 No habit history yet
                               </td>
                             </tr>
@@ -1797,13 +1797,13 @@ const ProfilePage = () => {
               )}
               {activeTab === 'daily-logs' && (
                 <div className={isOwnProfile
-                  ? "bg-white/95 dark:bg-gray-800/90 backdrop-blur-2xl rounded-2xl p-5 sm:p-6 shadow-sm border border-white/70 dark:border-gray-700"
+                  ? "bg-white/95 dark:bg-gray-800/90 backdrop-blur-2xl rounded-2xl p-5 sm:p-6 shadow-sm border border-white/70 dark:border-line"
                   : "bg-white/90 dark:bg-gray-800/70 backdrop-blur-2xl rounded-2xl p-5 sm:p-6 border border-white/60 dark:border-gray-700/50"
                 }>
                   <div className="hidden">
                     <div>
                       <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Daily Logs</h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5">A simple space to capture how the day felt.</p>
+                      <p className="text-sm text-gray-500 dark:text-muted mt-1.5">A simple space to capture how the day felt.</p>
                     </div>
                     {isOwnProfile && (
                       <div className="w-full sm:w-auto">
@@ -1812,7 +1812,7 @@ const ProfilePage = () => {
                           className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors shadow-sm font-manrope
                             ${
                               hasTodayDailyLogs
-                                ? 'bg-gray-300 dark:bg-gray-700 text-gray-600'
+                                ? 'bg-gray-300 dark:bg-elevated text-gray-600'
                                 : 'bg-[#4c99e6] hover:bg-[#3d88d5] text-white'
                             }
                           `}                        >
@@ -1824,28 +1824,28 @@ const ProfilePage = () => {
                   {/* Daily Logs Feed (own profile) */}
                   {isOwnProfile && (
                     <div className="space-y-5">
-                      <button type="button" onClick={() => setJournalCalendarOpen(value => !value)} aria-expanded={journalCalendarOpen} className="flex w-full items-center justify-between rounded-xl border border-slate-100 bg-white p-4 text-left text-sm font-bold text-slate-800 dark:border-gray-700 dark:bg-gray-800 dark:text-white"><span className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-[#1683ed]" />Calendar view</span><span className="flex items-center gap-1 text-[10px] text-slate-400">{journalCalendarOpen ? 'Hide' : 'Show'}<ChevronRight className={`h-4 w-4 transition-transform ${journalCalendarOpen ? 'rotate-90' : ''}`} /></span></button>
-                      <div className={`wt-journal-calendar rounded-xl border border-slate-100 p-4 dark:border-gray-700 ${journalCalendarOpen ? '' : 'hidden'}`}>
-                        <div className="mb-3 flex items-center justify-between"><label className="relative"><span className="sr-only">Journal year</span><select value={journalMonthYear} onChange={(event) => setJournalMonth(new Date(Number(event.target.value), journalMonthIndex, 1))} className="appearance-none rounded-lg border border-slate-200 bg-white py-2 pl-3 pr-8 text-xs font-extrabold text-slate-800 outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white">{journalYears.map((year) => <option key={year} value={year}>{year}</option>)}</select><ChevronRight className="pointer-events-none absolute right-2.5 top-2.5 h-3.5 w-3.5 rotate-90 text-slate-400" /></label><span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Journal calendar</span></div>
+                      <button type="button" onClick={() => setJournalCalendarOpen(value => !value)} aria-expanded={journalCalendarOpen} className="flex w-full items-center justify-between rounded-xl border border-slate-100 bg-white p-4 text-left text-sm font-bold text-slate-800 dark:border-line dark:bg-surface dark:text-white"><span className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-[#1683ed]" />Calendar view</span><span className="flex items-center gap-1 text-[10px] text-slate-400">{journalCalendarOpen ? 'Hide' : 'Show'}<ChevronRight className={`h-4 w-4 transition-transform ${journalCalendarOpen ? 'rotate-90' : ''}`} /></span></button>
+                      <div className={`wt-journal-calendar rounded-xl border border-slate-100 p-4 dark:border-line ${journalCalendarOpen ? '' : 'hidden'}`}>
+                        <div className="mb-3 flex items-center justify-between"><label className="relative"><span className="sr-only">Journal year</span><select value={journalMonthYear} onChange={(event) => setJournalMonth(new Date(Number(event.target.value), journalMonthIndex, 1))} className="appearance-none rounded-lg border border-slate-200 bg-white py-2 pl-3 pr-8 text-xs font-extrabold text-slate-800 outline-none dark:border-line dark:bg-surface dark:text-white">{journalYears.map((year) => <option key={year} value={year}>{year}</option>)}</select><ChevronRight className="pointer-events-none absolute right-2.5 top-2.5 h-3.5 w-3.5 rotate-90 text-slate-400" /></label><span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Journal calendar</span></div>
                         <div className="mb-5 grid grid-cols-[36px_1fr_36px] items-center">
-                          <button type="button" aria-label="Previous month" onClick={() => setJournalMonth(new Date(journalMonthYear, journalMonthIndex - 1, 1))} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-gray-700 dark:text-gray-300"><ChevronLeft className="h-4 w-4" /></button>
+                          <button type="button" aria-label="Previous month" onClick={() => setJournalMonth(new Date(journalMonthYear, journalMonthIndex - 1, 1))} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-line dark:text-muted"><ChevronLeft className="h-4 w-4" /></button>
                           <div className="text-center"><h4 className="text-sm font-extrabold text-slate-950 dark:text-white">{journalMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h4><p className="mt-0.5 text-[10px] font-medium text-slate-400">{Array.from(journalEntriesByDay.keys()).filter((key) => key.startsWith(`${journalMonthYear}-${String(journalMonthIndex + 1).padStart(2, '0')}`)).length} entries this month</p></div>
-                          <button type="button" aria-label="Next month" disabled={journalMonthYear === new Date().getFullYear() && journalMonthIndex >= new Date().getMonth()} onClick={() => setJournalMonth(new Date(journalMonthYear, journalMonthIndex + 1, 1))} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-35 dark:border-gray-700 dark:text-gray-300"><ChevronRight className="h-4 w-4" /></button>
+                          <button type="button" aria-label="Next month" disabled={journalMonthYear === new Date().getFullYear() && journalMonthIndex >= new Date().getMonth()} onClick={() => setJournalMonth(new Date(journalMonthYear, journalMonthIndex + 1, 1))} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-35 dark:border-line dark:text-muted"><ChevronRight className="h-4 w-4" /></button>
                         </div>
                         <div className="grid grid-cols-7 text-center">{['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(day => <span key={day} className="pb-3 text-[10px] font-bold uppercase tracking-wide text-slate-400">{day}</span>)}{journalCalendarCells.map((day, index) => {
                           if (!day) return <span key={`empty-${index}`} className="h-11 sm:h-14" />;
                           const entry = journalEntriesByDay.get(journalDayKey(day));
                           const mood = entry ? DAILY_LOG_MOOD_META[entry.mood] : null;
                           const isToday = journalDayKey(day) === getDateKeyInTimezone(new Date());
-                          return <button key={day} type="button" disabled={!entry} onClick={() => entry && toggleDailyLogExpand(entry.id || entry._id || entry.createdAt)} className={`relative mx-0.5 mb-1 flex h-10 flex-col items-center justify-center rounded-lg text-xs font-bold sm:h-14 ${entry ? 'bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/25 dark:text-blue-300' : 'text-slate-500 dark:text-gray-400'} ${isToday ? 'ring-1 ring-blue-500' : ''}`}><span>{day}</span>{entry && <span className={`mt-1 h-1.5 w-1.5 rounded-full ${mood?.score >= 4 ? 'bg-emerald-500' : mood?.score >= 3 ? 'bg-amber-400' : 'bg-rose-400'}`} />}</button>;
+                          return <button key={day} type="button" disabled={!entry} onClick={() => entry && toggleDailyLogExpand(entry.id || entry._id || entry.createdAt)} className={`relative mx-0.5 mb-1 flex h-10 flex-col items-center justify-center rounded-lg text-xs font-bold sm:h-14 ${entry ? 'bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/25 dark:text-blue-300' : 'text-slate-500 dark:text-muted'} ${isToday ? 'ring-1 ring-blue-500' : ''}`}><span>{day}</span>{entry && <span className={`mt-1 h-1.5 w-1.5 rounded-full ${mood?.score >= 4 ? 'bg-emerald-500' : mood?.score >= 3 ? 'bg-amber-400' : 'bg-rose-400'}`} />}</button>;
                         })}</div>
-                        <div className="mt-3 flex items-center justify-center gap-4 border-t border-slate-100 pt-3 text-[10px] text-slate-500 dark:border-gray-700"><span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-emerald-500" />Positive</span><span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-amber-400" />Neutral</span><span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-rose-400" />Low</span></div>
+                        <div className="mt-3 flex items-center justify-center gap-4 border-t border-slate-100 pt-3 text-[10px] text-slate-500 dark:border-line"><span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-emerald-500" />Positive</span><span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-amber-400" />Neutral</span><span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-rose-400" />Low</span></div>
                       </div>
 
                       {dailyLogsFeed.length === 0 && !dailyLogsLoading && (
-                        <div className="text-center py-10 sm:py-12 md:py-14 px-4 border border-dashed border-gray-200 dark:border-gray-600 rounded-2xl bg-gray-50/50 dark:bg-gray-900/20">
-                          <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Start your first daily log</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">Capture how you feel in seconds and build your reflection habit.</p>
+                        <div className="text-center py-10 sm:py-12 md:py-14 px-4 border border-dashed border-gray-200 dark:border-line rounded-2xl bg-gray-50/50 dark:bg-gray-900/20">
+                          <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-ink mb-2">Start your first daily log</p>
+                          <p className="text-sm text-gray-500 dark:text-muted mb-5">Capture how you feel in seconds and build your reflection habit.</p>
                           <button
                             onClick={() => setIsDailyLogsOpen(true)}
                             className="w-full sm:w-auto px-5 py-2.5 rounded-lg sm:rounded-xl text-sm font-medium text-white"
@@ -1864,7 +1864,7 @@ const ProfilePage = () => {
                           return (
                             <div
                               key={entryId}
-                              className="w-full text-left p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm"
+                              className="w-full text-left p-4 sm:p-5 bg-white dark:bg-surface rounded-2xl border border-gray-200 dark:border-line shadow-sm"
                             >
                               <div className="flex items-start gap-3">
                                 <button
@@ -1874,14 +1874,14 @@ const ProfilePage = () => {
                                 >
                                   <div className="flex items-start justify-between gap-3">
                                     <div>
-                                      <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase mb-1.5 sm:mb-2">{formatDate(e.createdAt)}</div>
+                                      <div className="text-[10px] sm:text-xs text-gray-500 dark:text-muted uppercase mb-1.5 sm:mb-2">{formatDate(e.createdAt)}</div>
                                       <div className="flex items-center gap-2 mb-2 sm:mb-3">
                                         {moodMeta ? (
                                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${moodMeta.chip}`}>
                                             {moodMeta.label}
                                           </span>
                                         ) : (
-                                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-gray-100 text-gray-600 dark:bg-elevated dark:text-muted">
                                             No Mood
                                           </span>
                                         )}
@@ -1889,7 +1889,7 @@ const ProfilePage = () => {
                                     </div>
                                     <span className="text-xs font-medium text-[#4c99e6] whitespace-nowrap">{isExpanded ? 'Hide' : 'Details'}</span>
                                   </div>
-                                  <p className={`text-sm sm:text-base text-gray-700 dark:text-gray-300 leading-relaxed mt-1 ${isExpanded ? '' : 'line-clamp-1'}`}>
+                                  <p className={`text-sm sm:text-base text-gray-700 dark:text-muted leading-relaxed mt-1 ${isExpanded ? '' : 'line-clamp-1'}`}>
                                     {e.content}
                                   </p>
                                 </button>
@@ -1927,7 +1927,7 @@ const ProfilePage = () => {
                       </div>
                       <div className="flex items-center justify-center mt-3 sm:mt-4">
                         {dailyLogsHasMore ? (
-                          <button onClick={loadMoreDailyLogs} disabled={dailyLogsLoading} className="px-4 sm:px-5 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
+                          <button onClick={loadMoreDailyLogs} disabled={dailyLogsLoading} className="px-4 sm:px-5 py-2 bg-gray-100 dark:bg-surface hover:bg-gray-200 dark:hover:bg-elevated text-gray-700 dark:text-muted rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
                             {dailyLogsLoading ? 'Loading…' : 'Load More'}
                           </button>
                         ) : (
@@ -2004,15 +2004,15 @@ const ProfilePage = () => {
       {profileFilterSheet && (
         <div className="fixed inset-0 z-[205] flex items-end justify-center">
           <button type="button" aria-label="Close filters" onClick={() => setProfileFilterSheet(null)} className="absolute inset-0 bg-slate-950/45" />
-          <section className="relative w-full rounded-t-3xl bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl dark:bg-gray-900 sm:max-w-md sm:rounded-2xl">
+          <section className="relative w-full rounded-t-3xl bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl dark:bg-canvas sm:max-w-md sm:rounded-2xl">
             <div className="mb-5 flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-blue-500">Filters</p><h2 className="mt-1 text-lg font-extrabold text-slate-950 dark:text-white">{profileFilterSheet === 'goals' ? 'Filter goals' : 'Filter habits'}</h2></div><button type="button" onClick={() => setProfileFilterSheet(null)} className="rounded-lg p-2 text-2xl leading-none text-slate-400">×</button></div>
             <div className="grid gap-2">
               {(profileFilterSheet === 'goals' ? [['all','All goals'],['on_track','On Track'],['attention','Needs Attention']] : [['all','All habits'],['active','Active'],['archived','Archived']]).map(([value, label]) => {
                 const selected = profileFilterSheet === 'goals' ? goalFilter === value : habitFilter === value;
-                return <button key={value} type="button" onClick={() => profileFilterSheet === 'goals' ? setGoalFilter(value) : setHabitFilter(value)} className={`flex items-center justify-between rounded-xl border px-4 py-3 text-left text-sm font-bold ${selected ? 'border-blue-500 bg-blue-50 text-blue-600 dark:bg-blue-950/30' : 'border-slate-200 text-slate-600 dark:border-gray-700 dark:text-gray-300'}`}><span>{label}</span><span className={`h-4 w-4 rounded-full border-2 ${selected ? 'border-blue-500 bg-blue-500 shadow-[inset_0_0_0_3px_white]' : 'border-slate-300'}`} /></button>;
+                return <button key={value} type="button" onClick={() => profileFilterSheet === 'goals' ? setGoalFilter(value) : setHabitFilter(value)} className={`flex items-center justify-between rounded-xl border px-4 py-3 text-left text-sm font-bold ${selected ? 'border-blue-500 bg-blue-50 text-blue-600 dark:bg-blue-950/30' : 'border-slate-200 text-slate-600 dark:border-line dark:text-muted'}`}><span>{label}</span><span className={`h-4 w-4 rounded-full border-2 ${selected ? 'border-blue-500 bg-blue-500 shadow-[inset_0_0_0_3px_white]' : 'border-slate-300'}`} /></button>;
               })}
             </div>
-            <div className="mt-5 grid grid-cols-2 gap-3"><button type="button" onClick={() => profileFilterSheet === 'goals' ? setGoalFilter('all') : setHabitFilter('all')} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-600 dark:border-gray-700 dark:text-gray-300">Clear</button><button type="button" onClick={() => setProfileFilterSheet(null)} className="rounded-xl bg-[#1683ed] px-4 py-3 text-sm font-bold text-white">Apply</button></div>
+            <div className="mt-5 grid grid-cols-2 gap-3"><button type="button" onClick={() => profileFilterSheet === 'goals' ? setGoalFilter('all') : setHabitFilter('all')} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-600 dark:border-line dark:text-muted">Clear</button><button type="button" onClick={() => setProfileFilterSheet(null)} className="rounded-xl bg-[#1683ed] px-4 py-3 text-sm font-bold text-white">Apply</button></div>
           </section>
         </div>
       )}
@@ -2120,7 +2120,7 @@ const ProfilePage = () => {
         >
           {/* Backdrop */}
           <div className="absolute inset-0 bg-slate-950/55 backdrop-blur-[1px] dark:bg-black/70" />
-          
+
           {/* Modal */}
           <motion.div
             initial={{ opacity: 0, y: 80 }}
@@ -2130,13 +2130,13 @@ const ProfilePage = () => {
             className="relative mt-auto w-full sm:mt-0 sm:max-w-md"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="max-h-[88dvh] w-full overflow-y-auto rounded-t-[26px] bg-white shadow-2xl dark:bg-gray-900 sm:rounded-2xl">
-              <div className="mx-auto mt-2.5 h-1 w-10 rounded-full bg-slate-300 dark:bg-gray-600" />
+            <div className="max-h-[88dvh] w-full overflow-y-auto rounded-t-[26px] bg-white shadow-2xl dark:bg-canvas sm:rounded-2xl">
+              <div className="mx-auto mt-2.5 h-1 w-10 rounded-full bg-slate-300 dark:bg-elevated" />
               <div className="space-y-1 px-4 pb-2 pt-4">
                 {isOwnProfile ? (
                   <>
                     <button
-                      className="w-full rounded-lg px-4 py-2 text-center text-gray-900 transition-colors hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
+                      className="w-full rounded-lg px-4 py-2 text-center text-gray-900 transition-colors hover:bg-gray-100 dark:text-white dark:hover:bg-elevated"
                       onClick={() => {
                         navigate('/settings?section=personal-info');
                         setProfileMenuOpen(false);
@@ -2145,7 +2145,7 @@ const ProfilePage = () => {
                       Edit Profile
                     </button>
                     <button
-                      className="w-full rounded-lg px-4 py-2 text-center text-gray-900 transition-colors hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
+                      className="w-full rounded-lg px-4 py-2 text-center text-gray-900 transition-colors hover:bg-gray-100 dark:text-white dark:hover:bg-elevated"
                       onClick={() => {
                         shareUrlRef.current = `${window.location.origin}/profile/@${displayUser.username}`;
                         setShareSheetOpen(true);
@@ -2158,7 +2158,7 @@ const ProfilePage = () => {
                 ) : (
                   <>
                     <button
-                      className="w-full text-center px-4 py-2 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                      className="w-full text-center px-4 py-2 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-elevated rounded-lg transition-colors"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -2182,22 +2182,22 @@ const ProfilePage = () => {
                     </button>
                     <button
                       className="w-full text-center px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                      onClick={(e) => { 
+                      onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        setReportOpen(true); 
-                        setProfileMenuOpen(false); 
+                        setReportOpen(true);
+                        setProfileMenuOpen(false);
                       }}
                     >
                       Report
                     </button>
                     <button
                       className="w-full text-center px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                      onClick={(e) => { 
+                      onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        setBlockOpen(true); 
-                        setProfileMenuOpen(false); 
+                        setBlockOpen(true);
+                        setProfileMenuOpen(false);
                       }}
                     >
                       Block
@@ -2205,8 +2205,8 @@ const ProfilePage = () => {
                   </>
                 )}
               </div>
-              <div className="border-t border-slate-100 px-4 pb-[calc(14px+env(safe-area-inset-bottom))] pt-3 dark:border-gray-800">
-                <button onClick={() => setProfileMenuOpen(false)} className="w-full rounded-xl bg-gray-100 px-3 py-3 text-sm font-bold text-gray-700 dark:bg-gray-800 dark:text-gray-200">Cancel</button>
+              <div className="border-t border-slate-100 px-4 pb-[calc(14px+env(safe-area-inset-bottom))] pt-3 dark:border-line">
+                <button onClick={() => setProfileMenuOpen(false)} className="w-full rounded-xl bg-gray-100 px-3 py-3 text-sm font-bold text-gray-700 dark:bg-surface dark:text-ink">Cancel</button>
               </div>
             </div>
           </motion.div>
@@ -2219,7 +2219,7 @@ const ProfilePage = () => {
         url={shareUrlRef.current}
         title={`${displayUser?.name}'s Profile - WishTrail`}
       />
-      
+
       {/* Quote Modal */}
       {quoteModalOpen && displayUser?.currentMood && (
         <div
@@ -2228,7 +2228,7 @@ const ProfilePage = () => {
         >
           {/* Backdrop */}
           <div className="absolute inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm" />
-          
+
           {/* Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -2241,37 +2241,37 @@ const ProfilePage = () => {
             aria-label="Mood and quote"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-h-[calc(100dvh-2rem)] overflow-y-auto border border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-surface rounded-2xl shadow-2xl w-full max-h-[calc(100dvh-2rem)] overflow-y-auto border border-gray-200 dark:border-line">
               {/* Mood Header */}
               <div className="flex items-center justify-center pt-8 pb-4">
-                <div 
+                <div
                   className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg"
                   style={{ backgroundColor: 'rgba(76, 153, 230, 0.1)' }}
                 >
                   <span className="text-5xl">{displayUser.currentMood}</span>
                 </div>
               </div>
-              
+
               {/* User Info */}
               <div className="text-center px-6 pb-4">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-gray-500 dark:text-muted">
                   @{displayUser.username}
                 </p>
               </div>
-              
+
               {/* Quote Section */}
               {displayUser.quote ? (
                 <div className="px-6 pb-6">
-                  <div 
+                  <div
                     className="min-h-[7rem] p-5 rounded-xl border-l-4 flex items-center"
-                    style={{ 
+                    style={{
                       backgroundColor: 'rgba(76, 153, 230, 0.08)',
                       borderLeftColor: '#4c99e6'
                     }}
                   >
                     <div className="flex min-w-0 w-full items-start gap-3">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm sm:text-base text-gray-800 dark:text-gray-200 leading-relaxed italic whitespace-pre-wrap [overflow-wrap:anywhere]">
+                        <p className="text-sm sm:text-base text-gray-800 dark:text-ink leading-relaxed italic whitespace-pre-wrap [overflow-wrap:anywhere]">
                           &ldquo;{displayUser.quote}&rdquo;
                         </p>
                       </div>
@@ -2281,15 +2281,15 @@ const ProfilePage = () => {
               ) : (
                 <div className="px-6 pb-6">
                   <div className="min-h-[7rem] p-5 rounded-xl bg-gray-50 dark:bg-gray-700/30 flex items-center justify-center text-center">
-                    <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                    <p className="text-sm text-gray-500 dark:text-muted italic">
                       No quote shared yet
                     </p>
                   </div>
                 </div>
               )}
-              
+
               {/* Close Button */}
-              <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+              <div className="border-t border-gray-200 dark:border-line p-4">
                 <button
                   onClick={() => setQuoteModalOpen(false)}
                   className="w-full px-4 py-2.5 rounded-xl text-white font-medium text-sm transition-opacity hover:opacity-90"
@@ -2302,10 +2302,10 @@ const ProfilePage = () => {
           </motion.div>
         </div>
       )}
-      
+
       {/* Footer quote */}
       <footer className="text-center py-8 mt-8">
-        <p className="text-gray-500 dark:text-gray-400 italic text-sm">
+        <p className="text-gray-500 dark:text-muted italic text-sm">
           &ldquo;The only way to achieve the impossible is to believe it is possible.&rdquo;
         </p>
       </footer>
@@ -2341,8 +2341,8 @@ export default ProfilePage;
 
 // Reusable small stat pill
 export const StatPill = ({ label, value }) => (
-  <div className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-lg border border-gray-200 dark:border-gray-700 text-center">
-    <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{label}</div>
-    <div className="text-lg font-semibold text-gray-800 dark:text-gray-100">{value || 0}</div>
+  <div className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-lg border border-gray-200 dark:border-line text-center">
+    <div className="text-xs text-gray-500 dark:text-muted mb-1">{label}</div>
+    <div className="text-lg font-semibold text-gray-800 dark:text-ink">{value || 0}</div>
   </div>
 );

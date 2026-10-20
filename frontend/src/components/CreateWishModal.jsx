@@ -14,7 +14,7 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
     category: '',
     targetDate: '',
     isPublic: true,
-    
+
   })
   const [errors, setErrors] = useState({})
   const { createGoal, loading } = useApiStore()
@@ -28,7 +28,7 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
         category: initialData?.category || '',
         targetDate: initialData?.targetDate || '',
         isPublic: initialData?.isPublic ?? true,
-        
+
       }))
       setErrors({})
     }
@@ -78,41 +78,41 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
 
   const validateForm = () => {
     const newErrors = {}
-    
+
     if (!formData.title.trim()) {
       newErrors.title = 'Title is required'
     }
     if (formData.title.trim().length > MAX_TITLE_CHARS) {
       newErrors.title = `Title cannot exceed ${MAX_TITLE_CHARS} characters`
     }
-  
+
     if (formData.description.trim().length > MAX_DESC_CHARS) {
       newErrors.description = `Description cannot exceed ${MAX_DESC_CHARS} characters`
     }
-    
+
     if (!formData.category) {
       newErrors.category = 'Category is required'
     }
-    
+
     // Target date validation - only allow dates +1 from current day (tomorrow onwards)
     if (formData.targetDate) {
       const targetDate = new Date(formData.targetDate)
       const today = new Date()
       const minAllowedDate = new Date(today)
       minAllowedDate.setDate(minAllowedDate.getDate() + 1)
-      
+
       if (targetDate < minAllowedDate) {
         newErrors.targetDate = 'Target date must be at least 1 day from today'
       }
     }
-    
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+
     if (!validateForm()) {
       return
     }
@@ -124,7 +124,7 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
       targetDate: formData.targetDate || null,
       year: year,
       isPublic: !!formData.isPublic,
-      
+
     }
 
     try {
@@ -136,7 +136,7 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
         // Fallback to direct call if no onSave prop provided
         result = await createGoal(goalData)
       }
-      
+
       if(result.success) {
         handleClose()
       }
@@ -152,7 +152,7 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
       category: '',
       targetDate: '',
       isPublic: true,
-      
+
     })
     setErrors({})
     onClose()
@@ -179,7 +179,7 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-white dark:bg-gray-800 p-6 rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto relative shadow-2xl border border-gray-200 dark:border-gray-700"
+        className="bg-white dark:bg-surface p-6 rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto relative shadow-2xl border border-gray-200 dark:border-line"
         onClick={(e) => e.stopPropagation()}
         style={{ zIndex: 10000 }}
       >
@@ -203,7 +203,7 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Title */}
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-muted mb-2">
               Goal Title <span className="text-red-500">*</span>
             </label>
             <input
@@ -212,14 +212,14 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
               name="title"
               value={formData.title}
               onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
-                errors.title ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-surface text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
+                errors.title ? 'border-red-500' : 'border-gray-300 dark:border-line'
               }`}
               placeholder="Enter your goal title"
               required
               maxLength={MAX_TITLE_CHARS}
             />
-            <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right">{formData.title.length}/{MAX_TITLE_CHARS}</div>
+            <div className="mt-1 text-xs text-gray-500 dark:text-muted text-right">{formData.title.length}/{MAX_TITLE_CHARS}</div>
             {errors.title && (
               <div className="flex items-center mt-1 text-red-500 text-sm">
                 <AlertCircle className="h-4 w-4 mr-1" />
@@ -230,7 +230,7 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
 
           {/* Description */}
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-muted mb-2">
               Description
             </label>
             <textarea
@@ -239,14 +239,14 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
               value={formData.description}
               onChange={handleInputChange}
               rows={3}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
-                errors.description ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-surface text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
+                errors.description ? 'border-red-500' : 'border-gray-300 dark:border-line'
               }`}
               placeholder="Describe your goal in detail"
               required
               maxLength={MAX_DESC_CHARS}
             />
-            <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right">{formData.description.length}/{MAX_DESC_CHARS}</div>
+            <div className="mt-1 text-xs text-gray-500 dark:text-muted text-right">{formData.description.length}/{MAX_DESC_CHARS}</div>
             {errors.description && (
               <div className="flex items-center mt-1 text-red-500 text-sm">
                 <AlertCircle className="h-4 w-4 mr-1" />
@@ -257,7 +257,7 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
 
           {/* Category */}
           <div>
-            <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-muted mb-2">
               Category <span className="text-red-500">*</span>
             </label>
             <select
@@ -265,8 +265,8 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
               name="category"
               value={formData.category}
               onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
-                errors.category ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-surface text-gray-900 dark:text-white ${
+                errors.category ? 'border-red-500' : 'border-gray-300 dark:border-line'
               }`}
               required
             >
@@ -285,7 +285,7 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
 
           {/* Target Date */}
           <div>
-            <label htmlFor="targetDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="targetDate" className="block text-sm font-medium text-gray-700 dark:text-muted mb-2">
               Target Date
             </label>
             <input
@@ -295,8 +295,8 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
               value={formData.targetDate}
               onChange={handleInputChange}
               min={getMinDate()}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
-                errors.targetDate ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-surface text-gray-900 dark:text-white ${
+                errors.targetDate ? 'border-red-500' : 'border-gray-300 dark:border-line'
               }`}
             />
             {errors.targetDate && (
@@ -309,11 +309,11 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
 
           {/* Visibility settings */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-muted">
               <input type="checkbox" name="isPublic" checked={!!formData.isPublic} onChange={handleInputChange} className="rounded" />
               Make this goal visible to others
             </label>
-            
+
           </div>
 
           {/* Action Buttons */}
@@ -321,7 +321,7 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
             <button
               type="button"
               onClick={handleClose}
-              className="flex-1 py-2 px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="flex-1 py-2 px-4 border border-gray-300 dark:border-line text-gray-700 dark:text-muted rounded-lg hover:bg-gray-50 dark:hover:bg-elevated transition-colors"
               disabled={loading}
             >
               Cancel
@@ -340,4 +340,4 @@ const CreateWishModal = ({ isOpen, onClose, onSave, year, initialData }) => {
   )
 }
 
-export default CreateWishModal 
+export default CreateWishModal

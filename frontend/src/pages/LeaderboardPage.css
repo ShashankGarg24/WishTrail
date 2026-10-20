@@ -7,3 +7,9 @@
 @media(max-width:767px){.lb-desktop-period{display:none}.lb-mobile-period{display:block;flex-shrink:0}.lb-table-toolbar{gap:10px;margin-bottom:8px}.lb-table-toolbar .lb-search{margin:0;flex:1;min-width:0}.lb-mobile-period .lb-period{width:100px;padding:10px 12px;background:#f6f8fb;border-color:#f0f3f7}.lb-controls{margin-bottom:30px}.dark .lb-mobile-period .lb-period{background:#1d293b;border-color:#2b3a4f}}
 .lb-rank-person.is-unranked small{color:#6b7d96;line-height:1.35}
 @media(max-width:767px){.lb-rank-person.is-unranked .lb-rank-number{font-size:16px}.lb-rank-person.is-unranked>div{grid-template-columns:auto minmax(0,1fr)}}
+
+.dark .lb-page { background:var(--wt-canvas);color:var(--wt-ink); }
+.dark :is(.lb-winner,.lb-winner.lb-place-3,.lb-table-card,.lb-stats,.lb-period,.lb-tabs) { background:var(--wt-surface);border-color:var(--wt-line);box-shadow:none; }
+.dark :is(.lb-winner.lb-place-1,.lb-your-rank,.lb-rank-person,.lb-hero blockquote) { background:var(--wt-blue-wash);border-color:var(--wt-brand-border); }
+.dark :is(.lb-search,.lb-table-card tr:nth-child(odd) td,.lb-period select option) { background:var(--wt-elevated);border-color:var(--wt-line); }
+.dark :is(.lb-badge,.lb-place-1 .lb-badge,.lb-place-3 .lb-badge,.lb-score-label,.lb-hero p) { color:var(--wt-muted); }

@@ -9,7 +9,7 @@ const MaintenancePage = ({ message }) => {
   const defaultMessage = message || 'WishTrail is currently undergoing scheduled maintenance to improve your growth experience. We\'ll be back shortly.';
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-canvas">
 
       {/* Main Content */}
       <div className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 py-12">
@@ -36,13 +36,13 @@ const MaintenancePage = ({ message }) => {
                   transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
                   className="absolute inset-0 bg-blue-400 dark:bg-blue-500 rounded-full blur-2xl"
                 />
-                
+
                 {/* Icon container */}
-                <div className="relative w-32 h-32 bg-white dark:bg-gray-800 rounded-3xl shadow-xl flex items-center justify-center">
+                <div className="relative w-32 h-32 bg-white dark:bg-surface rounded-3xl shadow-xl flex items-center justify-center">
                   <UserCog className="w-16 h-16 text-blue-500" strokeWidth={1.5} />
-                  
+
                   {/* Loading bar */}
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700 rounded-b-3xl overflow-hidden">
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200 dark:bg-elevated rounded-b-3xl overflow-hidden">
                     <motion.div
                       animate={{
                         x: ['-100%', '100%'],
@@ -70,7 +70,7 @@ const MaintenancePage = ({ message }) => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="text-gray-600 dark:text-gray-400 text-base md:text-lg mb-8 leading-relaxed"
+              className="text-gray-600 dark:text-muted text-base md:text-lg mb-8 leading-relaxed"
             >
               {defaultMessage}
             </motion.p>
@@ -84,7 +84,7 @@ const MaintenancePage = ({ message }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="text-sm text-gray-500 dark:text-gray-500"
+          className="text-sm text-gray-500 dark:text-muted"
         >
           © 2026 WishTrail. Preparing for your next milestone.
         </motion.p>

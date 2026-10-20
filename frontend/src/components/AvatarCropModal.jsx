@@ -99,18 +99,18 @@ export default function AvatarCropModal({ file, onCancel, onComplete }) {
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="avatar-crop-title">
       <button type="button" aria-label="Close photo cropper" onClick={onCancel} className="absolute inset-0 bg-black/60" />
-      <div className="relative z-10 w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl dark:bg-gray-900">
+      <div className="relative z-10 w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl dark:bg-canvas">
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 id="avatar-crop-title" className="text-base font-semibold text-gray-900 dark:text-white">Adjust profile photo</h2>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Drag to position and zoom to fit the circle.</p>
+            <p className="mt-1 text-xs text-gray-500 dark:text-muted">Drag to position and zoom to fit the circle.</p>
           </div>
-          <button type="button" onClick={onCancel} aria-label="Cancel photo crop" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">
+          <button type="button" onClick={onCancel} aria-label="Cancel photo crop" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-surface">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="mx-auto h-[280px] w-[280px] touch-none overflow-hidden rounded-full bg-gray-100 ring-4 ring-gray-200 dark:bg-gray-800 dark:ring-gray-700">
+        <div className="mx-auto h-[280px] w-[280px] touch-none overflow-hidden rounded-full bg-gray-100 ring-4 ring-gray-200 dark:bg-surface dark:ring-gray-700">
           <canvas
             ref={canvasRef}
             width={VIEWPORT_SIZE}
@@ -130,7 +130,7 @@ export default function AvatarCropModal({ file, onCancel, onComplete }) {
         </div>
 
         <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">Cancel</button>
+          <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-line dark:text-muted dark:hover:bg-surface">Cancel</button>
           <button type="button" onClick={handleComplete} disabled={!imageLoaded} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
             <Check className="h-4 w-4" />
             Use photo

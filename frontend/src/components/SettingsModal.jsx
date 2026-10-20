@@ -77,18 +77,18 @@ const SettingsModal = ({ isOpen, onClose }) => {
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.95, opacity: 0, y: 20 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-5xl h-[85vh] overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col"
+        className="bg-white dark:bg-surface rounded-2xl w-full max-w-5xl h-[85vh] overflow-hidden shadow-2xl border border-gray-200 dark:border-line flex flex-col"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-line flex-shrink-0">
           <div className="flex items-center space-x-2">
             {/* Mobile back button - only show when in content view */}
             {mobileView === 'content' && (
               <button
                 onClick={() => setMobileView('tabs')}
-                className="md:hidden p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors mr-2"
+                className="md:hidden p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-elevated transition-colors mr-2"
               >
-                <ArrowLeft className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                <ArrowLeft className="h-5 w-5 text-gray-500 dark:text-muted" />
               </button>
             )}
             <Settings className="h-6 w-6 text-primary-600" />
@@ -96,16 +96,16 @@ const SettingsModal = ({ isOpen, onClose }) => {
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-elevated transition-colors"
           >
-            <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+            <X className="h-5 w-5 text-gray-500 dark:text-muted" />
           </button>
         </div>
 
         {/* Main Content Area with Sidebar */}
         <div className="flex flex-1 overflow-hidden">
           {/* Left Sidebar - Desktop */}
-          <div className="hidden md:flex w-64 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex-col flex-shrink-0">
+          <div className="hidden md:flex w-64 border-r border-gray-200 dark:border-line bg-gray-50 dark:bg-canvas flex-col flex-shrink-0">
             <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
@@ -117,7 +117,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                       isActive
                         ? 'bg-primary-600 text-white'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                        : 'text-gray-700 dark:text-muted hover:bg-gray-100 dark:hover:bg-surface'
                     }`}
                   >
                     <Icon className="h-4 w-4" />
@@ -140,7 +140,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                       setActiveTab(tab.id);
                       setMobileView('content');
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 dark:text-muted hover:bg-gray-100 dark:hover:bg-surface transition-colors bg-white dark:bg-surface border border-gray-200 dark:border-line"
                   >
                     <Icon className="h-5 w-5" />
                     <span>{tab.label}</span>

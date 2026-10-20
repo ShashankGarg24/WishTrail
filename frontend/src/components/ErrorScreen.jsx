@@ -1,12 +1,12 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  WifiOff, 
-  AlertCircle, 
-  Server, 
-  Lock, 
-  LogOut, 
-  Home, 
+import {
+  WifiOff,
+  AlertCircle,
+  Server,
+  Lock,
+  LogOut,
+  Home,
   RefreshCw,
   Droplet
 } from 'lucide-react';
@@ -15,7 +15,7 @@ import {
  * Generic Error Screen Component
  * Displays different error types based on props
  */
-const ErrorScreen = ({ 
+const ErrorScreen = ({
   type = 'generic',
   title,
   message,
@@ -80,14 +80,14 @@ const ErrorScreen = ({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-canvas">
 
       {/* Main Content */}
       <div className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 py-12">
         <div className="max-w-md w-full text-center">
-          <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }} 
-            animate={{ scale: 1, opacity: 1 }} 
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
           >
             {/* Icon */}
@@ -97,7 +97,7 @@ const ErrorScreen = ({
               transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
               className="flex justify-center mb-8"
             >
-              <div className={`w-24 h-24 rounded-full bg-white dark:bg-gray-800 shadow-lg flex items-center justify-center ${config.iconColor}`}>
+              <div className={`w-24 h-24 rounded-full bg-white dark:bg-surface shadow-lg flex items-center justify-center ${config.iconColor}`}>
                 <Icon size={48} strokeWidth={1.5} />
               </div>
             </motion.div>
@@ -117,7 +117,7 @@ const ErrorScreen = ({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="text-gray-600 dark:text-gray-400 text-base md:text-lg mb-8 leading-relaxed"
+              className="text-gray-600 dark:text-muted text-base md:text-lg mb-8 leading-relaxed"
             >
               {displayMessage}
             </motion.p>
@@ -144,8 +144,8 @@ const ErrorScreen = ({
                   <Link
                     to="/"
                     className={`inline-flex items-center justify-center gap-2 px-6 py-3 font-medium rounded-lg transition-colors shadow-sm ${
-                      showRetryButton 
-                        ? 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700' 
+                      showRetryButton
+                        ? 'bg-white dark:bg-surface text-gray-700 dark:text-muted border border-gray-200 dark:border-line hover:bg-gray-50 dark:hover:bg-elevated'
                         : 'bg-blue-500 hover:bg-blue-600 text-white'
                     }`}
                   >
@@ -156,8 +156,8 @@ const ErrorScreen = ({
                   <a
                     href="/"
                     className={`inline-flex items-center justify-center gap-2 px-6 py-3 font-medium rounded-lg transition-colors shadow-sm ${
-                      showRetryButton 
-                        ? 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700' 
+                      showRetryButton
+                        ? 'bg-white dark:bg-surface text-gray-700 dark:text-muted border border-gray-200 dark:border-line hover:bg-gray-50 dark:hover:bg-elevated'
                         : 'bg-blue-500 hover:bg-blue-600 text-white'
                     }`}
                   >
@@ -190,7 +190,7 @@ const ErrorScreen = ({
               {customAction && (
                 <button
                   onClick={customAction.onClick}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium rounded-lg transition-colors shadow-sm"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-surface text-gray-700 dark:text-muted border border-gray-200 dark:border-line hover:bg-gray-50 dark:hover:bg-elevated font-medium rounded-lg transition-colors shadow-sm"
                 >
                   {customAction.icon && <customAction.icon size={18} />}
                   {customAction.label}
@@ -204,11 +204,11 @@ const ErrorScreen = ({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6 }}
-                className="mt-8 text-sm text-gray-500 dark:text-gray-500"
+                className="mt-8 text-sm text-gray-500 dark:text-muted"
               >
                 Need help? Contact us at{' '}
-                <a 
-                  href="mailto:support@wishtrail.in" 
+                <a
+                  href="mailto:support@wishtrail.in"
                   className="text-blue-600 dark:text-blue-400 hover:underline"
                 >
                   support@wishtrail.in
@@ -225,7 +225,7 @@ const ErrorScreen = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.7 }}
-          className="text-sm text-gray-500 dark:text-gray-500"
+          className="text-sm text-gray-500 dark:text-muted"
         >
           © 2026 WishTrail. Preparing for your next milestone.
         </motion.p>

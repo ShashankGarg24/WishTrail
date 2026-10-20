@@ -7,7 +7,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
   const [identifier, setIdentifier] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [errors, setErrors] = useState({});
-  
+
   const { forgotPassword, loading, error } = useApiStore();
 
   const handleInputChange = (e) => {
@@ -20,25 +20,25 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
 
   const validateEmail = () => {
     const newErrors = {};
-    
+
     if (!identifier.trim()) {
       newErrors.email = 'Email or username is required';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateEmail()) {
       return;
     }
-    
+
     try {
       const result = await forgotPassword(identifier);
-      
+
       if (result.success) {
         setIsSubmitted(true);
       }
@@ -74,7 +74,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.2 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-md border border-gray-200 dark:border-gray-700"
+          className="bg-white dark:bg-surface rounded-2xl shadow-2xl p-6 w-full max-w-md border border-gray-200 dark:border-line"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -84,7 +84,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
             </h2>
             <button
               onClick={handleClose}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-muted transition-colors"
             >
               <X className="h-6 w-6" />
             </button>
@@ -93,7 +93,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
           {/* Content */}
           {!isSubmitted ? (
             <div>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
+              <p className="text-gray-600 dark:text-muted mb-6">
                 Enter your email or username and we'll send a reset link to your account email.
               </p>
 
@@ -107,12 +107,12 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
                       autoComplete="username"
                       value={identifier}
                       onChange={handleInputChange}
-                      className={`peer w-full px-4 pt-6 pb-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors ${
-                        errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                      className={`peer w-full px-4 pt-6 pb-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-elevated text-gray-900 dark:text-white transition-colors ${
+                        errors.email ? 'border-red-500' : 'border-gray-300 dark:border-line'
                       }`}
                       disabled={loading}
                     />
-                    <label htmlFor="forgot-identifier" className={`pointer-events-none absolute left-4 origin-left transition-all duration-150 ${identifier ? 'top-1.5 text-xs' : 'top-1/2 -translate-y-1/2 text-base peer-focus:top-1.5 peer-focus:translate-y-0 peer-focus:text-xs'} text-gray-500 dark:text-gray-400 peer-focus:text-primary-500`}>
+                    <label htmlFor="forgot-identifier" className={`pointer-events-none absolute left-4 origin-left transition-all duration-150 ${identifier ? 'top-1.5 text-xs' : 'top-1/2 -translate-y-1/2 text-base peer-focus:top-1.5 peer-focus:translate-y-0 peer-focus:text-xs'} text-gray-500 dark:text-muted peer-focus:text-primary-500`}>
                       Email or username
                     </label>
                   </div>
@@ -165,18 +165,18 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
               <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-4">
                 <CheckCircle className="h-8 w-8 text-green-500" />
               </div>
-              
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
+
+              <p className="text-gray-600 dark:text-muted mb-6">
                 If an account matches those details, we've sent a password reset link to its email address.
               </p>
-              
+
               <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-6">
                 <p className="text-blue-700 dark:text-blue-400 text-sm">
                   <strong>What's next?</strong><br />
                   Check your email and click the reset link. The link will expire in 15 minutes for security.
                 </p>
               </div>
-              
+
               <div className="space-y-3">
                 <button
                   onClick={handleBackToLogin}
@@ -184,10 +184,10 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
                 >
                   Back to Login
                 </button>
-                
+
                 <button
                   onClick={handleClose}
-                  className="w-full py-3 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium"
+                  className="w-full py-3 px-4 bg-gray-100 dark:bg-elevated text-gray-700 dark:text-muted rounded-lg hover:bg-gray-200 dark:hover:bg-elevated transition-colors font-medium"
                 >
                   Close
                 </button>

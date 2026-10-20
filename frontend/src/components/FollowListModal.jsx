@@ -13,14 +13,14 @@ const ListItem = ({ user, onOpenProfile, actionType, onFollowBack, onRemove }) =
   const initials = name.split(/\s+/).map((n) => n[0]).join('').slice(0, 2).toUpperCase()
 
   return (
-    <div className="w-full flex items-center gap-3 py-3 border-b border-gray-100 dark:border-gray-800 last:border-0">
+    <div className="w-full flex items-center gap-3 py-3 border-b border-gray-100 dark:border-line last:border-0">
       <button
         type="button"
         onClick={() => onOpenProfile?.(user)}
         className="flex items-center gap-3 flex-1 min-w-0 text-left rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors p-1 -m-1"
       >
         {avatar ? (
-          <img src={avatar} alt={name} width="40" height="40" className="w-10 h-10 rounded-full object-cover bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
+          <img src={avatar} alt={name} width="40" height="40" className="w-10 h-10 rounded-full object-cover bg-gray-200 dark:bg-elevated flex-shrink-0" />
         ) : (
           <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold text-white flex-shrink-0" style={{ backgroundColor: THEME_COLOR }}>
             {initials}
@@ -28,7 +28,7 @@ const ListItem = ({ user, onOpenProfile, actionType, onFollowBack, onRemove }) =
         )}
         <div className="min-w-0 flex-1">
           <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{name}</div>
-          {username && <div className="text-xs text-gray-500 dark:text-gray-400 truncate">@{username}</div>}
+          {username && <div className="text-xs text-gray-500 dark:text-muted truncate">@{username}</div>}
         </div>
       </button>
       {actionType === 'follow_back' && (
@@ -45,7 +45,7 @@ const ListItem = ({ user, onOpenProfile, actionType, onFollowBack, onRemove }) =
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onRemove?.(user); }}
-          className="flex-shrink-0 px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          className="flex-shrink-0 px-4 py-2 rounded-xl border border-gray-300 dark:border-line bg-white dark:bg-surface text-gray-700 dark:text-muted text-sm font-medium hover:bg-gray-50 dark:hover:bg-elevated transition-colors"
         >
           Remove
         </button>
@@ -121,16 +121,16 @@ const FollowListModal = ({ isOpen, onClose, activeTab = 'followers', onTabChange
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.96, opacity: 0, y: 20 }}
             transition={{ duration: 0.2 }}
-            className="relative flex h-full w-full flex-col bg-white font-manrope dark:bg-gray-900 sm:h-[600px] sm:max-h-[85vh] sm:max-w-md sm:rounded-2xl sm:border sm:border-gray-200 sm:shadow-xl dark:sm:border-gray-700"
+            className="relative flex h-full w-full flex-col bg-white font-manrope dark:bg-canvas sm:h-[600px] sm:max-h-[85vh] sm:max-w-md sm:rounded-2xl sm:border sm:border-gray-200 sm:shadow-xl dark:sm:border-gray-700"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex h-14 items-center justify-between border-b border-gray-100 px-4 dark:border-gray-800 sm:h-auto sm:px-5 sm:pb-3 sm:pt-5">
+            <div className="flex h-14 items-center justify-between border-b border-gray-100 px-4 dark:border-line sm:h-auto sm:px-5 sm:pb-3 sm:pt-5">
               <div className="flex items-center gap-2">
                 <button type="button" onClick={onClose} className="-ml-2 p-2 sm:hidden"><ArrowLeft className="h-5 w-5" /></button>
                 <Users className="hidden h-5 w-5 sm:block" style={{ color: THEME_COLOR }} />
                 <span className="text-base font-bold text-gray-900 dark:text-white sm:text-lg">{activeTab === 'followers' ? 'Followers' : 'Following'}</span>
               </div>
-              <button type="button" onClick={onClose} className="hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 sm:block" aria-label="Close">
+              <button type="button" onClick={onClose} className="hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-surface text-gray-500 sm:block" aria-label="Close">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -138,19 +138,19 @@ const FollowListModal = ({ isOpen, onClose, activeTab = 'followers', onTabChange
             <PillTabs className="mx-4 mt-3" label="Connections" value={activeTab} onChange={onTabChange} items={[{ value: 'followers', label: `Followers (${followersCount})` }, { value: 'following', label: `Following (${followingCount})` }]} />
 
             <div className="px-4 py-3 sm:px-5">
-              <label className="flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2.5 dark:bg-gray-800"><Search className="h-4 w-4 text-slate-400" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${activeTab}...`} className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400 dark:text-white" /></label>
+              <label className="flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2.5 dark:bg-surface"><Search className="h-4 w-4 text-slate-400" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${activeTab}...`} className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400 dark:text-white" /></label>
             </div>
 
             <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 sm:px-5">
               {loading && (
                 <div className="space-y-2 py-4">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="h-16 rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
+                    <div key={i} className="h-16 rounded-xl bg-gray-100 dark:bg-surface animate-pulse" />
                   ))}
                 </div>
               )}
               {!loading && list.length === 0 && (
-                <div className="py-12 text-center text-sm text-gray-500 dark:text-gray-400">No {activeTab} yet.</div>
+                <div className="py-12 text-center text-sm text-gray-500 dark:text-muted">No {activeTab} yet.</div>
               )}
               {!loading && list.length > 0 && (
                 <div>
@@ -175,7 +175,7 @@ const FollowListModal = ({ isOpen, onClose, activeTab = 'followers', onTabChange
                         type="button"
                         onClick={onLoadMore}
                         disabled={loadingMore}
-                        className="w-full py-2.5 text-sm font-medium rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="w-full py-2.5 text-sm font-medium rounded-xl border border-gray-200 dark:border-line text-gray-600 dark:text-muted hover:bg-gray-50 dark:hover:bg-surface transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                       >
                         {loadingMore ? <><Loader2 className="h-4 w-4 animate-spin" /> Loading...</> : 'Load More'}
                       </button>

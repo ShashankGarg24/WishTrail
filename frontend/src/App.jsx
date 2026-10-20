@@ -100,8 +100,18 @@ function App() {
   }, [initializeAuth, isAdminRoute]);
 
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', isDarkMode);
+    useApiStore.getState().applyTheme(isDarkMode);
   }, [isDarkMode]);
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const update = () => {
+      const store = useApiStore.getState();
+      if (store.themeMode === 'system') store.setThemeMode('system');
+    };
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
 
   // Deep link bootstrap: allow ?url=... to redirect (for push taps) and feedback=1 to open feedback modal
   useEffect(() => {
@@ -224,7 +234,7 @@ function App() {
           notificationsAPI.registerDevice,
           (payload) => {
             // Handle foreground notifications
-            
+
             // Refresh notifications count when a new notification arrives
             try {
               const store = useApiStore.getState();
@@ -258,7 +268,7 @@ function App() {
   }, [isAuthenticated, inNativeApp])
 
   // Admin has separate authentication and remains available during maintenance.
-  if (isAdminRoute) return <><Toaster position="top-right" containerStyle={{ zIndex: 99999 }} /><Suspense fallback={<RouteLoadingScreen />}><AdminPage /></Suspense></>;
+  if (isAdminRoute) return <><Toaster position="top-right" containerStyle={{ zIndex: 99999 }} toastOptions={{ style: { background: 'var(--wt-elevated)', color: 'var(--wt-ink)', border: '1px solid var(--wt-line)' } }} /><Suspense fallback={<RouteLoadingScreen />}><AdminPage /></Suspense></>;
 
   // Show coming soon / maintenance pages if enabled
   if (!authReady) return <StartupSkeleton />
@@ -275,16 +285,16 @@ function App() {
 
   return (
     <>
-      <Toaster position="top-right" containerStyle={{ zIndex: 99999 }} />
-      <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
+      <Toaster position="top-right" containerStyle={{ zIndex: 99999 }} toastOptions={{ style: { background: 'var(--wt-elevated)', color: 'var(--wt-ink)', border: '1px solid var(--wt-line)' } }} />
+      <div className="flex flex-col min-h-screen bg-white dark:bg-canvas transition-colors duration-300">
         {/* Background Elements */}
         <div className="fixed inset-0 pointer-events-none z-0">
-          <div className="absolute inset-0 bg-white dark:bg-gray-900 transition-colors duration-500" />
+          <div className="absolute inset-0 bg-white dark:bg-canvas transition-colors duration-500" />
         </div>
 
         {/* Main content */}
         {/* <div className="relative min-h-screen pb-16 sm:pb-16"> */}
-        <div className="relative min-h-screen bg-[#f5f5f5] dark:bg-gray-900 flex flex-col">
+        <div className="relative min-h-screen bg-[#f5f5f5] dark:bg-canvas flex flex-col">
           <Header />
           {isAuthenticated && !inNativeApp && <ContextualSidebar />}
           <main className={`flex-grow ${isAuthenticated ? 'pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:pb-0' : ''}`}>
@@ -297,24 +307,24 @@ function App() {
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/inspiration" element={<InspirationPage />} />
-              
+
               {/* Legal pages - Public */}
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/terms-of-service" element={<TermsOfService />} />
               <Route path="/community-guidelines" element={<CommunityGuidelines />} />
               <Route path="/copyright-policy" element={<CopyrightPolicy />} />
               <Route path="/support" element={<SupportPage />} />
-              
+
               {/* What's New page - Public */}
               <Route path="/whats-new" element={<WhatsNewPage />} />
-              
+
               {/* Error pages - Public */}
               <Route path="/error/generic" element={<GenericErrorPage />} />
               <Route path="/error/network" element={<NetworkErrorPage />} />
               <Route path="/error/500" element={<ServerErrorPage />} />
               <Route path="/error/permission" element={<PermissionErrorPage />} />
               <Route path="/error/auth" element={<AuthExpiredPage />} />
-              
+
               {/* Protected routes - Require authentication */}
               <Route path="/weekly-trail" element={<PrivateRoute><WeeklyTrailPage /></PrivateRoute>} />
               <Route path="/home" element={<PrivateRoute><DashboardPageNew /></PrivateRoute>} />
@@ -329,10 +339,10 @@ function App() {
               <Route path="/communities/:id" element={<PrivateRoute>{FEATURES.communities ? <Suspense fallback={null}><CommunityDetailPage /></Suspense> : <Navigate to="/discover" replace />}</PrivateRoute>} />
               <Route path="/habits/:id/analytics" element={<Navigate to="/home" replace />} />
               <Route path="/goals/:goalId/analytics" element={<Navigate to="/home" replace />} />
-              
+
               {/* Goal deeplink opens modal within feed/discover - Protected */}
               <Route path="/goal/:goalId" element={<PrivateRoute><FeedPage /></PrivateRoute>} />
-              
+
               {/* 404 - Public */}
               <Route path="*" element={<NotFoundPage />} />
               </Routes>
