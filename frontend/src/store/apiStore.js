@@ -628,21 +628,22 @@ const useApiStore = create(
           const includeArchived = opts.includeArchived || false;
           const sort = opts.sort; // Pass sort parameter
           const year = opts.year;
+          const params = { page, limit, includeArchived, today: getCurrentDateKey() };
+          if (sort) params.sort = sort;
+          if (year != null) params.year = year;
+          const cacheKey = JSON.stringify([get().user?.id || get().user?._id, get()._cacheKeyFromParams(params)]);
           
           const ts = get().cacheHabitsTs || 0;
           const ttl = get().cacheTTLs.habits;
-          if (!force && ts && Date.now() - ts < ttl && Array.isArray(get().habits) && get().habits.length > 0 && page === 1 && get().cacheHabitsYear === (year ?? null)) {
+          if (!force && ts && Date.now() - ts < ttl && Array.isArray(get().habits) && get().cacheHabitsKey === cacheKey) {
             set({ loading: false });
             return { success: true, habits: get().habits, pagination: get().habitsPagination };
           }
           
-          const params = { page, limit, includeArchived, today: getCurrentDateKey() };
-          if (sort) params.sort = sort;
-          if (year != null) params.year = year;
           const res = await habitsAPI.list(params);
           const habits = res?.data?.data?.habits || [];
           const pagination = res?.data?.data?.pagination || null;
-          set({ habits, habitsPagination: pagination, cacheHabitsTs: Date.now(), cacheHabitsYear: year ?? null, loading: false });
+          set({ habits, habitsPagination: pagination, cacheHabitsTs: Date.now(), cacheHabitsYear: year ?? null, cacheHabitsKey: cacheKey, loading: false });
           return { success: true, habits, pagination };
         } catch (error) {
           set({ loading: false, error: handleApiError(error) });
@@ -662,7 +663,7 @@ const useApiStore = create(
           const res = await habitsAPI.search(params);
           const habits = res?.data?.data?.habits || [];
           const pagination = res?.data?.data?.pagination || null;
-          set({ habits, habitsPagination: pagination, loading: false });
+          set({ habits, habitsPagination: pagination, cacheHabitsTs: 0, loading: false });
           return { success: true, habits, pagination };
         } catch (error) {
           set({ loading: false, error: handleApiError(error) });
@@ -674,7 +675,7 @@ const useApiStore = create(
         if (!habit) return;
         set(state => ({
           habits: [habit, ...(state.habits || [])],
-          cacheHabitsTs: Date.now(),
+          cacheHabitsTs: 0,
           cacheDashboardStats: null, // invalidate so totalHabits refreshes
         }));
       },

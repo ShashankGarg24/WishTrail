@@ -409,6 +409,7 @@ export default function DiscoverPage() {
   const trimmedQuery = query.trim();
   const isSearching = trimmedQuery.length >= 2;
   const isShortQuery = trimmedQuery.length === 1;
+  const interestsKey = JSON.stringify(user?.interests || []);
   useEffect(() => {
     if (trimmedQuery.length < 2) {
       setDebounced("");
@@ -503,7 +504,7 @@ export default function DiscoverPage() {
     getTrendingGoals,
     searchPublicGoals,
     searchUsers,
-    user?.interests,
+    interestsKey,
   ]);
   const shownGoals = useMemo(() => {
     let list = [...goals];

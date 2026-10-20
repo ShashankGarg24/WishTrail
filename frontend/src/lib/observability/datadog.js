@@ -1,12 +1,17 @@
-import { datadogRum } from '@datadog/browser-rum'
-import { datadogLogs } from '@datadog/browser-logs'
+let datadogRum
+let datadogLogs
+let initialization
+
+export const trackAction = (event, data) => {
+  try { datadogRum?.addAction(event, data) } catch { /* Telemetry must not block the UI. */ }
+}
 
 let consoleForwardingInstalled = false
 let isForwardingConsole = false
 
 export const trackGoalShare = (event, { shareType, template, format } = {}) => {
   if (!['goal_share_opened', 'goal_share_template_selected', 'goal_share_format_selected', 'goal_share_internal', 'goal_share_external', 'goal_completion_share_clicked'].includes(event)) return
-  try { datadogRum.addAction(event, { shareType, template, format }) } catch { /* Telemetry must not block sharing. */ }
+  trackAction(event, { shareType, template, format })
 }
 
 const truthy = (value) => {
@@ -96,7 +101,7 @@ const installConsoleForwarding = () => {
   consoleForwardingInstalled = true
 }
 
-export const initializeDatadog = () => {
+export const initializeDatadog = async () => {
   const enabled = truthy(import.meta.env.VITE_DD_ENABLED)
   const clientToken = import.meta.env.VITE_DD_CLIENT_TOKEN
   const applicationId = import.meta.env.VITE_DD_APPLICATION_ID
@@ -110,6 +115,10 @@ export const initializeDatadog = () => {
   const forwardConsole = truthy(import.meta.env.VITE_DD_FORWARD_CONSOLE)
 
   try {
+    initialization ||= Promise.all([import('@datadog/browser-rum'), import('@datadog/browser-logs')])
+    const [rumSDK, logsSDK] = await initialization
+    datadogRum = rumSDK.datadogRum
+    datadogLogs = logsSDK.datadogLogs
     datadogLogs.init({
       clientToken,
       site,

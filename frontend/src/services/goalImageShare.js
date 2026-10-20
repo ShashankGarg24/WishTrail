@@ -1,7 +1,6 @@
-import html2canvas from 'html2canvas'
-
 export async function renderGoalImage(element) {
   if (!element) throw new Error('Preview is not ready')
+  const { default: html2canvas } = await import('html2canvas')
   await document.fonts.ready
   const clone = element.cloneNode(true)
   Object.assign(clone.style, { position: 'fixed', left: '-10000px', top: '0', transform: 'none', margin: '0' })

@@ -8,6 +8,7 @@ import { BarChart3, BookOpen, CalendarCheck, Check, ChevronRight, Flame, Plus, S
 import CategoryIcon from './CategoryIcon'
 import HabitCategoryIcon from './HabitCategoryIcon'
 import { settingsAPI } from '../services/api'
+import { getHomeBanner } from '../utils/homeBanner'
 
 const ACTIONS = [
   {
@@ -232,7 +233,10 @@ function FocusChoices({ type, items, selected, saving, onSelect }) {
 function WebGreetingBanner({ isMorning, bannerImage, bannerOverlay, greeting, firstName, greetingEmoji, greetingMessage, onNew }) {
   return (
     <div className="relative mb-3 min-h-[145px] overflow-hidden rounded-2xl bg-slate-900 p-6 text-white">
-      <div className="absolute inset-0 bg-cover bg-center opacity-90" style={{ backgroundImage: `url(${bannerImage})` }} />
+      <picture>
+        <source media="(min-width: 768px)" srcSet={bannerImage} />
+        <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="" fetchPriority="high" width="1600" height="400" className="absolute inset-0 h-full w-full object-cover opacity-90" />
+      </picture>
       <div className={`absolute inset-0 ${bannerOverlay}`} />
       {isMorning && (
         <>
@@ -293,7 +297,7 @@ function MomentumChart({ series = [], momentum = 0 }) {
   )
 }
 
-export default function HomeOverview({ user, goals = [], habits = [], stats = {}, recentActivities = [], quickActionsOpen, setQuickActionsOpen, onGoal, onHabit, onTab, navigate, onDailyLog }) {
+export default function HomeOverview({ loading = false, user, goals = [], habits = [], stats = {}, recentActivities = [], quickActionsOpen, setQuickActionsOpen, onGoal, onHabit, onTab, navigate, onDailyLog }) {
   const firstName = user?.name?.split(' ')[0] || 'there'
   const hour = new Date().getHours()
   const isMorning = hour >= 5 && hour < 12
@@ -301,7 +305,7 @@ export default function HomeOverview({ user, goals = [], habits = [], stats = {}
   const greeting = isEvening ? 'Good evening' : hour >= 12 ? 'Good afternoon' : 'Good morning'
   const greetingEmoji = isEvening ? '🌙' : hour >= 12 ? '🌤️' : '☀️'
   const greetingMessage = isEvening ? 'Reflect on today and keep your momentum going.' : hour >= 12 ? 'Keep the momentum going—one step at a time.' : 'A fresh day, a fresh start. Take one meaningful step toward your goals.'
-  const bannerImage = isEvening ? 'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1600&q=85' : isMorning ? 'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=1600&q=85' : 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1600&q=80'
+  const bannerImage = getHomeBanner(hour)
   const bannerOverlay = isMorning ? 'bg-gradient-to-r from-slate-950/70 via-sky-950/25 to-amber-500/5' : 'bg-gradient-to-r from-slate-950/80 via-slate-950/50 to-slate-950/20'
   const momentum = stats?.weekMomentum ?? stats?.goalProgress ?? 0
   const activeGoals = useMemo(() => goals.filter((g) => !g.completedAt), [goals])
@@ -395,6 +399,13 @@ export default function HomeOverview({ user, goals = [], habits = [], stats = {}
         <div className="hidden md:block">
           <WeeklyTrailTeaser userId={user?.id} refreshKey={JSON.stringify(stats)} fallback={<WebGreetingBanner isMorning={isMorning} bannerImage={bannerImage} bannerOverlay={bannerOverlay} greeting={greeting} firstName={firstName} greetingEmoji={greetingEmoji} greetingMessage={greetingMessage} onNew={() => setQuickActionsOpen(true)} />} />
         </div>
+        {loading ? (
+          <div role="status" aria-label="Loading your dashboard" className="mt-5 grid animate-pulse gap-4 md:grid-cols-2">
+            <span className="sr-only">Loading your dashboard</span>
+            <div className="h-80 rounded-2xl bg-slate-200 dark:bg-gray-800" />
+            <div className="h-80 rounded-2xl bg-slate-200 dark:bg-gray-800" />
+          </div>
+        ) : <>
         <ActivePromotion userId={user?.id} />
         <div className="md:hidden">
           <PillTabs items={homeTabs} value="overview" onChange={onTab} className="mb-4" label="Home views" />
@@ -518,6 +529,7 @@ export default function HomeOverview({ user, goals = [], habits = [], stats = {}
             </Panel>
           </div>
         </div>
+        </>}
       </section>
       <AnimatePresence>
         {focusPickerType && (

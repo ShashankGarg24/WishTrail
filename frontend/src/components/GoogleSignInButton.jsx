@@ -1,4 +1,4 @@
-import { GoogleLogin } from '@react-oauth/google';
+import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
 import { useEffect, useState, useRef } from 'react';
 
 const GoogleSignInButton = ({ onSuccess, onError, mode = 'signin' }) => {
@@ -23,6 +23,7 @@ const GoogleSignInButton = ({ onSuccess, onError, mode = 'signin' }) => {
   }, []);
 
   return (
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
     <div className="w-full flex justify-center">
       <div ref={containerRef} className="w-full max-w-[400px]">
         <GoogleLogin
@@ -49,6 +50,7 @@ const GoogleSignInButton = ({ onSuccess, onError, mode = 'signin' }) => {
         />
       </div>
     </div>
+    </GoogleOAuthProvider>
   );
 };
 

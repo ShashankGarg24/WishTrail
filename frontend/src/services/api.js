@@ -2,6 +2,7 @@ import axios from 'axios';
 import { API_CONFIG } from '../config/api';
 import { addTimezoneAndLocale } from '../utils/timezoneUtils';
 import { ADMIN_BASE } from '../admin/config';
+import { dedupeReads } from './dedupeReads';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
@@ -10,6 +11,8 @@ const api = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true
 });
+
+dedupeReads(api, () => localStorage.getItem('token'));
 
 // 🔥 NEW: Proactive token refresh (refresh 5 minutes before expiry)
 let tokenRefreshTimer = null;

@@ -1,7 +1,6 @@
 import { reconcileNativeNotifications } from './services/nativeNotifications'
 import { Navigate, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { GoogleOAuthProvider } from '@react-oauth/google'
 import { Toaster, toast } from 'react-hot-toast'
 import useApiStore from './store/apiStore'
 import Header from './components/Header'
@@ -273,7 +272,7 @@ function App() {
   }
 
   return (
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+    <>
       <Toaster position="top-right" containerStyle={{ zIndex: 99999 }} />
       <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
         {/* Background Elements */}
@@ -347,7 +346,7 @@ function App() {
         </div>
         <SpeedInsights />
       </div>
-    </GoogleOAuthProvider>
+    </>
   )
 }
 

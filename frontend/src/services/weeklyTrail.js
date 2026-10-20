@@ -1,5 +1,5 @@
 import api from './api'
-import { datadogRum } from '@datadog/browser-rum'
+import { trackAction } from '../lib/observability/datadog'
 
 let pendingCurrent
 export const weeklyTrailAPI = {
@@ -14,7 +14,7 @@ export const weeklyTrailAPI = {
 
 export function trailEvent(name, data) {
   const recap = data?.recap || data
-  datadogRum.addAction(name, {
+  trackAction(name, {
     periodKey:data?.periodKey || recap?.periodKey,
     activeDays:recap?.activeDays,
     goalsProgressed:recap?.goalsProgressed,

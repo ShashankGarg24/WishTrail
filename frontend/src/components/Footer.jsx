@@ -16,7 +16,7 @@ const Footer = () => {
               className="landing-footer-brand"
               aria-label="WishTrail home"
             >
-              <img src="/logo-wo-bg.png" alt="" width="35" height="35" />
+              <img src="/logo-small.png" alt="" width="35" height="35" />
               <span>ishTrail</span>
             </Link>
             <p>A brighter you, one trail at a time.</p>
@@ -69,7 +69,7 @@ const Footer = () => {
           <div className="space-y-4">
             <Link to="/" className="flex items-center gap-1">
               <img
-                src="/logo-wo-bg.png"
+                src="/logo-small.png"
                 alt="WishTrail"
                 width="40"
                 height="40"

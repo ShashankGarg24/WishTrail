@@ -88,7 +88,7 @@ const Header = () => {
             className={`${mobilePageTitle ? 'hidden md:flex' : 'flex'} shrink-0 items-center gap-1`}
           >
             <img
-              src="/logo-wo-bg.png"
+              src="/logo-small.png"
               alt="WishTrail"
               width="40"
               height="40"

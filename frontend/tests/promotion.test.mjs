@@ -25,7 +25,7 @@ const bundle = await build({
 })
 const offer = { id: 'offer-1', surface: 'announcement_card', title: 'Keep growing', subtitle: 'More support', offerCopy: 'An offer', ctaLabel: 'Explore', ctaUrl: 'https://wishtrail.in/premium?offer=1#plans' }
 
-async function mount(initial = offer, { storageBlocked = false, native = false, userId = 1 } = {}) {
+async function mount(initial = offer, { storageBlocked = false, native = false, userId = 1, loading = false } = {}) {
   let value = initial
   const saved = new Map(), events = new Map(), timers = new Map()
   let requests = 0
@@ -51,7 +51,7 @@ async function mount(initial = offer, { storageBlocked = false, native = false, 
   const { Home, Card } = module.exports
   let route = ''
   function Location() { const location = useLocation(); route = `${location.pathname}${location.search}${location.hash}`; return null }
-  const props = { user: userId == null ? null : { id: userId, name: 'Taylor' }, setQuickActionsOpen() {}, onTab() {}, navigate() {} }
+  const props = { loading, user: userId == null ? null : { id: userId, name: 'Taylor' }, setQuickActionsOpen() {}, onTab() {}, navigate() {} }
   const tree = () => React.createElement(MemoryRouter, { initialEntries: ['/dashboard'] }, React.createElement(Home, props), React.createElement(Location))
   let view
   await act(async () => { view = renderer.create(tree()) })
@@ -59,11 +59,27 @@ async function mount(initial = offer, { storageBlocked = false, native = false, 
     view, saved, events, timers, Card, props,
     get requests() { return requests }, get route() { return route },
     async refresh(next = value) { value = next; await act(async () => { await timers.get(1)?.() }) },
+    async update(next) { Object.assign(props, next); await act(async () => view.update(tree())) },
     async remount() { await act(async () => view.unmount()); await act(async () => { view = renderer.create(tree()) }); this.view = view },
     async close() { await act(async () => view.unmount()); assert.equal(timers.size, 0); assert.equal(events.size, 0) },
   }
 }
 const cards = fixture => fixture.view.root.findAll(node => node.type === 'article' && node.props['aria-label'] === 'WishTrail announcement')
+
+test('Home shows the greeting while data loads without displaying false empty metrics', async () => {
+  const fixture = await mount(offer, { loading: true })
+  const pending = JSON.stringify(fixture.view.toJSON())
+  assert.match(pending, /Taylor/)
+  assert.match(pending, /Loading your dashboard/)
+  assert.doesNotMatch(pending, /Your Momentum|No active habits yet/)
+  assert.equal(fixture.requests, 0)
+  await fixture.update({ loading: false })
+  const ready = JSON.stringify(fixture.view.toJSON())
+  assert.doesNotMatch(ready, /Loading your dashboard/)
+  assert.match(ready, /Your Momentum/)
+  assert.equal(fixture.requests, 1)
+  await fixture.close()
+})
 
 test('Home remains usable before the current user has loaded', async () => {
   const fixture = await mount(offer, { userId: null })

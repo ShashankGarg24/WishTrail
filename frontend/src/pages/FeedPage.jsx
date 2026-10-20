@@ -51,6 +51,9 @@ export default function FeedPage() {
   const [shareOpen, setShareOpen] = useState(false)
   const [reportPost, setReportPost] = useState(null)
   const shareUrl = useRef('')
+  const userId = user?.id || user?._id
+  const username = user?.username
+  const interestsKey = JSON.stringify(user?.interests || [])
 
   const transform = item => {
     const data = item.data || {}
@@ -72,7 +75,7 @@ export default function FeedPage() {
     let cancelled = false
     Promise.allSettled([loadFeed(1), getTrendingGoals({ strategy: user?.interests?.length ? 'personalized' : 'global', page: 1, limit: 8 }).then(r => { if (!cancelled) setTrending(r?.goals || []) }), socialAPI.getSuggestedUsers({ limit: 5 }).then(r => { if (!cancelled) setPeople(r?.data?.data?.users || r?.data?.data || []) })])
     return () => { cancelled = true }
-  }, [user])
+  }, [userId, username, interestsKey])
   useEffect(() => { const refresh = () => loadFeed(1, true).finally(() => window.dispatchEvent(new Event('wt_refresh_complete'))); window.addEventListener('wt_refresh', refresh); return () => window.removeEventListener('wt_refresh', refresh) }, [user])
   useEffect(() => { const id = routeGoalId || searchParams.get('goalId'); if (id) { setGoalId(id); setGoalOpen(true) } }, [routeGoalId, searchParams])
   useEffect(() => {

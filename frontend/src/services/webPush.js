@@ -1,5 +1,5 @@
-import { initializeApp } from 'firebase/app';
-import { getMessaging, getToken, deleteToken, onMessage, isSupported } from 'firebase/messaging';
+// Keep Firebase out of the shell bundle, including the logout/settings helpers.
+let initializeApp, getMessaging, getToken, deleteToken, onMessage, isSupported;
 
 // Firebase config - will be loaded from environment variables
 const getFirebaseConfig = () => {
@@ -21,17 +21,17 @@ let firebaseApp = null;
  */
 export const initializeFirebaseMessaging = async () => {
   try {
+    const config = getFirebaseConfig();
+    if (!config.apiKey || !config.projectId || !config.messagingSenderId || !config.appId) return null;
+    const [appSDK, messagingSDK] = await Promise.all([
+      import('firebase/app'),
+      import('firebase/messaging'),
+    ]);
+    ({ initializeApp } = appSDK);
+    ({ getMessaging, getToken, deleteToken, onMessage, isSupported } = messagingSDK);
     // Check if FCM is supported in this browser
     const supported = await isSupported();
     if (!supported) {
-      return null;
-    }
-
-    const config = getFirebaseConfig();
-    
-    // Validate config
-    if (!config.apiKey || !config.projectId || !config.messagingSenderId || !config.appId) {
-      // console.warn('[WebPush] Firebase config is incomplete. Please set VITE_FIREBASE_* environment variables.');
       return null;
     }
 

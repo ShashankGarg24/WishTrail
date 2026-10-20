@@ -187,24 +187,6 @@ const DashboardPageNew = () => {
   }, [isAuthenticated, getLatestProductUpdate])
 
 
-  useEffect(() => {
-    const preloadActionModals = () => {
-      import('../components/CreateGoalWizard')
-      import('../components/CompletionModal')
-      import('../components/EditHabitModal')
-      import('../components/DeleteConfirmModal')
-      import('../components/DependencyWarningModal')
-    }
-
-    if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
-      const id = window.requestIdleCallback(preloadActionModals)
-      return () => window.cancelIdleCallback?.(id)
-    }
-
-    const timer = setTimeout(preloadActionModals, 0)
-    return () => clearTimeout(timer)
-  }, [])
-
   // Sync tab with URL
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') || 'overview'
@@ -396,7 +378,7 @@ const DashboardPageNew = () => {
   const randomQuote = quotes[Math.floor(Math.random() * quotes.length)]
 
 
-  if (isAuthenticated && isInitialDashboardLoading) return <StartupSkeleton />
+  if (isAuthenticated && isInitialDashboardLoading && activeTab !== 'overview') return <StartupSkeleton />
 
   return (
     <div className="wt-dashboard min-h-screen bg-[#f5f5f5] dark:bg-gray-900">
@@ -670,6 +652,7 @@ const DashboardPageNew = () => {
 
         {activeTab === 'overview' && (
           <HomeOverview
+            loading={isInitialDashboardLoading}
             user={user}
             goals={goals}
             habits={habits}

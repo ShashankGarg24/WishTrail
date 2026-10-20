@@ -325,7 +325,7 @@ const ProfilePage = () => {
     };
 
     loadTabContent();
-  }, [activeTab, isOwnProfile, profileUser?.username, profileUser?.showGoals, profileUser?.showHabits, isFollowing, userGoals.length, userHabits.length, currentUser?.id]);
+  }, [activeTab, isOwnProfile, profileUser?.username, profileUser?.isPrivate, profileUser?.showGoals, profileUser?.showHabits, isFollowing, currentUser?.id, currentUser?.username]);
 
   useEffect(() => {
     
