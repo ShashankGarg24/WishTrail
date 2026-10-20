@@ -1,7 +1,7 @@
 import React from 'react'
 
 // Remembers and restores window scroll per route (pathname+search)
-// Applies to: '/', '/feed', '/discover', '/dashboard', '/profile*', '/leaderboard'
+// Applies to: '/', '/feed', '/discover', '/home', '/profile*', '/leaderboard'
 
 const STORAGE_KEY = 'wt_scroll_positions_v1'
 
@@ -24,6 +24,7 @@ function isTrackedPath(pathname) {
   if (!pathname) return false
   return (
     pathname === '/' ||
+    pathname.startsWith('/home') ||
     pathname.startsWith('/feed') ||
     pathname.startsWith('/discover') ||
     pathname.startsWith('/dashboard') ||
@@ -110,6 +111,10 @@ export default class ScrollMemory extends React.Component {
 
     const newKey = makeKey(pathname, search)
 
+    // Hash-only navigation stays on the current route. Let the section link
+    // own the scroll instead of restoring the saved page position over it.
+    if (this.prevKey === newKey) return
+
     // Save previous scroll
     if (this.prevKey && isTrackedPath((this.prevKey || '').split('?')[0])) {
       const store = readStore()
@@ -123,11 +128,25 @@ export default class ScrollMemory extends React.Component {
     for (const t of this.timers) clearTimeout(t)
     this.timers = []
     if (isTrackedPath(pathname)) {
+      const scrollToHash = () => {
+        const hash = window.location.hash
+        if (!hash) return false
+        const target = document.getElementById(decodeURIComponent(hash.slice(1)))
+        if (!target) return false
+        const header = document.querySelector('.wt-header')
+        const offset = (header?.getBoundingClientRect().height || 0) + 16
+        const top = Math.max(0, window.scrollY + target.getBoundingClientRect().top - offset)
+        window.scrollTo({ top, behavior: 'auto' })
+        return true
+      }
       const store = readStore()
       const y = Number(store[newKey] ?? 0) || 0
-      try { window.scrollTo(0, y) } catch {}
-      this.timers.push(setTimeout(() => { try { window.scrollTo(0, y) } catch {} }, 50))
-      this.timers.push(setTimeout(() => { try { window.scrollTo(0, y) } catch {} }, 200))
+      try { if (!scrollToHash()) window.scrollTo(0, y) } catch {}
+      this.timers.push(setTimeout(() => { try { if (!scrollToHash()) window.scrollTo(0, y) } catch {} }, 50))
+      this.timers.push(setTimeout(() => { try { if (!scrollToHash()) window.scrollTo(0, y) } catch {} }, 200))
+      // Lazy routes can mount after the browser's own hash restoration.
+      this.timers.push(setTimeout(() => { try { scrollToHash() } catch {} }, 600))
+      this.timers.push(setTimeout(() => { try { scrollToHash() } catch {} }, 1000))
     } else {
       try { window.scrollTo(0, 0) } catch {}
     }

@@ -315,7 +315,7 @@ function App() {
               {/* Protected routes - Require authentication */}
               <Route path="/weekly-trail" element={<PrivateRoute><WeeklyTrailPage /></PrivateRoute>} />
               <Route path="/home" element={<PrivateRoute><DashboardPageNew /></PrivateRoute>} />
-              <Route path="/dashboard" element={<PrivateRoute><DashboardPageNew /></PrivateRoute>} />
+              <Route path="/dashboard" element={<Navigate to="/home" replace />} />
               <Route path="/feed" element={<PrivateRoute><FeedPage /></PrivateRoute>} />
               <Route path="/discover" element={<PrivateRoute><DiscoverPageNew /></PrivateRoute>} />
               <Route path="/notifications" element={<PrivateRoute><NotificationsPageNew /></PrivateRoute>} />
@@ -324,8 +324,8 @@ function App() {
               <Route path="/leaderboard" element={<PrivateRoute><LeaderboardPageNew /></PrivateRoute>} />
               <Route path="/communities" element={<PrivateRoute>{FEATURES.communities ? <Suspense fallback={null}><CommunitiesPage /></Suspense> : <Navigate to="/discover" replace />}</PrivateRoute>} />
               <Route path="/communities/:id" element={<PrivateRoute>{FEATURES.communities ? <Suspense fallback={null}><CommunityDetailPage /></Suspense> : <Navigate to="/discover" replace />}</PrivateRoute>} />
-              <Route path="/habits/:id/analytics" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/goals/:goalId/analytics" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/habits/:id/analytics" element={<Navigate to="/home" replace />} />
+              <Route path="/goals/:goalId/analytics" element={<Navigate to="/home" replace />} />
               
               {/* Goal deeplink opens modal within feed/discover - Protected */}
               <Route path="/goal/:goalId" element={<PrivateRoute><FeedPage /></PrivateRoute>} />

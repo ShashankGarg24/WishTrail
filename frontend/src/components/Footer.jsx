@@ -1,15 +1,42 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Youtube, Instagram } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 
 const Footer = () => {
   const { isAuthenticated } = useApiStore()
+  const { pathname } = useLocation()
+
+  if (pathname === '/')
+    return (
+      <footer className={`border-t border-slate-100 bg-white text-slate-900 ${isAuthenticated ? 'pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:pb-0' : ''}`}>
+        <div className="landing-footer">
+          <div>
+            <Link
+              to="/"
+              className="landing-footer-brand"
+              aria-label="WishTrail home"
+            >
+              <img src="/logo-wo-bg.png" alt="" width="35" height="35" />
+              <span>ishTrail</span>
+            </Link>
+            <p>A brighter you, one trail at a time.</p>
+
+          </div>
+          <nav aria-label="Footer navigation">
+            <Link to="/privacy-policy">Privacy Policy</Link>
+            <Link to="/terms-of-service">Terms</Link>
+            <a href="mailto:support@wishtrail.in">Support</a>
+            <Link to="/whats-new">What's New</Link>
+          </nav>
+        </div>
+      </footer>
+    )
 
   const allQuickLinks = [
     { name: 'Home', href: '/' },
     { name: 'Inspiration', href: '/inspiration' },
     { name: 'Discover', href: '/discover' },
-    { name: 'Dashboard', href: '/dashboard' },
+    { name: 'My Home', href: '/home' },
     { name: 'Leaderboard', href: '/leaderboard' },
   ]
 
@@ -27,20 +54,30 @@ const Footer = () => {
   ]
 
   return (
-    <footer className={`bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 mt-auto ${isAuthenticated ? 'pb-20 md:pb-0' : ''}`}>
+    <footer
+      className={`bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 mt-auto ${isAuthenticated ? 'pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:pb-0' : ''}`}
+    >
       <div className="max-w-[1400px] mx-auto px-6 py-12">
         {/* Main Footer Content */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-8">
           {/* Brand Section */}
           <div className="space-y-4">
             <Link to="/" className="flex items-center gap-1">
-              <img src="/logo-wo-bg.png" alt="WishTrail" width="40" height="40" className="w-10 h-10 object-contain" />
+              <img
+                src="/logo-wo-bg.png"
+                alt="WishTrail"
+                width="40"
+                height="40"
+                className="w-10 h-10 object-contain"
+              />
               <span className="-ml-2 text-xl font-bold text-gray-900 dark:text-white font-manrope">
                 ishTrail
               </span>
             </Link>
             <p className="text-gray-600 dark:text-gray-400 text-sm font-manrope leading-relaxed">
-              Empowering achievers through precision tracking and community-driven milestones. Build the future you've always envisioned, one step at a time.
+              Empowering achievers through precision tracking and
+              community-driven milestones. Build the future you've always
+              envisioned, one step at a time.
             </p>
           </div>
 
@@ -95,7 +132,8 @@ const Footer = () => {
         <div className="pt-8 border-t border-gray-200 dark:border-gray-800">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-sm text-gray-600 dark:text-gray-400 font-manrope text-center md:text-left">
-              © {new Date().getFullYear()} WishTrail. Crafted for dreamers and achievers
+              © {new Date().getFullYear()} WishTrail. Crafted for dreamers and
+              achievers
             </p>
             <div className="flex items-center gap-4">
               {legalLinks.map((link, index) => (
