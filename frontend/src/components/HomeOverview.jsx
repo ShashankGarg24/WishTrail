@@ -408,7 +408,7 @@ export default function HomeOverview({ loading = false, user, goals = [], habits
         ) : <>
         <ActivePromotion userId={user?.id} />
         <div className="md:hidden">
-          <PillTabs items={homeTabs} value="overview" onChange={onTab} className="mb-4" label="Home views" />
+          <PillTabs layoutId="mobile-home-tabs" items={homeTabs} value="overview" onChange={onTab} className="mb-4" label="Home views" />
           <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <div className="wt-momentum-card relative min-h-[220px] overflow-hidden px-5 py-5 text-center">
               <MomentumLandscape period={isEvening ? 'night' : isMorning ? 'morning' : 'afternoon'} />
@@ -442,7 +442,7 @@ export default function HomeOverview({ loading = false, user, goals = [], habits
             </div>
           </div>
           <WeeklyTrailTeaser userId={user?.id} refreshKey={JSON.stringify(stats)} />
-          <div className="mb-2 flex items-center justify-between">
+          <div className="mt-6 mb-3 flex items-center justify-between">
             <div>
               <h2 className="font-bold text-slate-950 dark:text-white">Today’s Focus</h2>
               <p className="text-xs text-slate-500">Your most lagging goal and habit.</p>

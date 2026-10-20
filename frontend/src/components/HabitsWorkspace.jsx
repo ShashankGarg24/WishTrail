@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  BarChart3, CheckCircle2, ChevronDown, ChevronLeft,
+  BarChart3, CheckCircle2, ChevronDown,
   Copy, Edit3, Lightbulb, MoreVertical,
   PauseCircle, Plus, Search, SlidersHorizontal, Sparkles, Trash2, TrendingDown, TrendingUp
 } from 'lucide-react'
@@ -53,7 +53,7 @@ export default function HabitsWorkspace({ habits = [], stats = {}, selectedYear,
     : null
 
   return (
-    <section className="habits-workspace">
+    <section className="habits-workspace wt-home-tab-content">
       <header className="mb-4 hidden items-center justify-between gap-2 sm:flex">
         <div>
           <h1 className="text-left text-2xl font-bold tracking-tight text-[#0b1746] dark:text-white">My Habits</h1>
@@ -66,7 +66,7 @@ export default function HabitsWorkspace({ habits = [], stats = {}, selectedYear,
             { key: 'status', label: tab === 'all' ? 'Status' : tab.charAt(0).toUpperCase() + tab.slice(1), value: tab, setValue: setTab, options: [['all', `All habits (${counts.all})`], ['active', `Active (${counts.active})`], ['paused', `Paused (${counts.paused})`], ['completed', `Completed (${counts.completed})`]] },
             { key: 'frequency', label: frequency === 'all' ? 'Frequency' : frequency.charAt(0).toUpperCase() + frequency.slice(1), value: frequency, setValue: setFrequency, options: [['all', 'All frequencies'], ['daily', 'Daily'], ['custom', 'Custom']] },
           ].map(filter => <div key={filter.key} className="relative" data-habit-filter-dropdown>
-            <button type="button" aria-haspopup="listbox" aria-expanded={desktopFilterOpen === filter.key} onClick={() => setDesktopFilterOpen(open => open === filter.key ? null : filter.key)} className="flex items-center gap-1.5 rounded-lg border border-[#dce5f4] bg-white px-3 py-2 text-xs font-medium text-[#253663] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">{filter.label}<ChevronDown className={`h-3.5 w-3.5 transition-transform ${desktopFilterOpen === filter.key ? 'rotate-180' : ''}`}/></button>
+            <button type="button" aria-haspopup="listbox" data-filter-active={filter.value !== 'all'} aria-expanded={desktopFilterOpen === filter.key} onClick={() => setDesktopFilterOpen(open => open === filter.key ? null : filter.key)} className="flex items-center gap-1.5 rounded-lg border border-[#dce5f4] bg-white px-3 py-2 text-xs font-medium text-[#253663] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">{filter.label}<ChevronDown className={`h-3.5 w-3.5 transition-transform ${desktopFilterOpen === filter.key ? 'rotate-180' : ''}`}/></button>
             {desktopFilterOpen === filter.key && <div role="listbox" className="absolute right-0 top-full z-30 mt-2 max-h-72 min-w-44 overflow-y-auto rounded-xl border border-[#dce5f4] bg-white p-1.5 shadow-xl dark:border-gray-700 dark:bg-gray-800">{filter.options.map(([value, label]) => <button key={value} type="button" role="option" aria-selected={filter.value === value} onClick={() => { filter.setValue(value); setDesktopFilterOpen(null) }} className={`block w-full whitespace-nowrap rounded-lg px-3 py-2 text-left text-xs transition-colors ${filter.value === value ? 'bg-blue-50 font-semibold text-[#1683ed] dark:bg-blue-950/40' : 'text-[#253663] hover:bg-slate-50 dark:text-gray-200 dark:hover:bg-gray-700'}`}>{label}</button>)}</div>}
           </div>)}
           <label className="sr-only" htmlFor="habit-year-filter">Habit year</label>
@@ -78,7 +78,6 @@ export default function HabitsWorkspace({ habits = [], stats = {}, selectedYear,
         </div>
       </header>
 
-      <div className="habits-mobile-bar"><button aria-label="Back" onClick={() => window.history.back()}><ChevronLeft size={21}/></button><strong>My Habits</strong><span aria-hidden="true" /></div>
       <div className="mb-3 flex items-center justify-between sm:hidden">
         <select aria-label="Habit year" value={selectedYear} onChange={event => onYearChange?.(Number(event.target.value))} className="h-9 rounded-lg border border-[#dce5f4] bg-white px-3 text-sm font-bold text-[#0b1746] outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white">
           {availableYears.map(year => <option key={year} value={year}>{year}</option>)}
@@ -102,7 +101,7 @@ export default function HabitsWorkspace({ habits = [], stats = {}, selectedYear,
         <div className="habit-consistency-track"><span style={{ width: `${consistency}%` }}/></div>
         <p>{consistencyTrend === null ? 'Complete scheduled habits to start your trend.' : 'Compared with the previous 7 days'}</p>
       </div>
-      <div className="habits-mobile-search"><label className="habit-search"><Search size={16}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search habits..." /></label><button aria-label="Filter habits" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(v => !v)}><SlidersHorizontal size={17}/></button></div>
+      <div className="habits-mobile-search"><label className="habit-search"><Search size={16}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search habits..." /></label><button data-filter-active={category !== 'all' || frequency !== 'all' || tab !== 'all'} aria-label="Filter habits" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(v => !v)}><SlidersHorizontal size={17}/></button></div>
       {filtersOpen && <><button type="button" className="habits-filter-backdrop" aria-label="Close filters" onClick={() => setFiltersOpen(false)} /><div className="habits-mobile-filters">
         <div className="habits-filter-title"><strong>Filter habits</strong><button type="button" onClick={() => setFiltersOpen(false)}>×</button></div>
         <label>Status<select value={tab} onChange={e => setTab(e.target.value)}><option value="all">All habits ({counts.all})</option><option value="active">Active ({counts.active})</option><option value="paused">Paused ({counts.paused})</option><option value="completed">Completed ({counts.completed})</option></select></label>

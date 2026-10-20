@@ -158,7 +158,7 @@ function DiscoverHero({
                 <Search className="h-4 w-4" />
               </button>
             </div>
-            <button type="button" onClick={onFilters} className="flex shrink-0 items-center gap-1.5 rounded-xl bg-white px-3 text-[10px] font-bold text-[#0784f8] shadow-lg">
+            <button type="button" onClick={onFilters} data-filter-active={activeFilters > 0} className="flex shrink-0 items-center gap-1.5 rounded-xl bg-white px-3 text-[10px] font-bold text-[#0784f8] shadow-lg">
               <SlidersHorizontal className="h-3.5 w-3.5" />
               Filters{activeFilters ? ` (${activeFilters})` : ""}
             </button>
@@ -620,7 +620,7 @@ export default function DiscoverPage() {
                 type="button"
                 onClick={() => setFiltersOpen(true)}
                 className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-blue-200 bg-blue-50 text-[#0784f8] md:hidden"
-                aria-label="Open filters"
+                data-filter-active={activeFilters > 0} aria-label="Open filters"
               >
                 <SlidersHorizontal className="h-4 w-4" />
                 {activeFilters > 0 && <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-[#0784f8] px-1 text-[9px] font-bold text-white">{activeFilters}</span>}
@@ -629,7 +629,7 @@ export default function DiscoverPage() {
           </div>
           <div className="mx-auto grid max-w-[1340px] grid-cols-1 gap-4 md:px-5 md:pb-8">
             <section className="min-h-[720px] min-w-0">
-              <PillTabs className="mb-4 md:hidden" label="Discover views" value={tab} onChange={changeTab} items={[{ value: "goals", label: "Goals", icon: Target }, { value: "people", label: "People", icon: Users }]} />
+              <PillTabs className="mt-3 mb-4 mx-3 md:hidden" label="Discover views" value={tab} onChange={changeTab} items={[{ value: "goals", label: "Goals", icon: Target }, { value: "people", label: "People", icon: Users }]} />
               {tab === "goals" && (
                 <>
                   <div className="border-b border-slate-100 bg-white px-4 py-3 md:hidden dark:border-gray-700 dark:bg-gray-900">

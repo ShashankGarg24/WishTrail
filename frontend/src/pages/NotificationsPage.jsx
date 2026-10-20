@@ -1,3 +1,4 @@
+import PullToRefresh from '../components/PullToRefresh'
 import PillTabs from '../components/PillTabs'
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
@@ -99,7 +100,7 @@ const NotificationsPageNew = () => {
   };
 
   const handleRefresh = () => {
-    loadNotifications(true);
+    return loadNotifications(true);
   };
 
   const handleLoadMore = async () => {
@@ -161,12 +162,13 @@ const NotificationsPageNew = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
+      <PullToRefresh onRefresh={handleRefresh} disabled={loading}>
       <div className="max-w-3xl mx-auto px-0 sm:px-6 lg:px-8 sm:py-8">
         {/* Header */}
         <div className="sticky top-0 z-20 mb-0 border-b border-slate-100 bg-white/95 px-4 py-4 backdrop-blur dark:border-gray-800 dark:bg-gray-900/95 sm:static sm:mb-5 sm:rounded-xl sm:border">
           <div className="flex flex-col items-stretch gap-3 mb-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <h1 className="text-xl font-extrabold text-gray-900 dark:text-white sm:mb-2 sm:text-3xl">Notifications</h1>
+              <h1 className="hidden md:block text-xl font-extrabold text-gray-900 dark:text-white sm:mb-2 sm:text-3xl">Notifications</h1>
               <p className="text-gray-600 dark:text-gray-400">
                 {loading ? 'Loading notifications...' : loadError ? 'Unable to load all notifications' : unreadNotifications > 0 ? (
                   <>You have <span className="font-semibold text-[#4c99e6]">{unreadNotifications} unread</span> alerts</>
@@ -190,7 +192,7 @@ const NotificationsPageNew = () => {
                 onClick={handleRefresh}
                 aria-label="Refresh notifications"
                 disabled={loading}
-                className="p-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-300 hover:text-[#4c99e6] hover:border-[#4c99e6] transition-colors disabled:opacity-50"
+                className="hidden md:block p-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-300 hover:text-[#4c99e6] hover:border-[#4c99e6] transition-colors disabled:opacity-50"
               >
                 <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
               </button>
@@ -559,6 +561,7 @@ const NotificationsPageNew = () => {
         </div>
       </div>
 
+      </PullToRefresh>
       {/* Goal Post Modal */}
       {openGoalId && (
         <Suspense fallback={null}>

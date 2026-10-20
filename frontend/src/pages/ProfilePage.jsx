@@ -1245,7 +1245,7 @@ const ProfilePage = () => {
           /* Full Profile Content */
           <>
             {/* Tabs - theme underline #4c99e6 */}
-            <PillTabs className={`sticky top-0 z-20 mb-4 ${!isOwnProfile ? 'md:hidden' : ''}`} label="Profile views" value={activeTab} onChange={handleTabChange} items={profileTabs.map(value => ({ value, label: tabMeta[value]?.label || value, icon: tabMeta[value]?.icon }))} />
+            <PillTabs className="wt-profile-switcher sticky top-16 sm:top-[72px] z-20 mt-3 mb-4 mx-3 md:hidden" label="Profile views" value={activeTab} onChange={handleTabChange} items={profileTabs.map(value => ({ value, label: tabMeta[value]?.label || value, icon: tabMeta[value]?.icon }))} />
             {/* Tab Content */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -1588,7 +1588,7 @@ const ProfilePage = () => {
                           </button>
                         ))}
                       </div>
-                      <div className="mb-4 flex gap-2"><label className="flex flex-1 items-center gap-2 rounded-xl bg-slate-100 px-3 py-2.5 dark:bg-gray-700"><Search className="h-4 w-4 text-slate-400" /><input value={goalSearch} onChange={(event) => setGoalSearch(event.target.value)} placeholder="Search goals..." className="w-full bg-transparent text-sm outline-none dark:text-white" /></label><button type="button" onClick={() => setProfileFilterSheet('goals')} className={`rounded-xl p-3 ${goalFilter !== 'all' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'} dark:bg-gray-700 dark:text-gray-300`} aria-label="Filter goals"><SlidersHorizontal className="h-4 w-4" /></button></div>
+                      <div className="mb-4 flex gap-2"><label className="flex flex-1 items-center gap-2 rounded-xl bg-slate-100 px-3 py-2.5 dark:bg-gray-700"><Search className="h-4 w-4 text-slate-400" /><input value={goalSearch} onChange={(event) => setGoalSearch(event.target.value)} placeholder="Search goals..." className="w-full bg-transparent text-sm outline-none dark:text-white" /></label><button type="button" onClick={() => setProfileFilterSheet('goals')} className={`rounded-xl p-3 ${goalFilter !== 'all' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'} dark:bg-gray-700 dark:text-gray-300`} data-filter-active={goalFilter !== 'all'} aria-label="Filter goals"><SlidersHorizontal className="h-4 w-4" /></button></div>
                       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                       {isOwnProfile && (
                           <button
@@ -1687,7 +1687,7 @@ const ProfilePage = () => {
                         </button>
                       ))}
                     </div>
-                    <div className="mb-4 flex gap-2"><label className="flex flex-1 items-center gap-2 rounded-xl bg-slate-100 px-3 py-2.5 dark:bg-gray-700"><Search className="h-4 w-4 text-slate-400" /><input value={habitSearch} onChange={(event) => setHabitSearch(event.target.value)} placeholder="Search habits..." className="w-full bg-transparent text-sm outline-none dark:text-white" /></label><button type="button" onClick={() => setProfileFilterSheet('habits')} className={`rounded-xl p-3 ${habitFilter !== 'all' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'} dark:bg-gray-700 dark:text-gray-300`} aria-label="Filter habits"><SlidersHorizontal className="h-4 w-4" /></button></div>
+                    <div className="mb-4 flex gap-2"><label className="flex flex-1 items-center gap-2 rounded-xl bg-slate-100 px-3 py-2.5 dark:bg-gray-700"><Search className="h-4 w-4 text-slate-400" /><input value={habitSearch} onChange={(event) => setHabitSearch(event.target.value)} placeholder="Search habits..." className="w-full bg-transparent text-sm outline-none dark:text-white" /></label><button type="button" onClick={() => setProfileFilterSheet('habits')} className={`rounded-xl p-3 ${habitFilter !== 'all' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'} dark:bg-gray-700 dark:text-gray-300`} data-filter-active={habitFilter !== 'all'} aria-label="Filter habits"><SlidersHorizontal className="h-4 w-4" /></button></div>
                     {userHabits.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                         {userHabits.filter((habit) => {

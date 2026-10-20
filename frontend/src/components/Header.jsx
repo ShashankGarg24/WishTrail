@@ -34,12 +34,6 @@ const Header = () => {
     document.addEventListener('keydown', closeOnEscape)
     return () => document.removeEventListener('keydown', closeOnEscape)
   }, [menuOpen])
-  const dashboardTab =
-    location.pathname === '/home' || location.pathname === '/dashboard'
-      ? new URLSearchParams(location.search).get('tab')
-      : null
-  const isFocusedDashboard =
-    dashboardTab === 'goals' || dashboardTab === 'habits'
   const isDiscoverActive = location.pathname.startsWith('/discover')
   const isNotificationsActive = location.pathname.startsWith('/notifications')
   const mobilePageTitle = [
@@ -80,7 +74,7 @@ const Header = () => {
 
   return (
     <header
-      className={`wt-header sticky top-0 z-50 border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 ${isFocusedDashboard ? 'hidden md:block' : ''}`}
+      className="wt-header sticky top-0 z-50 border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900"
     >
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6">
         <div className="flex h-14 items-center sm:h-16">

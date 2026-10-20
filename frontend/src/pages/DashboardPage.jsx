@@ -792,14 +792,12 @@ const DashboardPageNew = () => {
 
         {/* Content Grid */}
         {activeTab !== 'overview' && <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
+          initial={false}
         >
-          <PillTabs className="mb-4 md:hidden" label="Home views" items={homeTabs} value={activeTab} onChange={handleTabChange} />
+          <PillTabs layoutId="mobile-home-tabs" className="mt-3 mb-4 md:hidden" label="Home views" items={homeTabs} value={activeTab} onChange={handleTabChange} />
           {activeTab === 'goals' ? (
-            <div className="goals-workspace space-y-4">
-              <div className="grid h-[58px] grid-cols-[40px_1fr_40px] items-center gap-2 sm:flex sm:h-auto sm:justify-between">
+            <div className="goals-workspace space-y-4 wt-home-tab-content">
+              <div className="hidden items-center gap-2 md:flex md:justify-between">
                 <button type="button" onClick={() => handleTabChange('overview')} aria-label="Back to home" className="rounded-lg p-2 text-[#0b1746] sm:hidden dark:text-white"><ChevronRight className="h-5 w-5 rotate-180"/></button>
                 <div>
                   <h1 className="text-center text-lg font-bold tracking-tight text-[#0b1746] dark:text-white sm:text-left sm:text-2xl">My Goals</h1>
@@ -811,11 +809,11 @@ const DashboardPageNew = () => {
                     <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search goals..." className="w-40 rounded-lg border border-[#dce5f4] bg-white py-2 pl-9 pr-3 text-xs text-[#0b1746] outline-none focus:border-[#1683ed] lg:w-48 dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
                   </div>
                   <div className="relative hidden sm:block" data-goal-filter-dropdown>
-                    <button type="button" aria-haspopup="listbox" aria-expanded={isFilterDropdownOpen === 'category'} onClick={() => { setIsFilterDropdownOpen(value => value === 'category' ? false : 'category'); setIsYearDropdownOpen(false) }} className="flex items-center gap-1.5 rounded-lg border border-[#dce5f4] bg-white px-3 py-2 text-xs font-medium text-[#253663] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">{goalCategoryFilter === 'all' ? 'Category' : goalCategoryFilter} <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isFilterDropdownOpen === 'category' ? 'rotate-180' : ''}`} /></button>
+                    <button type="button" aria-haspopup="listbox" data-filter-active={goalCategoryFilter !== 'all'} aria-expanded={isFilterDropdownOpen === 'category'} onClick={() => { setIsFilterDropdownOpen(value => value === 'category' ? false : 'category'); setIsYearDropdownOpen(false) }} className="flex items-center gap-1.5 rounded-lg border border-[#dce5f4] bg-white px-3 py-2 text-xs font-medium text-[#253663] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">{goalCategoryFilter === 'all' ? 'Category' : goalCategoryFilter} <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isFilterDropdownOpen === 'category' ? 'rotate-180' : ''}`} /></button>
                     {isFilterDropdownOpen === 'category' && <div role="listbox" className="absolute right-0 top-full z-30 mt-2 max-h-72 min-w-48 overflow-y-auto rounded-xl border border-[#dce5f4] bg-white p-1.5 shadow-xl dark:border-gray-700 dark:bg-gray-800">{['all', ...new Set((goals || []).map(goal => goal.category).filter(Boolean))].map(category => <button key={category} type="button" role="option" aria-selected={goalCategoryFilter === category} onClick={() => { setGoalCategoryFilter(category); setCurrentPage(1); setIsFilterDropdownOpen(false) }} className={`block w-full rounded-lg px-3 py-2 text-left text-xs transition-colors ${goalCategoryFilter === category ? 'bg-blue-50 font-semibold text-[#1683ed] dark:bg-blue-950/40' : 'text-[#253663] hover:bg-slate-50 dark:text-gray-200 dark:hover:bg-gray-700'}`}>{category === 'all' ? 'All categories' : category}</button>)}</div>}
                   </div>
                   <div className="relative hidden sm:block" data-goal-filter-dropdown>
-                    <button type="button" aria-haspopup="listbox" aria-expanded={isFilterDropdownOpen === 'status'} onClick={() => { setIsFilterDropdownOpen(value => value === 'status' ? false : 'status'); setIsYearDropdownOpen(false) }} className="flex items-center gap-1.5 rounded-lg border border-[#dce5f4] bg-white px-3 py-2 text-xs font-medium text-[#253663] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">{goalFilter === 'all' ? 'Status' : goalFilter === 'in-progress' ? 'On Track' : goalFilter === 'needs-attention' ? 'Needs Attention' : 'Completed'} <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isFilterDropdownOpen === 'status' ? 'rotate-180' : ''}`} /></button>
+                    <button type="button" aria-haspopup="listbox" data-filter-active={goalFilter !== 'all'} aria-expanded={isFilterDropdownOpen === 'status'} onClick={() => { setIsFilterDropdownOpen(value => value === 'status' ? false : 'status'); setIsYearDropdownOpen(false) }} className="flex items-center gap-1.5 rounded-lg border border-[#dce5f4] bg-white px-3 py-2 text-xs font-medium text-[#253663] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">{goalFilter === 'all' ? 'Status' : goalFilter === 'in-progress' ? 'On Track' : goalFilter === 'needs-attention' ? 'Needs Attention' : 'Completed'} <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isFilterDropdownOpen === 'status' ? 'rotate-180' : ''}`} /></button>
                     {isFilterDropdownOpen === 'status' && <div role="listbox" className="absolute right-0 top-full z-30 mt-2 min-w-44 rounded-xl border border-[#dce5f4] bg-white p-1.5 shadow-xl dark:border-gray-700 dark:bg-gray-800">{[['all', 'All statuses'], ['in-progress', 'On Track'], ['needs-attention', 'Needs Attention'], ['completed', 'Completed']].map(([value, label]) => <button key={value} type="button" role="option" aria-selected={goalFilter === value} onClick={() => { setGoalFilter(value); setCurrentPage(1); setIsFilterDropdownOpen(false) }} className={`block w-full rounded-lg px-3 py-2 text-left text-xs transition-colors ${goalFilter === value ? 'bg-blue-50 font-semibold text-[#1683ed] dark:bg-blue-950/40' : 'text-[#253663] hover:bg-slate-50 dark:text-gray-200 dark:hover:bg-gray-700'}`}>{label}</button>)}</div>}
                   </div>
                   <div className="relative hidden sm:block" data-goal-filter-dropdown>
@@ -858,7 +856,7 @@ const DashboardPageNew = () => {
 
               <div className="flex items-center gap-2 sm:hidden">
                 <div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#526392]"/><input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search goals..." className="w-full rounded-lg border border-[#dce5f4] bg-white py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#1683ed] dark:border-gray-700 dark:bg-gray-800"/></div>
-                <button type="button" aria-label="Filter goals" onClick={() => setIsGoalFilterSheetOpen(true)} className="rounded-lg border border-[#dce5f4] bg-white p-2.5 text-[#526392] dark:border-gray-700 dark:bg-gray-800"><SlidersHorizontal className="h-5 w-5"/></button>
+                <button type="button" data-filter-active={goalFilter !== 'all' || goalCategoryFilter !== 'all'} aria-label="Filter goals" onClick={() => setIsGoalFilterSheetOpen(true)} className="rounded-lg border border-[#dce5f4] bg-white p-2.5 text-[#526392] dark:border-gray-700 dark:bg-gray-800"><SlidersHorizontal className="h-5 w-5"/></button>
               </div>
 
               <div className={goalView === 'list' ? 'space-y-3' : goalView === 'timeline' ? 'relative space-y-4 border-l-2 border-blue-100 pl-5 dark:border-blue-950' : 'grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4'}>
