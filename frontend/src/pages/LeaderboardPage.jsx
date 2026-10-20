@@ -93,7 +93,6 @@ export default function LeaderboardPage() {
       </div>
       {error ? <div className="lb-message" role="alert">{error}<button onClick={() => setRetry(value => value + 1)}>Try again</button></div> : <div aria-busy={loading}>
         {loading ? <div className="lb-loading" role="status"><span />Loading rankings…</div> : <>
-          {data?.isDemo && <p className="lb-preview-note">Sample rankings — complete goals to start the real leaderboard.</p>}
           {podium.length > 0 && <section className="lb-podium" aria-label="Top three achievers">
             {podium.map(person => <button key={person.rank} className={`lb-winner lb-place-${person.rank}`} onClick={() => visit(person)} disabled={!person.username}>
               <span className="lb-medal">{person.rank}</span>
