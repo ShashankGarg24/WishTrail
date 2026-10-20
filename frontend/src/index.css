@@ -970,8 +970,6 @@ body {
 .wt-bottom-tab.is-active{color:#0784ff}
 .wt-bottom-tab.is-active .wt-bottom-tab-icon{background:linear-gradient(110deg,#e0efff,#e8f3ff)}
 .wt-bottom-tab.is-active .wt-bottom-tab-icon svg.lucide-home{fill:#0784ff;stroke:white}
-.wt-bottom-tab-dot{height:5px;width:5px;margin-top:4px;border-radius:50%;background:transparent}
-.wt-bottom-tab.is-active .wt-bottom-tab-dot{background:#0784ff}
 .wt-bottom-create{position:absolute;left:50%;top:-10px;z-index:1;display:flex;width:56px;height:56px;transform:translateX(-50%);align-items:center;justify-content:center;border-radius:50%;border:1px solid #91d9ff;background:linear-gradient(145deg,#35c6fb,#0784ff 85%);box-shadow:0 0 0 5px #e8f5ff,0 10px 22px #1683ed40;transition:filter .18s}
 .wt-bottom-create:hover{filter:brightness(1.06)}
 .wt-bottom-create:active{transform:translateX(-50%) scale(.96)}
