@@ -10,7 +10,7 @@ class GoalService {
   /**
    * Create a new goal
    */
-  async createGoal({ userId, title, category, year, targetDate, isPublic = false, isUpdatesPublic = false }) {
+  async createGoal({ userId, title, category, year, targetDate, isPublic = false, isUpdatesPublic = true }) {
     const currentYear = year || new Date().getFullYear();
     
     const queryText = `

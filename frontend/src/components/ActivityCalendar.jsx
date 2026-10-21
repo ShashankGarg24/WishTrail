@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Flag, Trophy } from 'lucide-react'
 
 const keyForDay = (year, month, day) => `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 
 export default function ActivityCalendar({ title = 'Calendar view', subtitle, marks = {}, initialDate, legend = [], defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen)
+  const swipeStartX = useRef(null)
   const [month, setMonth] = useState(() => {
     const candidate = initialDate ? new Date(`${String(initialDate).slice(0, 10)}T12:00:00`) : new Date()
     const safe = Number.isNaN(candidate.getTime()) ? new Date() : candidate
@@ -28,7 +29,7 @@ export default function ActivityCalendar({ title = 'Calendar view', subtitle, ma
       <span className="min-w-0 flex-1"><strong className="block text-sm text-[#0b1746] dark:text-white">{title}</strong>{subtitle && <span className="mt-0.5 block text-[11px] text-slate-500">{subtitle}</span>}</span>
       <span className="text-[10px] font-bold text-slate-400">{open ? 'Hide' : 'Show'}</span><ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
     </button>
-    {open && <div className="border-t border-slate-100 p-4 dark:border-line">
+    {open && <div className="border-t border-slate-100 p-4 dark:border-line" onTouchStart={event => { swipeStartX.current = event.changedTouches[0]?.clientX ?? null }} onTouchEnd={event => { const end = event.changedTouches[0]?.clientX; if (swipeStartX.current == null || end == null) return; const distance = end - swipeStartX.current; swipeStartX.current = null; if (Math.abs(distance) < 45) return; setMonth(current => new Date(current.getFullYear(), current.getMonth() + (distance < 0 ? 1 : -1), 1)) }}>
       <div className="mb-4 grid grid-cols-[36px_1fr_36px] items-center">
         <button type="button" aria-label="Previous month" onClick={() => setMonth(new Date(year, monthIndex - 1, 1))} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 dark:border-line dark:text-muted"><ChevronLeft className="h-4 w-4" /></button>
         <div className="text-center"><h4 className="text-sm font-extrabold text-slate-950 dark:text-white">{month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h4><p className="text-[10px] text-slate-400">{markedCount} marked {markedCount === 1 ? 'day' : 'days'}</p></div>
@@ -44,7 +45,7 @@ export default function ActivityCalendar({ title = 'Calendar view', subtitle, ma
           const hasEnd = indicators.includes('end')
           const hasLog = indicators.includes('log')
           const hasTarget = indicators.includes('target')
-          return <span key={day} title={mark?.label || undefined} className={`relative mx-0.5 mb-1 grid h-9 place-items-center rounded-lg text-xs font-bold ${mark?.className || 'text-slate-500 dark:text-muted'}`}>
+          return <span key={day} title={mark?.label || 'No activity logged'} className={`relative mx-0.5 mb-1 grid h-9 place-items-center rounded-lg border text-xs font-bold ${mark?.className || 'border-dashed border-slate-200 bg-slate-50/60 text-slate-400 dark:border-line dark:bg-elevated/40 dark:text-muted'}`}>
             {day}
             {hasStart && <i className="absolute -left-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-blue-600 text-white ring-2 ring-white shadow-sm dark:ring-gray-800"><Flag className="h-2.5 w-2.5 fill-current" /></i>}
             {hasEnd && <i className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-emerald-500 text-white ring-2 ring-white shadow-sm dark:ring-gray-800"><Check className="h-2.5 w-2.5" strokeWidth={3} /></i>}

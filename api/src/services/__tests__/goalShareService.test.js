@@ -61,6 +61,7 @@ test('publishes an allowlisted snapshot of a private goal without changing sourc
   await service.postShare(7, 2, { ...request(context), title: 'INJECTED', progress: 900, completionNote: 'SECRET' });
   const [key, update] = activity.findOneAndUpdate.mock.calls[0];
   expect(key).toEqual({ userId: 2, shareKey: 'completion:7' });
+  for (const field of ['name', 'username', 'avatar']) expect(update.$set).not.toHaveProperty(field);
   expect(update.$set).toMatchObject({ type: 'goal_shared', isPublic: true, data: { goalId: 7, share: { title: 'Private goal', progress: 100 } } });
   expect(JSON.stringify(update)).not.toMatch(/SECRET|INJECTED|progressUpdateCount|activeDays/);
   expect(Object.keys(goals)).toEqual(['getGoalById']);

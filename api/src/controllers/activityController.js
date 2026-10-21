@@ -1,3 +1,5 @@
+const { hydrateActivityAuthors } = require('../services/activityAuthors');
+const { goalAccessPolicy } = require('../services/goalAccessPolicy');
 const { logger } = require('./../config/observability');
 const Activity = require('../models/Activity');
 const cacheService = require('../services/cacheService');
@@ -16,7 +18,7 @@ const pgUserService = require('../services/pgUserService');
  * Enrich activities with goal and user data from PostgreSQL
  */
 async function enrichActivities(activities) {
-  const activityArray = Array.isArray(activities) ? activities : [activities];
+  const activityArray = await hydrateActivityAuthors(Array.isArray(activities) ? activities : [activities]);
   
   // Collect unique goal, user, and achievement IDs
   const goalIds = new Set();
@@ -39,7 +41,9 @@ async function enrichActivities(activities) {
   ]);
   
   // Create lookup maps
-  const goalMap = new Map(goals.map(g => [g.id, g]));
+  const goalMap = new Map(goals.map(g => [String(g.id), g]));
+  const details = goalIds.size ? await require('../models/extended/GoalDetails').find({ goalId: { $in: [...goalIds] } }).select('goalId description').lean() : [];
+  const detailsMap = new Map(details.map(detail => [String(detail.goalId), detail]));
   const userMap = new Map(users.map(u => [u.id, u]));
   const achievementMap = new Map(achievements.map(a => [a._id.toString(), a]));
   // Enrich activities
@@ -79,10 +83,11 @@ async function enrichActivities(activities) {
           },
           // Also keep flat fields for compatibility
           goalTitle: goal.title,
+          goalDescription: detailsMap.get(String(activity.data.goalId))?.description || '',
           goalCategory: goal.category,
           isCompleted: goal.completed,
           completedAt: goal.completed_at,
-          goalIsPublic: goal.is_public
+          goalIsPublic: goalAccessPolicy(goal, null).canViewGoal
         };
       }
     }
@@ -418,7 +423,7 @@ const getRecentActivities = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      data: activities,
+      data: { ...activities, activities: await hydrateActivityAuthors(activities.activities || []) },
       fromCache
     });
   } catch (error) {
@@ -599,27 +604,7 @@ const getTrendingActivities = async (req, res, next) => {
       {
         $limit: parseInt(limit)
       },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'userId',
-          foreignField: '_id',
-          as: 'user'
-        }
-      },
-      {
-        $unwind: '$user'
-      },
-      {
-        $project: {
-          type: 1,
-          data: 1,
-          createdAt: 1,
-          likeCount: 1,
-          'user.name': 1,
-          'user.avatar': 1
-        }
-      }
+      { $project: { type: 1, data: 1, createdAt: 1, likeCount: 1, userId: 1 } }
     ]);
     
     const total = await Activity.countDocuments({
@@ -631,7 +616,7 @@ const getTrendingActivities = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: {
-        activities,
+        activities: await hydrateActivityAuthors(activities),
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),

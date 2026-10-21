@@ -41,3 +41,21 @@ test('does not hide system completions when no rich post is visible', async () =
   await service.getActivityFeed(9);
   expect(Activity.find.mock.calls[0][0].$nor).toBeUndefined();
 });
+
+
+test('feed reads current author profiles for shares instead of stored snapshots', async () => {
+  const users = require('../pgUserService');
+  users.getUsersByIds.mockResolvedValue([{ id: '2', name: 'Current name', username: 'current', avatar_url: 'new.png' }]);
+  const result = await service.getActivityFeed(9);
+  expect(result.activities[0].user).toEqual({ id: 2, name: 'Current name', username: 'current', avatar: 'new.png' });
+  expect(result.activities[0].data).toEqual(post.data);
+});
+
+
+test('regular goal posts include the stored goal description', async () => {
+  const details = require('../../models/extended/GoalDetails');
+  goals.getGoalsByIds.mockResolvedValue([{ id: 7, title: 'Running', category: 'FITNESS', is_public: true }]);
+  details.find.mockReturnValue({ select: () => ({ lean: async () => [{ goalId: 7, description: 'Build endurance with regular training.' }] }) });
+  const result = await service.enrichWithPostgresData({ userId: 2, type: 'goal_activity', data: { goalId: 7 } });
+  expect(result.data.goalDescription).toBe('Build endurance with regular training.');
+});

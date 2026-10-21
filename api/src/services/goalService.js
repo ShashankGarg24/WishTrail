@@ -5,6 +5,7 @@ const userService = require('./userService');
 const cacheService = require('./cacheService');
 const pgUserService = require('./pgUserService');
 const pgGoalService = require('./pgGoalService');
+const { resolveGoalAccess, isGoalOwner } = require('./goalAccessPolicy');
 
 // Map user interests to goal categories for consistent filtering
 function mapInterestToCategory(raw) {
@@ -96,7 +97,7 @@ class GoalService {
     }
     
     // Check if user can view this goal
-    if (goal.user_id !== requestingUserId && !goal.is_public) {
+    if (!(await resolveGoalAccess(goal, requestingUserId)).canViewGoal) {
       throw new Error('Access denied');
     }
     
@@ -172,7 +173,7 @@ class GoalService {
     }
     
     // Check ownership
-    if (goal.user_id !== userId) {
+    if (!isGoalOwner(goal, userId)) {
       throw new Error('Access denied');
     }
     
@@ -226,7 +227,7 @@ class GoalService {
     }
     
     // Check ownership
-    if (goal.user_id !== userId) {
+    if (!isGoalOwner(goal, userId)) {
       throw new Error('Access denied');
     }
     
@@ -269,7 +270,7 @@ class GoalService {
     }
     
     // Check ownership
-    if (goal.user_id !== userId) {
+    if (!isGoalOwner(goal, userId)) {
       throw new Error('Access denied');
     }
     
@@ -349,7 +350,7 @@ class GoalService {
     }
     
     // Check ownership
-    if (goal.user_id !== userId) {
+    if (!isGoalOwner(goal, userId)) {
       throw new Error('Access denied');
     }
     
@@ -635,4 +636,4 @@ class GoalService {
   }
 }
 
-module.exports = new GoalService(); 
+module.exports = new GoalService();

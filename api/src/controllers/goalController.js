@@ -1,6 +1,7 @@
 const { logger } = require('./../config/observability');
 const { validationResult } = require('express-validator');
 const goalService = require('../services/goalService');
+const { resolveGoalAccess, isGoalOwner } = require('../services/goalAccessPolicy');
 const pgGoalService = require('../services/pgGoalService');
 const pgUserService = require('../services/pgUserService');
 const pgLikeService = require('../services/pgLikeService');
@@ -268,15 +269,10 @@ const getGoalPost = async (req, res, next) => {
     const goalDetails = await GoalDetails.findOne({ goalId: goal.id }).lean();
     
     // Visibility: owner or public share or follower-only if you add such logic later
-    const isOwner = String(goal.user_id) === String(req.user.id);
-    if (!isOwner && !goal.is_public) return res.status(403).json({ success: false, message: 'Access denied' });
-    if (!isOwner) {
-      // Check if user is active (PostgreSQL)
-      const user = await pgUserService.getUserById(goal.user_id);
-      if (!user || !user.is_active) return res.status(403).json({ success: false, message: 'Access denied' });
-    }
+    const permissions = await resolveGoalAccess(goal, req.user.id);
+    if (!permissions.canViewGoal) return res.status(403).json({ success: false, message: 'Access denied' });
     // Determine shareable content based on goal's public status
-    const canShowCompletion = isOwner || goal.is_public;
+    const canShowCompletion = permissions.canViewGoal;
     const shareNote = canShowCompletion ? (goalDetails?.completionNote || '') : '';
     const shareImage = canShowCompletion ? (goalDetails?.completionAttachmentUrl || '') : '';
 
@@ -320,7 +316,7 @@ const getGoalPost = async (req, res, next) => {
 
     // ✅ Enrich sub-goals with real completion date
     let enrichedSubGoals = [];
-    if (goalDetails?.progress?.breakdown?.subGoals && goalDetails.progress.breakdown.subGoals.length > 0) {
+    if (permissions.canViewTimeline && goalDetails?.progress?.breakdown?.subGoals && goalDetails.progress.breakdown.subGoals.length > 0) {
       const linkedIds = goalDetails.progress.breakdown.subGoals.map(sg => sg.linkedGoalId).filter(Boolean);
       const linkedGoals = await pgGoalService.getGoalsByIds(linkedIds);
 
@@ -360,6 +356,7 @@ const getGoalPost = async (req, res, next) => {
           isUpdatesPublic: goal.is_updates_public,
           subGoals: enrichedSubGoals
         },
+        permissions,
         user: {
           id: goal.user_id,
           name: goal.user_name,
@@ -400,8 +397,8 @@ const getGoalTimeline = async (req, res, next) => {
     const goalDetails = await GoalDetails.findOne({ goalId: goal.id }).lean();
     
     // Visibility: owner or public
-    const isOwner = String(goal.user_id) === String(req.user.id);
-    if (!isOwner && (!goal.is_public || !goal.is_updates_public)) {
+    const permissions = await resolveGoalAccess(goal, req.user.id);
+    if (!permissions.canViewTimeline) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
@@ -414,6 +411,7 @@ const getGoalTimeline = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       data: {
+        permissions,
         timeline: events,
         calendarEvents: timeline.map(event => ({
           id: event.id,
@@ -625,7 +623,8 @@ const getGoal = async (req, res, next) => {
       });
     }
 
-    if (String(goal.user_id) !== String(req.user.id) && !goal.is_public) {
+    const permissions = await resolveGoalAccess(goal, req.user.id);
+    if (!permissions.canViewGoal) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
@@ -647,15 +646,16 @@ const getGoal = async (req, res, next) => {
       createdAt: goal.created_at,
       updatedAt: goal.updated_at,
       description: goalDetails?.description || '',
-      subGoals: goalDetails?.progress?.breakdown?.subGoals || [],
-      habitLinks: goalDetails?.progress?.breakdown?.habits || [],
+      permissions,
+      subGoals: permissions.canViewTimeline ? goalDetails?.progress?.breakdown?.subGoals || [] : [],
+      habitLinks: permissions.canViewTimeline ? goalDetails?.progress?.breakdown?.habits || [] : [],
       completionNote: goalDetails?.completionNote || '',
       completionAttachmentUrl: goalDetails?.completionAttachmentUrl || ''
     };
 
     const pgUser = await pgUserService.getUserById(goal.user_id);
     const goalWithHealth = await goalHealthService.addGoalHealth(combinedGoal, { userId: goal.user_id, timezone: pgUser?.timezone || 'UTC' });
-    res.status(200).json({ success: true, data: { goal: goalWithHealth } });
+    res.status(200).json({ success: true, data: { goal: goalWithHealth, permissions } });
   } catch (error) {
     next(error);
   }
@@ -679,6 +679,9 @@ const createGoal = async (req, res, next) => {
     const normalizedTitle = typeof title === 'string' ? title.trim() : '';
     const normalizedDescription = typeof description === 'string' ? description.trimEnd() : '';
     const isPublicFlag = (req.body.isPublic === true || req.body.isPublic === 'true') ? true : false;
+    const isUpdatesPublicFlag = req.body.isUpdatesPublic === undefined
+      ? true
+      : req.body.isUpdatesPublic === true || req.body.isUpdatesPublic === 'true';
 
     if (!normalizedTitle || normalizedTitle.length < 3 || normalizedTitle.length > MAX_GOAL_TITLE_CHARS) {
       return res.status(400).json({
@@ -769,7 +772,8 @@ const createGoal = async (req, res, next) => {
         category,
         year: currentYear,
         targetDate,
-        isPublic: isPublicFlag
+        isPublic: isPublicFlag,
+        isUpdatesPublic: isUpdatesPublicFlag
       });
       
       goalId = goal.id;
@@ -895,7 +899,7 @@ const updateGoal = async (req, res, next) => {
     }
 
     // Check ownership
-    if (goal.user_id.toString() !== req.user.id.toString()) {
+    if (!isGoalOwner(goal, req.user.id)) {
       return res.status(403).json({
         success: false,
         message: 'Access denied'
@@ -1122,6 +1126,7 @@ const updateGoal = async (req, res, next) => {
       category: updatedGoal.category,
       targetDate: updatedGoal.target_date,
       isPublic: updatedGoal.is_public,
+      isUpdatesPublic: updatedGoal.is_updates_public,
       description: updatedDetails.description,
       subGoals: updatedDetails.progress?.breakdown?.subGoals || [],
       habitLinks: updatedDetails.progress?.breakdown?.habits || [],
@@ -1149,7 +1154,7 @@ const checkGoalDependencies = async (req, res, next) => {
     }
     
     // Check ownership
-    if (goal.user_id.toString() !== req.user.id.toString()) {
+    if (!isGoalOwner(goal, req.user.id)) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
@@ -1200,7 +1205,7 @@ const deleteGoal = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Goal not found' });
     }
 
-    if (goal.user_id.toString() !== req.user.id.toString()) {
+    if (!isGoalOwner(goal, req.user.id)) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
@@ -1340,7 +1345,7 @@ const toggleGoalCompletion = async (req, res, next) => {
       }
       logger.info('[toggleGoalCompletion] Goal:', goal.id, 'User:', req.user.id, 'Currently completed:', !!goal.completed_at);
       // Compare as numbers (PostgreSQL IDs are integers)
-      if (Number(goal.user_id) !== Number(req.user.id)) {
+      if (!isGoalOwner(goal, req.user.id)) {
         throw Object.assign(new Error('Access denied'), { statusCode: 403 });
       }
 
@@ -1534,7 +1539,7 @@ const updateGoalCompletion = async (req, res, next) => {
     }
     
     // Check ownership
-    if (Number(goal.user_id) !== Number(req.user.id)) {
+    if (!isGoalOwner(goal, req.user.id)) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
     
@@ -1658,7 +1663,7 @@ const toggleGoalLike = async (req, res, next) => {
     }
 
     // Don't allow liking own goals
-    if (goal.user_id.toString() === req.user.id.toString()) {
+    if (isGoalOwner(goal, req.user.id)) {
       return res.status(400).json({
         success: false,
         message: 'Cannot like your own goal'
@@ -1744,7 +1749,7 @@ const getShareableGoal = async (req, res, next) => {
     const goalDetails = await GoalDetails.findOne({ goalId: goal.id }).lean();
 
     // Check if goal is shareable (public and completed)
-    if (!goal.is_public) {
+    if (!(await resolveGoalAccess(goal, null)).canViewGoal) {
       return res.status(403).json({
         success: false,
         message: 'This goal is not shareable'
@@ -1814,7 +1819,7 @@ const generateOGImage = async (req, res, next) => {
     }
 
     // Check if goal is shareable
-    if (!goal.is_public || !goal.completed) {
+    if (!(await resolveGoalAccess(goal, null)).canViewGoal || !goal.completed) {
       return res.status(403).json({
         success: false,
         message: 'This goal is not shareable'
@@ -2113,20 +2118,20 @@ const getGoalUpdates = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Goal not found' });
     }
 
-    const isOwner = String(goal.user_id) === String(req.user.id);
-    const canViewPublicUpdates = goal.is_public === true && goal.is_updates_public === true;
-    if (!isOwner && !canViewPublicUpdates) {
+    const permissions = await resolveGoalAccess(goal, req.user.id);
+    if (!permissions.canViewUpdates) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
     const limit = Math.max(1, Math.min(50, parseInt(req.query?.limit, 10) || 10));
     const offset = Math.max(0, parseInt(req.query?.offset, 10) || 0);
-    const updatesOwnerId = isOwner ? req.user.id : goal.user_id;
+    const updatesOwnerId = goal.user_id;
     const { updates, hasMore } = await pgGoalUpdateService.listGoalUpdates(goal.id, updatesOwnerId, { limit, offset });
 
     return res.status(200).json({
       success: true,
       data: {
+        permissions,
         updates,
         pagination: {
           limit,
@@ -2247,12 +2252,9 @@ module.exports = {
       if (!goal) return res.status(404).json({ success: false, message: 'Goal not found' });
 
       // Check ownership
-      const isOwner = String(goal.user_id) === String(req.user.id);
-      if (!isOwner) {
-        // If not owner, check if goal is public
-        if (!goal.is_public) {
-          return res.status(403).json({ success: false, message: 'Access denied' });
-        }
+      const permissions = await resolveGoalAccess(goal, req.user.id);
+      if (!permissions.canViewUpdates) {
+        return res.status(403).json({ success: false, message: 'Access denied' });
       }
 
       // Get extended details from MongoDB
@@ -2362,6 +2364,7 @@ module.exports = {
       return res.status(200).json({
         success: true,
         data: {
+          permissions,
           metrics,
           goal: {
             id: goal.id,

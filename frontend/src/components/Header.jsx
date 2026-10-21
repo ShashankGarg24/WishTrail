@@ -37,7 +37,6 @@ const Header = () => {
   const isDiscoverActive = location.pathname.startsWith('/discover')
   const isNotificationsActive = location.pathname.startsWith('/notifications')
   const mobilePageTitle = [
-    ['/feed', 'Feed'],
     ['/discover', 'Discover'],
     ['/notifications', 'Notifications'],
     ['/settings', 'Settings'],

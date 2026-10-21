@@ -21,18 +21,6 @@ const activitySchema = new mongoose.Schema({
     required: [true, 'User ID is required']
   },
 
-  name: {
-    type: String,
-  },
-
-  username: {
-    type: String,
-  },
-
-  avatar: {
-    type: String,
-  },
-  
   // Type of activity
   type: {
     type: String,
@@ -189,14 +177,12 @@ activitySchema.virtual('message').get(function() {
 });
 
 
+// Legacy argument positions remain compatible; only userId is persisted for the author.
 // Static method to create activity
 activitySchema.statics.createActivity = async function(userId, name, username, avatar, type, data, options = {}) {
   try {
     const activity = new this({
       userId,
-      name,
-      username,
-      avatar,
       type,
       data,
       isPublic: options.isPublic !== undefined ? options.isPublic : true,
@@ -232,9 +218,6 @@ activitySchema.statics.createOrUpdateGoalActivity = async function(userId, name,
       
       const newActivity = new this({
         userId,
-        name,
-        username,
-        avatar,
         type: updateType,
         data: activityData,
         isPublic: options.isPublic !== undefined ? options.isPublic : true,
@@ -263,9 +246,6 @@ activitySchema.statics.createOrUpdateGoalActivity = async function(userId, name,
     if (activity) {
       // Update existing activity
       activity.type = 'goal_activity';
-      activity.name = name; // Update in case name changed
-      activity.username = username; // Update in case username changed
-      activity.avatar = avatar; // Update in case avatar changed
       activity.data.lastUpdateType = updateType;
       if (updateType === 'completed' && completionMarkedAt && !activity.data.completionMarkedAt) {
         activity.data.completionMarkedAt = completionMarkedAt;
@@ -314,9 +294,6 @@ activitySchema.statics.createOrUpdateGoalActivity = async function(userId, name,
       
       const newActivity = new this({
         userId,
-        name,
-        username,
-        avatar,
         type: 'goal_activity',
         data: activityData,
         isPublic: options.isPublic !== undefined ? options.isPublic : true,

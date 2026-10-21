@@ -179,6 +179,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
   };
 
   const loadGoalUpdates = async ({ reset = false } = {}) => {
+    if (!goalData?.permissions?.canViewUpdates) return;
     if (!goalId) return;
     if (goalUpdatesLoading) return;
     if (!reset && !goalUpdatesHasMore) return;
@@ -236,6 +237,8 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
   };
 
   const toggleTimeline = async () => {
+    if (!goalData?.permissions?.canViewTimeline) return;
+
     if (isTimelineExpanded) {
       setIsTimelineExpanded(false);
       return;
@@ -498,7 +501,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                     </button>
                   )}
 
-                  <section className="border-b border-gray-200 px-4 py-3 dark:border-line">
+                  {goalData.permissions?.canViewTimeline && <section className="border-b border-gray-200 px-4 py-3 dark:border-line">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <TrendingUp className="h-4 w-4 text-[#4c99e6]" />
@@ -518,7 +521,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                         )) : <p className="py-3 text-center text-sm text-gray-500">No timeline events yet</p>}
                       </div>
                     )}
-                  </section>
+                  </section>}
 
                   {showComments && <section className="px-4 py-4">
                     {goalData?.social?.activityId ? (
@@ -733,7 +736,7 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                   )}
 
                   {/* Timeline */}
-                  <div className="goal-post-timeline">
+                  {goalData.permissions?.canViewTimeline && <div className="goal-post-timeline">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
                         <TrendingUp className="w-4 h-4 text-[#4c99e6]" />
@@ -784,10 +787,10 @@ const GoalPostModal = ({ isOpen, onClose, goalId, openWithComments = false, onTo
                         No timeline events yet
                       </div>
                     )}
-                  </div>
+                  </div>}
 
                   {/* Goal Updates */}
-                  {goalData.goal?.isUpdatesPublic && (
+                  {goalData.permissions?.canViewUpdates && (
                     <div className="goal-post-updates">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">

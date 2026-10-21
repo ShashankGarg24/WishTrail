@@ -1,4 +1,5 @@
 const pgGoalService = require('./pgGoalService');
+const { isGoalOwner } = require('./goalAccessPolicy');
 const pgUserService = require('./pgUserService');
 const GoalDetails = require('../models/extended/GoalDetails');
 const Activity = require('../models/Activity');
@@ -10,7 +11,7 @@ let indexes;
 async function getContext(goalId, userId, options = {}) {
   const goal = await pgGoalService.getGoalById(goalId);
   if (!goal) throw Object.assign(new Error('Goal not found'), { statusCode: 404 });
-  if (String(goal.user_id) !== String(userId)) throw Object.assign(new Error('Access denied'), { statusCode: 403 });
+  if (!isGoalOwner(goal, userId)) throw Object.assign(new Error('Access denied'), { statusCode: 403 });
   const [details, updates, user] = await Promise.all([
     GoalDetails.findOne({ goalId: goal.id }).lean(),
     query('SELECT id, text, emotion, date_key::text FROM goal_updates WHERE goal_id=$1 AND user_id=$2 ORDER BY date_key, id', [goal.id, userId]),
@@ -38,12 +39,11 @@ async function postShare(goalId, userId, payload) {
   const context = await getContext(goalId, userId, payload);
   if (context.revision !== payload.revision) throw Object.assign(new Error('Your goal changed. Refresh the preview before posting.'), { statusCode: 409 });
   const snapshot = buildSnapshot(context, payload.options);
-  const user = await pgUserService.getUserById(userId);
   // A completion is a single achievement. A second explicit post updates the same
   // rich activity; automatic system activities are suppressed at read time.
   const key = snapshot.shareType === 'COMPLETION' ? `completion:${goalId}` : `request:${payload.requestId}`;
   const filter = { userId, shareKey: key };
-  const update = { type: 'goal_shared', name: user.name, username: user.username, avatar: user.avatar_url,
+  const update = { type: 'goal_shared',
     isPublic: payload.visibility === 'PUBLIC', shareRequestId: payload.requestId, shareRequestFingerprint: fingerprint,
     data: { goalId: Number(goalId), share: snapshot } };
   let activity;

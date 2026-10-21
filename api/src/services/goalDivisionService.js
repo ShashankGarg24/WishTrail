@@ -2,6 +2,7 @@ const { logger } = require('./../config/observability');
 const mongoose = require('mongoose');
 const GoalDetails = require('../models/extended/GoalDetails');
 const pgGoalService = require('./pgGoalService');
+const { isGoalOwner } = require('./goalAccessPolicy');
 const pgHabitService = require('./pgHabitService');
 const pgHabitLogService = require('./pgHabitLogService');
 
@@ -98,7 +99,7 @@ async function computeHabitLinkProgress(userId, link, goal) {
 async function computeGoalProgress(goalId, requestingUserId, { details: preloadedDetails } = {}) {
   const goal = await pgGoalService.getGoalById(goalId);
   if (!goal) throw Object.assign(new Error('Goal not found'), { statusCode: 404 });
-  if (Number(goal.user_id) !== Number(requestingUserId)) {
+  if (!isGoalOwner(goal, requestingUserId)) {
     throw Object.assign(new Error('Access denied'), { statusCode: 403 });
   }
 
@@ -195,7 +196,7 @@ function suggestEqualWeights(count) {
 async function setSubGoals(goalId, userId, subGoals) {
   const goal = await pgGoalService.getGoalById(goalId);
   if (!goal) throw Object.assign(new Error('Goal not found'), { statusCode: 404 });
-  if (Number(goal.user_id) !== Number(userId)) throw Object.assign(new Error('Access denied'), { statusCode: 403 });
+  if (!isGoalOwner(goal, userId)) throw Object.assign(new Error('Access denied'), { statusCode: 403 });
 
   // Get existing GoalDetails from MongoDB
   const existingDetails = await GoalDetails.findOne({ goalId: goal.id, isActive: true });
@@ -364,7 +365,7 @@ async function setSubGoals(goalId, userId, subGoals) {
 async function toggleSubGoal(goalId, userId, index, completed, note) {
   const goal = await pgGoalService.getGoalById(goalId);
   if (!goal) throw Object.assign(new Error('Goal not found'), { statusCode: 404 });
-  if (Number(goal.user_id) !== Number(userId)) throw Object.assign(new Error('Access denied'), { statusCode: 403 });
+  if (!isGoalOwner(goal, userId)) throw Object.assign(new Error('Access denied'), { statusCode: 403 });
   
   const goalDetails = await GoalDetails.findOne({ goalId: goal.id, isActive: true });
   if (!goalDetails || !goalDetails.progress?.breakdown?.subGoals) throw Object.assign(new Error('No sub-goals found'), { statusCode: 404 });
@@ -449,7 +450,7 @@ async function toggleSubGoal(goalId, userId, index, completed, note) {
 async function setHabitLinks(goalId, userId, links) {
   const goal = await pgGoalService.getGoalById(goalId);
   if (!goal) throw Object.assign(new Error('Goal not found'), { statusCode: 404 });
-  if (Number(goal.user_id) !== Number(userId)) throw Object.assign(new Error('Access denied'), { statusCode: 403 });
+  if (!isGoalOwner(goal, userId)) throw Object.assign(new Error('Access denied'), { statusCode: 403 });
 
   // Get existing GoalDetails from MongoDB
   const existingDetails = await GoalDetails.findOne({ goalId: goal.id, isActive: true });

@@ -138,7 +138,8 @@ const ProfilePage = () => {
   const [habitSearch, setHabitSearch] = useState('')
   const [profileFilterSheet, setProfileFilterSheet] = useState(null)
   const [journalMonth, setJournalMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
-  const [journalCalendarOpen, setJournalCalendarOpen] = useState(true)
+  const [journalCalendarOpen, setJournalCalendarOpen] = useState(false)
+  const journalSwipeStartX = useRef(null)
   const [trailYear, setTrailYear] = useState(() => new Date().getFullYear())
   const [trailFilter, setTrailFilter] = useState('all')
   const [trailActivities, setTrailActivities] = useState([])
@@ -464,6 +465,7 @@ const ProfilePage = () => {
   const journalMonthIndex = journalMonth.getMonth();
   const journalYears = [...new Set([
     new Date().getFullYear(),
+    journalMonthYear,
     ...(dailyLogsFeed || []).map((entry) => new Date(entry?.createdAt || 0).getFullYear()).filter(Number.isFinite)
   ])].sort((a, b) => b - a);
   const journalMonthDays = new Date(journalMonthYear, journalMonthIndex + 1, 0).getDate();
@@ -1720,13 +1722,13 @@ const ProfilePage = () => {
                                 <div className="flex items-start gap-2 sm:gap-3 min-w-0 flex-1">
                                   <HabitCategoryIcon category={habit.category} size="lg" />
                                   <div className="min-w-0 flex-1">
-                                    <h4 className="font-semibold text-gray-900 dark:text-white text-base sm:text-lg">{habit.name}</h4>
-                                    <p className="text-xs sm:text-sm text-gray-500 dark:text-muted">{getHabitCategoryLabel(habit.category)} · {scheduleLabel}</p>
+                                    <h4 className="text-sm font-bold text-gray-900 dark:text-white sm:text-base">{habit.name}</h4>
+                                    <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-muted sm:text-xs">{getHabitCategoryLabel(habit.category)} · {scheduleLabel}</p>
                                   </div>
                                 </div>
                                 <div className="flex-shrink-0 text-right">
-                                  <span className="text-xl sm:text-2xl font-bold block leading-tight" style={{ color: THEME_COLOR }}>{weeklyPercent}%</span>
-                                  <span className="text-xs sm:text-sm" style={{ color: THEME_COLOR }}>COMPLETION</span>
+                                  <span className="block text-base font-bold leading-tight sm:text-lg" style={{ color: THEME_COLOR }}>{weeklyPercent}%</span>
+                                  <span className="text-[9px] font-semibold sm:text-[10px]" style={{ color: THEME_COLOR }}>COMPLETION</span>
                                 </div>
                               </div>
                               <div className="mt-3"><div className="mb-1.5 flex items-center justify-between text-xs text-slate-500 dark:text-muted"><span>{habit.last7CompletedDays ?? weeklyCompleted}/{habit.last7ExpectedDays ?? weeklyTarget} scheduled days · last 7 days</span><span className="font-bold">{trend == null ? 'No prior comparison' : `${trend > 0 ? '+' : ''}${trend} pts`}</span></div><div className="flex items-center gap-3"><div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-elevated"><div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-400" style={{ width: `${weeklyPercent}%` }} /></div><ChevronRight className="h-4 w-4 text-slate-400" /></div></div>
@@ -1825,21 +1827,28 @@ const ProfilePage = () => {
                   {isOwnProfile && (
                     <div className="space-y-5">
                       <button type="button" onClick={() => setJournalCalendarOpen(value => !value)} aria-expanded={journalCalendarOpen} className="flex w-full items-center justify-between rounded-xl border border-slate-100 bg-white p-4 text-left text-sm font-bold text-slate-800 dark:border-line dark:bg-surface dark:text-white"><span className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-[#1683ed]" />Calendar view</span><span className="flex items-center gap-1 text-[10px] text-slate-400">{journalCalendarOpen ? 'Hide' : 'Show'}<ChevronRight className={`h-4 w-4 transition-transform ${journalCalendarOpen ? 'rotate-90' : ''}`} /></span></button>
-                      <div className={`wt-journal-calendar rounded-xl border border-slate-100 p-4 dark:border-line ${journalCalendarOpen ? '' : 'hidden'}`}>
+                      <div onTouchStart={event => { journalSwipeStartX.current = event.changedTouches[0]?.clientX ?? null }} onTouchEnd={event => { const end = event.changedTouches[0]?.clientX; if (journalSwipeStartX.current == null || end == null) return; const distance = end - journalSwipeStartX.current; journalSwipeStartX.current = null; if (Math.abs(distance) < 45) return; setJournalMonth(current => new Date(current.getFullYear(), current.getMonth() + (distance < 0 ? 1 : -1), 1)) }} className={`wt-journal-calendar rounded-xl border border-slate-100 p-4 dark:border-line ${journalCalendarOpen ? '' : 'hidden'}`}>
                         <div className="mb-3 flex items-center justify-between"><label className="relative"><span className="sr-only">Journal year</span><select value={journalMonthYear} onChange={(event) => setJournalMonth(new Date(Number(event.target.value), journalMonthIndex, 1))} className="appearance-none rounded-lg border border-slate-200 bg-white py-2 pl-3 pr-8 text-xs font-extrabold text-slate-800 outline-none dark:border-line dark:bg-surface dark:text-white">{journalYears.map((year) => <option key={year} value={year}>{year}</option>)}</select><ChevronRight className="pointer-events-none absolute right-2.5 top-2.5 h-3.5 w-3.5 rotate-90 text-slate-400" /></label><span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Journal calendar</span></div>
                         <div className="mb-5 grid grid-cols-[36px_1fr_36px] items-center">
                           <button type="button" aria-label="Previous month" onClick={() => setJournalMonth(new Date(journalMonthYear, journalMonthIndex - 1, 1))} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-line dark:text-muted"><ChevronLeft className="h-4 w-4" /></button>
                           <div className="text-center"><h4 className="text-sm font-extrabold text-slate-950 dark:text-white">{journalMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h4><p className="mt-0.5 text-[10px] font-medium text-slate-400">{Array.from(journalEntriesByDay.keys()).filter((key) => key.startsWith(`${journalMonthYear}-${String(journalMonthIndex + 1).padStart(2, '0')}`)).length} entries this month</p></div>
-                          <button type="button" aria-label="Next month" disabled={journalMonthYear === new Date().getFullYear() && journalMonthIndex >= new Date().getMonth()} onClick={() => setJournalMonth(new Date(journalMonthYear, journalMonthIndex + 1, 1))} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-35 dark:border-line dark:text-muted"><ChevronRight className="h-4 w-4" /></button>
+                          <button type="button" aria-label="Next month" onClick={() => setJournalMonth(new Date(journalMonthYear, journalMonthIndex + 1, 1))} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-line dark:text-muted"><ChevronRight className="h-4 w-4" /></button>
                         </div>
                         <div className="grid grid-cols-7 text-center">{['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(day => <span key={day} className="pb-3 text-[10px] font-bold uppercase tracking-wide text-slate-400">{day}</span>)}{journalCalendarCells.map((day, index) => {
                           if (!day) return <span key={`empty-${index}`} className="h-11 sm:h-14" />;
                           const entry = journalEntriesByDay.get(journalDayKey(day));
                           const mood = entry ? DAILY_LOG_MOOD_META[entry.mood] : null;
                           const isToday = journalDayKey(day) === getDateKeyInTimezone(new Date());
-                          return <button key={day} type="button" disabled={!entry} onClick={() => entry && toggleDailyLogExpand(entry.id || entry._id || entry.createdAt)} className={`relative mx-0.5 mb-1 flex h-10 flex-col items-center justify-center rounded-lg text-xs font-bold sm:h-14 ${entry ? 'bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/25 dark:text-blue-300' : 'text-slate-500 dark:text-muted'} ${isToday ? 'ring-1 ring-blue-500' : ''}`}><span>{day}</span>{entry && <span className={`mt-1 h-1.5 w-1.5 rounded-full ${mood?.score >= 4 ? 'bg-emerald-500' : mood?.score >= 3 ? 'bg-amber-400' : 'bg-rose-400'}`} />}</button>;
+                          const tone = !entry
+                            ? 'border-dashed border-slate-200 bg-slate-50/60 text-slate-400 dark:border-line dark:bg-elevated/40 dark:text-muted'
+                            : mood?.score >= 4
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300'
+                              : mood?.score >= 3
+                                ? 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300'
+                                : 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300';
+                          return <button key={day} type="button" disabled={!entry} onClick={() => entry && toggleDailyLogExpand(entry.id || entry._id || entry.createdAt)} aria-label={`${journalDayKey(day)}: ${entry ? `${mood?.label || 'Logged'} journal entry` : 'No journal entry'}`} className={`relative mx-0.5 mb-1 flex h-10 flex-col items-center justify-center rounded-lg border text-xs font-bold sm:h-14 ${tone} ${isToday ? 'ring-2 ring-blue-500 ring-offset-1 dark:ring-offset-canvas' : ''}`}><span>{day}</span>{entry && <span className="mt-1 text-[8px] font-extrabold uppercase tracking-wide">Logged</span>}</button>;
                         })}</div>
-                        <div className="mt-3 flex items-center justify-center gap-4 border-t border-slate-100 pt-3 text-[10px] text-slate-500 dark:border-line"><span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-emerald-500" />Positive</span><span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-amber-400" />Neutral</span><span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-rose-400" />Low</span></div>
+                        <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 border-t border-slate-100 pt-3 text-[10px] text-slate-500 dark:border-line"><span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm border border-dashed border-slate-300 bg-slate-50" />Unlogged</span><span className="font-semibold text-slate-600 dark:text-muted">Logged mood:</span><span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-emerald-500" />Positive</span><span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-amber-400" />Neutral</span><span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-rose-400" />Low</span></div>
                       </div>
 
                       {dailyLogsFeed.length === 0 && !dailyLogsLoading && (

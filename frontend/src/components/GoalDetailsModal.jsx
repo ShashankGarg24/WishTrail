@@ -189,7 +189,7 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
     setEditingGoalLog(null)
     setGoalLogToDelete(null)
     setActiveView(initialView)
-    setIsUpdatesPublic(goal?.isUpdatesPublic !== false)
+    setIsUpdatesPublic(goal?.isUpdatesPublic === true)
 
     if (!goalId || isCompleted) {
       setUpdateText('')
@@ -624,7 +624,7 @@ export default function GoalDetailsModal({ goal, isOpen, onClose, onViewPost, in
               {!editingGoalLog && <div className="rounded-xl border border-gray-200 dark:border-line bg-gray-50 dark:bg-gray-900/40 px-4 py-3 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-900 dark:text-white">Make updates public</p>
-                  <p className="text-xs text-gray-500 dark:text-muted">Share progress with the Growth Feed</p>
+                  <p className="text-xs text-gray-500 dark:text-muted">{goal?.isPublic ? 'Let others see your updates and timeline' : 'Updates and timeline stay private while your goal is private'}</p>
                 </div>
                 <button
                   type="button"

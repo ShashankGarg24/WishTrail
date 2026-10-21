@@ -47,7 +47,7 @@ export default function ContextualSidebar() {
       ...shared,
     ]
     if (section === 'feed') return [
-      { label: 'Feed', items: [item('For You', Sparkles, '/feed?view=for-you', () => true)] },
+      { label: '', items: [item('For You', Sparkles, '/feed?view=for-you', () => true), item('Explore', Compass, '/discover')] },
       { label: 'Quick actions', items: [item('New Goal', Plus, null, null, () => setOpenAction('goal')), item('New Habit', Plus, null, null, () => setOpenAction('habit')), item('Daily Check-in', CalendarCheck, null, null, () => setOpenAction('daily-log'))] },
       ...shared,
     ]

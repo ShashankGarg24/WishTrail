@@ -1,3 +1,5 @@
+const { hydrateActivityAuthors } = require('./activityAuthors');
+const { goalAccessPolicy } = require('./goalAccessPolicy');
 const { logger } = require('./../config/observability');
 const Activity = require('../models/Activity');
 const pgFollowService = require('../services/pgFollowService');
@@ -12,7 +14,7 @@ class ActivityService {
    * Enrich activities with goal and user data from PostgreSQL
    */
   async enrichWithPostgresData(activities) {
-    const activityArray = Array.isArray(activities) ? activities : [activities];
+    const activityArray = await hydrateActivityAuthors(Array.isArray(activities) ? activities : [activities]);
     
     // Collect unique goal, user, and achievement IDs
     const goalIds = new Set();
@@ -33,7 +35,7 @@ class ActivityService {
       goalIds.size > 0 ? pgGoalService.getGoalsByIds(Array.from(goalIds)) : [],
       userIds.size > 0 ? pgUserService.getUsersByIds(Array.from(userIds)) : [],
       achievementIds.size > 0 ? Achievement.find({ _id: { $in: Array.from(achievementIds) } }).select('name description icon').lean() : [],
-      goalIds.size > 0 ? GoalDetails.find({ goalId: { $in: Array.from(goalIds) } }).select('goalId completionNote completionAttachmentUrl').lean() : []
+      goalIds.size > 0 ? GoalDetails.find({ goalId: { $in: Array.from(goalIds) } }).select('goalId description completionNote completionAttachmentUrl').lean() : []
     ]);
     
     // Create lookup maps
@@ -54,10 +56,11 @@ class ActivityService {
           enrichedActivity.data = {
             ...enrichedActivity.data,
             goalTitle: goal.title,
+            goalDescription: details?.description || '',
             goalCategory: goal.category,
             isCompleted: goal.completed,
             completedAt: goal.completed_at,
-            goalIsPublic: goal.is_public, // Store goal privacy for filtering
+            goalIsPublic: goalAccessPolicy(goal, null).canViewGoal,
             // Fetch completion data from GoalDetails or preserve from activity data
             completionAttachmentUrl: details?.completionAttachmentUrl || enrichedActivity.data.completionAttachmentUrl || ''
           };
@@ -383,27 +386,7 @@ class ActivityService {
       {
         $limit: parseInt(limit)
       },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'userId',
-          foreignField: '_id',
-          as: 'user'
-        }
-      },
-      {
-        $unwind: '$user'
-      },
-      {
-        $project: {
-          type: 1,
-          data: 1,
-          createdAt: 1,
-          likeCount: 1,
-          'user.name': 1,
-          'user.avatar': 1
-        }
-      }
+      { $project: { type: 1, data: 1, createdAt: 1, likeCount: 1, userId: 1 } }
     ]);
     
     const total = await Activity.countDocuments({
@@ -422,7 +405,7 @@ class ActivityService {
       ]);
       idToCount = new Map(counts.map(c => [String(c._id), c.count]));
     }
-    const activitiesWithCounts = activities.map(a => ({ ...a, commentCount: idToCount.get(String(a._id)) || 0 }));
+    const activitiesWithCounts = await hydrateActivityAuthors(activities.map(a => ({ ...a, commentCount: idToCount.get(String(a._id)) || 0 })));
 
     return {
       activities: activitiesWithCounts,
@@ -560,8 +543,6 @@ class ActivityService {
     try {
       const activity = new Activity({
         userId,
-        name,
-        avatar,
         type,
         data
       });
@@ -620,12 +601,7 @@ class ActivityService {
           data: 1,
           createdAt: 1,
           likeCount: 1,
-          user: {
-            _id: '$userId',
-            name: '$name',
-            username: '$username',
-            avatar: '$avatar'
-          }
+          userId: 1
         }
       }
     ]);

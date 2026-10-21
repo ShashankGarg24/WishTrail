@@ -35,6 +35,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
     category: '',
     targetDate: '',
     isPublic: true,
+    isUpdatesPublic: true,
     subGoals: []
   })
 
@@ -62,6 +63,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         category: initialData?.category || '',
         targetDate: formattedTargetDate,
         isPublic: initialData?.isPublic ?? true,
+        isUpdatesPublic: initialData?.isUpdatesPublic ?? true,
         subGoals: Array.isArray(initialData?.subGoals) ? initialData.subGoals.map(item => ({ ...item })) : []
       })
       setShowAdditionalDetails(false)
@@ -155,6 +157,7 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
         targetDate: formData.targetDate || null,
         year: year,
         isPublic: !!formData.isPublic,
+        isUpdatesPublic: !!formData.isUpdatesPublic,
         subGoals: formData.subGoals.filter(item => item.title.trim()).map((item, index, items) => ({ ...item, title: item.title.trim(), weight: Math.floor(100 / items.length) + (index < (100 % items.length) ? 1 : 0) }))
       }
 
@@ -429,6 +432,17 @@ export default function CreateGoalWizard({ isOpen, onClose, year, initialData, e
                               boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.06)'
                             }}
                           />
+                          <span className="pointer-events-none absolute left-[2px] top-[2px] h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
+                        </span>
+                      </label>
+                      <label className={`mt-4 flex items-center justify-between gap-3 border-t border-gray-200 pt-4 dark:border-line ${formData.isPublic ? 'cursor-pointer' : 'opacity-60'}`}>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">Make updates public</div>
+                          <div className="text-xs text-gray-500 dark:text-muted">{formData.isPublic ? 'Let others see your updates and timeline. Turn off to keep both private.' : 'Updates and timeline are private while your goal is private.'}</div>
+                        </div>
+                        <span className="relative inline-flex shrink-0 items-center">
+                          <input type="checkbox" name="isUpdatesPublic" checked={!!formData.isPublic && !!formData.isUpdatesPublic} disabled={!formData.isPublic} onChange={handleInputChange} className="sr-only peer" />
+                          <span className="h-6 w-11 rounded-full transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-blue-400 peer-focus-visible:ring-offset-2" style={{ backgroundColor: formData.isPublic && formData.isUpdatesPublic ? THEME_COLOR : '#d1d5db' }} />
                           <span className="pointer-events-none absolute left-[2px] top-[2px] h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
                         </span>
                       </label>

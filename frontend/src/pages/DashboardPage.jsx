@@ -1340,6 +1340,7 @@ const DashboardPageNew = () => {
               category: goalToEdit.category,
               targetDate: goalToEdit.targetDate || goalToEdit.target_date || '',
               isPublic: goalToEdit.isPublic,
+              isUpdatesPublic: goalToEdit.isUpdatesPublic,
               subGoals: goalToEdit.subGoals || [],
               habitLinks: goalToEdit.habitLinks || []
             }}

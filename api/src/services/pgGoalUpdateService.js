@@ -1,4 +1,5 @@
 const { query, transaction } = require('../config/supabase');
+const { isGoalOwner } = require('./goalAccessPolicy');
 
 class PgGoalUpdateService {
   async assertGoalWritable(goalId, userId) {
@@ -12,7 +13,7 @@ class PgGoalUpdateService {
       throw Object.assign(new Error('Goal not found'), { statusCode: 404 });
     }
 
-    if (Number(goal.user_id) !== Number(userId)) {
+    if (!isGoalOwner(goal, userId)) {
       throw Object.assign(new Error('Access denied'), { statusCode: 403 });
     }
 
