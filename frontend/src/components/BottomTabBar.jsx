@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { BarChart3, BookOpen, Compass, Home, Plus, Newspaper, Target, User, Zap } from 'lucide-react'
+import { BarChart3, BookOpen, Compass, Home, Plus, Newspaper, Target, User, Zap, Trophy } from 'lucide-react'
 import useApiStore from '../store/apiStore'
 import AccountMenuSheet from './account/AccountMenuSheet'
 
@@ -70,7 +70,7 @@ const BottomTabBar = () => {
               <TabButton active={path.startsWith('/home') || path.startsWith('/dashboard')} label="Home" Icon={Home} onClick={() => navigate('/home')} />
               <TabButton active={path.startsWith('/feed')} label="Feed" Icon={Newspaper} onClick={() => navigate('/feed')} />
               <div className="flex-1" />
-              <TabButton active={path.startsWith('/discover')} label="Discover" Icon={Compass} onClick={() => navigate('/discover')} />
+              <TabButton active={path.startsWith('/leaderboard')} label="Leaderboard" Icon={Trophy} onClick={() => navigate('/leaderboard')} />
               <TabButton
                 active={path.startsWith('/profile')}
                 label="Profile"
